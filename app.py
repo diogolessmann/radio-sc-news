@@ -565,28 +565,35 @@ def admin_scheduler_status():
 # ──────────────────────────────────────────────
 # Inicialização
 # ──────────────────────────────────────────────
-if __name__ == '__main__':
-    init_db()
-    
-    # Inicia coleta automática
+def background_startup():
+    """Coleta inicial e scheduler rodam em background para não atrasar o start."""
+    import time
+    time.sleep(3)  # aguarda o servidor subir
     try:
         from scheduler import start_scheduler
         start_scheduler(interval_minutes=60)
     except Exception as e:
         logger.warning(f"Scheduler não iniciado: {e}")
-    
-    # Coleta inicial se o banco estiver vazio
+
     try:
         conn = get_db()
         count = conn.execute('SELECT COUNT(*) FROM news').fetchone()[0]
         conn.close()
         if count == 0:
-            logger.info("Banco vazio — fazendo coleta inicial...")
+            logger.info("Banco vazio — fazendo coleta inicial em background...")
             from scraper import collect_all
             collect_all()
     except Exception as e:
         logger.warning(f"Coleta inicial falhou: {e}")
-    
+
+
+if __name__ == '__main__':
+    init_db()
+
+    import threading
+    t = threading.Thread(target=background_startup, daemon=True)
+    t.start()
+
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'false').lower() == 'true'
     app.run(host='0.0.0.0', port=port, debug=debug)
