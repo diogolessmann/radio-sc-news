@@ -216,8 +216,7 @@ def fetch_feed(feed_config):
 
 
 def save_articles(articles):
-    """Salva notícias no banco, ignorando duplicatas. Gera áudio para prioritárias."""
-    from tts_engine import generate_audio
+    """Salva notícias no banco, ignorando duplicatas."""
     conn = get_db()
     saved = 0
     for art in articles:
@@ -228,7 +227,7 @@ def save_articles(articles):
             if existing:
                 continue
 
-            cur = conn.execute('''
+            conn.execute('''
                 INSERT INTO news (title, summary, link, source, city, category,
                                   published_at, image_url, priority, audio_file, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
@@ -238,24 +237,7 @@ def save_articles(articles):
                 art['published_at'], art.get('image_url'), int(art.get('priority', False)),
                 datetime.now().isoformat()
             ))
-            news_id = cur.lastrowid
             conn.commit()
-
-            # Gera áudio automaticamente
-            try:
-                audio_file = generate_audio(
-                    title=art['title'],
-                    summary=art.get('summary', ''),
-                    source=art['source'],
-                    city=art['city'],
-                    news_id=news_id
-                )
-                if audio_file:
-                    conn.execute('UPDATE news SET audio_file=? WHERE id=?', (audio_file, news_id))
-                    conn.commit()
-            except Exception as ae:
-                logger.warning(f"Áudio não gerado para notícia {news_id}: {ae}")
-
             saved += 1
         except Exception as e:
             logger.error(f"Erro ao salvar notícia: {e}")
