@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📻 Rádio SC — Painel Admin</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface2: #22222f;
+    --accent: #e94560;
+    --accent2: #f5a623;
+    --green: #27ae60;
+    --blue: #3498db;
+    --text: #e8e8f0;
+    --text2: #9090a8;
+    --border: rgba(255,255,255,0.08);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    height: 60px;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-logo { font-size: 20px; font-weight: 800; background: linear-gradient(135deg,#e94560,#f5a623); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; flex:1; }
+  .header-nav { display:flex; gap:8px; }
+  .nav-btn { background:none; border:1px solid var(--border); color:var(--text2); padding:6px 14px; border-radius:8px; cursor:pointer; font-size:13px; transition:all .2s; }
+  .nav-btn:hover,.nav-btn.active { background:var(--accent); border-color:var(--accent); color:#fff; }
+  .logout-btn { background:rgba(233,69,96,.1); border:1px solid rgba(233,69,96,.3); color:var(--accent); padding:6px 14px; border-radius:8px; cursor:pointer; font-size:13px; transition:all .2s; text-decoration:none; display:flex; align-items:center; gap:6px; }
+  .logout-btn:hover { background:var(--accent); color:#fff; }
+
+  /* LAYOUT */
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+  /* STATS */
+  .stats-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:28px; }
+  .stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:20px; text-align:center; }
+  .stat-card .num { font-size:36px; font-weight:800; margin-bottom:4px; }
+  .stat-card .lbl { font-size:13px; color:var(--text2); }
+  .stat-card.accent .num { color:var(--accent); }
+  .stat-card.green  .num { color:var(--green); }
+  .stat-card.blue   .num { color:var(--blue); }
+  .stat-card.orange .num { color:var(--accent2); }
+
+  /* TABS */
+  .tab-nav { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:0; }
+  .tab-btn { padding:10px 20px; background:none; border:none; color:var(--text2); cursor:pointer; font-size:14px; border-bottom:2px solid transparent; transition:all .2s; }
+  .tab-btn.active { color:var(--accent); border-bottom-color:var(--accent); font-weight:700; }
+  .tab-content { display:none; }
+  .tab-content.active { display:block; }
+
+  /* ACTION BAR */
+  .action-bar { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; align-items:center; }
+  .btn { padding:10px 18px; border-radius:10px; border:none; font-size:14px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:all .2s; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-primary:hover { opacity:.9; transform:translateY(-1px); }
+  .btn-green { background:var(--green); color:#fff; }
+  .btn-green:hover { opacity:.9; }
+  .btn-blue  { background:var(--blue); color:#fff; }
+  .btn-blue:hover { opacity:.9; }
+  .btn-sm { padding:6px 12px; font-size:12px; border-radius:8px; }
+  .btn-ghost { background:var(--surface2); color:var(--text2); border:1px solid var(--border); }
+  .btn-ghost:hover { color:var(--text); }
+  .btn-danger { background:rgba(233,69,96,.15); color:var(--accent); border:1px solid rgba(233,69,96,.3); }
+  .btn-danger:hover { background:var(--accent); color:#fff; }
+  .btn:disabled { opacity:.4; cursor:not-allowed; transform:none!important; }
+
+  /* NEWS TABLE */
+  .news-table { width:100%; border-collapse:collapse; font-size:14px; }
+  .news-table th { text-align:left; padding:10px 12px; color:var(--text2); font-size:12px; text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--border); }
+  .news-table td { padding:12px; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:top; }
+  .news-table tr:hover td { background:rgba(255,255,255,.02); }
+  .news-title-cell { font-weight:600; max-width:320px; }
+  .news-title-cell a { color:var(--text); text-decoration:none; }
+  .news-title-cell a:hover { color:var(--accent); }
+  .badge { display:inline-block; font-size:11px; font-weight:700; padding:3px 8px; border-radius:6px; }
+  .badge-city { background:rgba(245,166,35,.15); color:var(--accent2); }
+  .badge-cat  { background:rgba(52,152,219,.15); color:var(--blue); }
+  .badge-pri  { background:rgba(233,69,96,.15); color:var(--accent); }
+  .audio-status { font-size:12px; }
+  .audio-ok   { color:var(--green); }
+  .audio-pend { color:var(--text2); }
+  .table-actions { display:flex; gap:4px; flex-wrap:nowrap; }
+
+  /* FORMS */
+  .form-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:24px; margin-bottom:20px; }
+  .form-card h3 { font-size:16px; margin-bottom:20px; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-group { margin-bottom:16px; }
+  .form-group label { display:block; font-size:13px; color:var(--text2); font-weight:600; margin-bottom:8px; text-transform:uppercase; letter-spacing:.4px; }
+  .form-control { width:100%; padding:10px 14px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:14px; outline:none; transition:border-color .2s; }
+  .form-control:focus { border-color:var(--accent); }
+  textarea.form-control { resize:vertical; min-height:100px; }
+  .form-control::placeholder { color:var(--text2); }
+  select.form-control option { background:var(--surface2); }
+
+  /* MEDIA GRID */
+  .media-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+  .media-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; position:relative; }
+  .media-img { width:100%; height:120px; object-fit:cover; display:block; }
+  .media-info { padding:8px 10px; font-size:12px; color:var(--text2); display:flex; align-items:center; justify-content:space-between; }
+  .media-delete { position:absolute; top:6px; right:6px; width:28px; height:28px; background:rgba(0,0,0,.6); border:none; border-radius:50%; color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .media-delete:hover { background:var(--accent); }
+
+  /* ADS */
+  .ads-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .ad-card { background:var(--surface); border:1px solid rgba(245,166,35,.2); border-radius:var(--radius); overflow:hidden; }
+  .ad-card img { width:100%; height:140px; object-fit:cover; display:block; }
+  .ad-card-body { padding:14px; }
+  .ad-card-title { font-weight:700; margin-bottom:6px; }
+  .ad-card-text { font-size:13px; color:var(--text2); margin-bottom:12px; }
+  .ad-card-actions { display:flex; gap:8px; }
+
+  /* TOAST */
+  #toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(100px); background:#333; color:#fff; padding:12px 24px; border-radius:12px; font-size:14px; z-index:999; transition:transform .3s; opacity:0; }
+  #toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+  #toast.success { background:var(--green); }
+  #toast.error   { background:var(--accent); }
+
+  /* UPLOAD ZONE */
+  .upload-zone { border:2px dashed var(--border); border-radius:12px; padding:24px; text-align:center; cursor:pointer; transition:border-color .2s; }
+  .upload-zone:hover,.upload-zone.drag { border-color:var(--accent); }
+  .upload-zone input { display:none; }
+  .upload-zone .icon { font-size:36px; margin-bottom:8px; }
+  .upload-zone p { font-size:14px; color:var(--text2); }
+
+  .spinner-inline { display:inline-block; width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; }
+  @keyframes spin { to{ transform:rotate(360deg); } }
+
+  @media (max-width:768px) {
+    header { padding:0 12px; }
+    .header-nav { display:none; }
+    .container { padding:16px; }
+    .form-row { grid-template-columns:1fr; }
+    .news-table { font-size:12px; }
+    .news-table th:nth-child(3),
+    .news-table td:nth-child(3),
+    .news-table th:nth-child(4),
+    .news-table td:nth-child(4) { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">📻 Rádio SC Admin</div>
+  <nav class="header-nav">
+    <button class="nav-btn active" onclick="showTab('news')">📰 Notícias</button>
+    <button class="nav-btn" onclick="showTab('publish')">✍️ Publicar</button>
+    <button class="nav-btn" onclick="showTab('media')">🖼️ Mídia</button>
+    <button class="nav-btn" onclick="showTab('ads')">📢 Propagandas</button>
+    <a href="/" target="_blank" class="nav-btn" style="text-decoration:none">🌐 Ver Site</a>
+  </nav>
+  <a href="/logout" class="logout-btn">🚪 Sair</a>
+</header>
+
+<div class="container">
+
+  <!-- STATS -->
+  <div class="stats-grid">
+    <div class="stat-card accent"><div class="num" id="stat-news">{{ stats.total_news }}</div><div class="lbl">📰 Notícias</div></div>
+    <div class="stat-card green"><div class="num" id="stat-audio">{{ stats.with_audio }}</div><div class="lbl">🎧 Com Áudio</div></div>
+    <div class="stat-card orange"><div class="num" id="stat-ads">{{ stats.total_ads }}</div><div class="lbl">📢 Propagandas</div></div>
+    <div class="stat-card blue"><div class="num" id="stat-media">{{ stats.total_media }}</div><div class="lbl">🖼️ Mídias</div></div>
+  </div>
+
+  <!-- TAB NAV -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showTab('news')">📰 Notícias</button>
+    <button class="tab-btn" onclick="showTab('publish')">✍️ Publicar</button>
+    <button class="tab-btn" onclick="showTab('media')">🖼️ Mídia</button>
+    <button class="tab-btn" onclick="showTab('ads')">📢 Propagandas</button>
+  </div>
+
+  <!-- TAB: NOTÍCIAS -->
+  <div id="tab-news" class="tab-content active">
+    <div class="action-bar">
+      <button class="btn btn-green" id="collectBtn" onclick="collectNews()">
+        <span id="collectIcon">🔄</span> Coletar Notícias
+      </button>
+      <button class="btn btn-blue" onclick="generateAllAudio()">
+        🎵 Gerar Áudios Pendentes
+      </button>
+    </div>
+
+    <div style="overflow-x:auto">
+      <table class="news-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Título</th>
+            <th>Cidade / Categoria</th>
+            <th>Publicado</th>
+            <th>Áudio</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for n in news %}
+        <tr id="row-{{ n.id }}">
+          <td style="color:var(--text2)">{{ n.id }}</td>
+          <td class="news-title-cell">
+            {% if n.link %}<a href="{{ n.link }}" target="_blank">{% endif %}
+            {{ n.title[:80] }}{% if n.title|length > 80 %}…{% endif %}
+            {% if n.link %}</a>{% endif %}
+            {% if n.priority %}<span class="badge badge-pri" style="margin-left:4px">⭐</span>{% endif %}
+          </td>
+          <td>
+            <span class="badge badge-city">{{ n.city or 'SC' }}</span>
+            <span class="badge badge-cat" style="margin-top:4px;display:block;width:fit-content">{{ n.category or 'geral' }}</span>
+          </td>
+          <td style="color:var(--text2);font-size:12px;white-space:nowrap">
+            {{ (n.published_at or n.created_at or '')[:16] }}
+          </td>
+          <td class="audio-status">
+            {% if n.audio_file %}
+            <span class="audio-ok">✅ OK</span>
+            {% else %}
+            <span class="audio-pend">⏳</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="table-actions">
+              {% if not n.audio_file %}
+              <button class="btn btn-blue btn-sm" onclick="generateAudio({{ n.id }})">🎙️ Gerar</button>
+              {% endif %}
+              <button class="btn btn-ghost btn-sm" onclick="openImageModal({{ n.id }})">🖼️</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteNews({{ n.id }})">🗑️</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: PUBLICAR -->
+  <div id="tab-publish" class="tab-content">
+    <div class="form-card">
+      <h3>✍️ Criar Notícia Manualmente</h3>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1">
+          <label>Título *</label>
+          <input class="form-control" id="pub-title" placeholder="Digite o título da notícia..." type="text">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Resumo / Texto</label>
+        <textarea class="form-control" id="pub-summary" placeholder="Digite o texto da notícia..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cidade</label>
+          <select class="form-control" id="pub-city">
+            <option value="Schroeder">Schroeder</option>
+            <option value="Joinville">Joinville</option>
+            <option value="Blumenau">Blumenau</option>
+            <option value="Jaraguá do Sul">Jaraguá do Sul</option>
+            <option value="Florianópolis">Florianópolis</option>
+            <option value="Santa Catarina" selected>Santa Catarina</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Categoria</label>
+          <select class="form-control" id="pub-category">
+            <option value="geral" selected>📰 Geral</option>
+            <option value="policial">🚨 Policial</option>
+            <option value="politica">🏛️ Política</option>
+            <option value="saude">🏥 Saúde</option>
+            <option value="esporte">⚽ Esporte</option>
+            <option value="economia">💼 Economia</option>
+            <option value="clima">🌧️ Clima</option>
+            <option value="cultura">🎭 Cultura</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Fonte</label>
+          <input class="form-control" id="pub-source" placeholder="Ex: Redação, Portal SC..." value="Redação" type="text">
+        </div>
+        <div class="form-group">
+          <label>Link (opcional)</label>
+          <input class="form-control" id="pub-link" placeholder="https://..." type="url">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Imagem (opcional)</label>
+        <div class="upload-zone" onclick="document.getElementById('pub-image').click()">
+          <div class="icon">📷</div>
+          <p>Clique para selecionar imagem</p>
+          <p style="font-size:11px;margin-top:4px">JPG, PNG, GIF, WebP — max 10MB</p>
+          <input type="file" id="pub-image" accept="image/*" onchange="previewPubImage(this)">
+        </div>
+        <img id="pub-preview" style="max-width:100%;max-height:200px;margin-top:10px;border-radius:10px;display:none" alt="preview">
+      </div>
+      <button class="btn btn-primary" onclick="createNews()">📤 Publicar Notícia</button>
+    </div>
+  </div>
+
+  <!-- TAB: MÍDIA -->
+  <div id="tab-media" class="tab-content">
+    <div class="form-card">
+      <h3>🖼️ Upload de Imagem</h3>
+      <div class="form-group">
+        <label>Imagem</label>
+        <div class="upload-zone" onclick="document.getElementById('media-file').click()">
+          <div class="icon">🖼️</div>
+          <p>Clique ou arraste uma imagem aqui</p>
+          <input type="file" id="media-file" accept="image/*" onchange="previewMediaImage(this)">
+        </div>
+        <img id="media-preview" style="max-width:100%;max-height:200px;margin-top:10px;border-radius:10px;display:none">
+      </div>
+      <div class="form-group">
+        <label>Legenda (opcional)</label>
+        <input class="form-control" id="media-caption" placeholder="Descreva a imagem..." type="text">
+      </div>
+      <button class="btn btn-primary" onclick="uploadMedia()">⬆️ Enviar Imagem</button>
+    </div>
+
+    <h3 style="margin-bottom:16px">📁 Biblioteca de Imagens</h3>
+    <div class="media-grid" id="mediaGrid">
+      {% for m in media %}
+      <div class="media-card" id="media-{{ m.id }}">
+        <img class="media-img" src="/uploads/{{ m.filename }}" alt="{{ m.caption or '' }}" loading="lazy" onerror="this.src='/static/placeholder.png'">
+        <div class="media-info">
+          <span>{{ m.filename[:18] }}…</span>
+          <button class="media-delete" onclick="deleteMedia({{ m.id }})" title="Excluir">×</button>
+        </div>
+      </div>
+      {% endfor %}
+      {% if not media %}
+      <div style="color:var(--text2);font-size:14px;grid-column:1/-1;padding:24px 0">Nenhuma imagem enviada ainda.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- TAB: PROPAGANDAS -->
+  <div id="tab-ads" class="tab-content">
+    <div class="form-card">
+      <h3>📢 Criar Nova Propaganda</h3>
+      <div class="form-group">
+        <label>Título *</label>
+        <input class="form-control" id="ad-title" placeholder="Nome do anunciante ou título..." type="text">
+      </div>
+      <div class="form-group">
+        <label>Texto do anúncio</label>
+        <textarea class="form-control" id="ad-text" placeholder="Texto que será lido em áudio..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>Link (ao clicar)</label>
+        <input class="form-control" id="ad-link" placeholder="https://..." type="url">
+      </div>
+      <div class="form-group">
+        <label>Imagem da propaganda</label>
+        <div class="upload-zone" onclick="document.getElementById('ad-image').click()">
+          <div class="icon">🖼️</div>
+          <p>Selecionar imagem do anúncio</p>
+          <input type="file" id="ad-image" accept="image/*" onchange="previewAdImage(this)">
+        </div>
+        <img id="ad-preview" style="max-width:100%;max-height:200px;margin-top:10px;border-radius:10px;display:none">
+      </div>
+      <button class="btn btn-primary" onclick="createAd()">📤 Criar Propaganda</button>
+    </div>
+
+    <h3 style="margin-bottom:16px">📋 Propagandas Cadastradas</h3>
+    <div class="ads-grid" id="adsGrid">
+      {% for ad in ads %}
+      <div class="ad-card" id="ad-{{ ad.id }}">
+        {% if ad.image %}<img src="/uploads/{{ ad.image }}" alt="">{% endif %}
+        <div class="ad-card-body">
+          <div class="ad-card-title">{{ ad.title }}</div>
+          {% if ad.text %}<div class="ad-card-text">{{ ad.text[:100] }}{% if ad.text|length > 100 %}…{% endif %}</div>{% endif %}
+          <div style="margin-bottom:10px">
+            <span class="badge" style="background:{% if ad.active %}rgba(39,174,96,.2);color:#27ae60{% else %}rgba(255,255,255,.05);color:var(--text2){% endif %}">
+              {% if ad.active %}✅ Ativa{% else %}⏸️ Pausada{% endif %}
+            </span>
+            {% if ad.audio_file %}<span class="badge" style="background:rgba(52,152,219,.15);color:#3498db;margin-left:4px">🎧 Áudio</span>{% endif %}
+          </div>
+          <div class="ad-card-actions">
+            <button class="btn btn-ghost btn-sm" onclick="toggleAd({{ ad.id }})">
+              {% if ad.active %}⏸️ Pausar{% else %}▶️ Ativar{% endif %}
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAd({{ ad.id }})">🗑️ Excluir</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+      {% if not ads %}
+      <div style="color:var(--text2);font-size:14px">Nenhuma propaganda cadastrada ainda.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- MODAL: Upload imagem para notícia -->
+<div id="imageModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:440px;width:90%">
+    <h3 style="margin-bottom:16px">🖼️ Enviar imagem para notícia</h3>
+    <input type="hidden" id="modal-news-id">
+    <div class="upload-zone" onclick="document.getElementById('modal-image').click()">
+      <div class="icon">📷</div>
+      <p>Selecionar imagem</p>
+      <input type="file" id="modal-image" accept="image/*" onchange="previewModalImage(this)">
+    </div>
+    <img id="modal-preview" style="max-width:100%;max-height:180px;margin-top:10px;border-radius:10px;display:none">
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-primary" onclick="uploadNewsImage()">⬆️ Enviar</button>
+      <button class="btn btn-ghost" onclick="closeImageModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── TABS ──────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  document.querySelectorAll(`.tab-btn, .nav-btn`).forEach(b => {
+    if (b.textContent.toLowerCase().includes(name === 'news' ? 'notícia' : name === 'publish' ? 'publicar' : name === 'media' ? 'mídia' : 'propagan'))
+      b.classList.add('active');
+  });
+}
+
+// ── TOAST ─────────────────────────────────────
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  setTimeout(() => { t.className = ''; }, 3500);
+}
+
+// ── COLLECT NEWS ──────────────────────────────
+async function collectNews() {
+  const btn = document.getElementById('collectBtn');
+  const icon = document.getElementById('collectIcon');
+  btn.disabled = true;
+  icon.innerHTML = '<span class="spinner-inline"></span>';
+  try {
+    const r = await fetch('/admin/collect', {method:'POST'});
+    const d = await r.json();
+    if (d.success) {
+      toast(`✅ ${d.message}`, 'success');
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      toast(`❌ ${d.message}`, 'error');
+    }
+  } catch(e) { toast('❌ Erro de comunicação', 'error'); }
+  btn.disabled = false;
+  icon.textContent = '🔄';
+}
+
+// ── GENERATE AUDIO ─────────────────────────────
+async function generateAudio(id) {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '⏳';
+  try {
+    const r = await fetch(`/admin/generate_audio/${id}`, {method:'POST'});
+    const d = await r.json();
+    if (d.success) {
+      toast('🎧 Áudio gerado!', 'success');
+      const row = document.getElementById(`row-${id}`);
+      if (row) {
+        row.querySelector('.audio-status').innerHTML = '<span class="audio-ok">✅ OK</span>';
+        btn.parentElement.removeChild(btn);
+      }
+    } else {
+      toast('❌ ' + d.message, 'error');
+      btn.disabled = false; btn.textContent = '🎙️ Gerar';
+    }
+  } catch(e) { toast('❌ Erro', 'error'); btn.disabled=false; btn.textContent='🎙️ Gerar'; }
+}
+
+async function generateAllAudio() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-inline"></span> Gerando...';
+  try {
+    const r = await fetch('/admin/generate_all_audio', {method:'POST'});
+    const d = await r.json();
+    toast(`🎧 ${d.generated} áudios gerados de ${d.pending} pendentes.`, 'success');
+    setTimeout(() => location.reload(), 2000);
+  } catch(e) { toast('❌ Erro', 'error'); }
+  btn.disabled = false;
+  btn.innerHTML = '🎵 Gerar Áudios Pendentes';
+}
+
+// ── DELETE NEWS ────────────────────────────────
+async function deleteNews(id) {
+  if (!confirm('Remover esta notícia do feed?')) return;
+  const r = await fetch(`/admin/news/delete/${id}`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) {
+    document.getElementById(`row-${id}`).remove();
+    toast('🗑️ Notícia removida.', 'success');
+  }
+}
+
+// ── CREATE NEWS ────────────────────────────────
+async function createNews() {
+  const title = document.getElementById('pub-title').value.trim();
+  if (!title) { toast('⚠️ Título obrigatório.', 'error'); return; }
+
+  const fd = new FormData();
+  fd.append('title',    title);
+  fd.append('summary',  document.getElementById('pub-summary').value);
+  fd.append('city',     document.getElementById('pub-city').value);
+  fd.append('category', document.getElementById('pub-category').value);
+  fd.append('source',   document.getElementById('pub-source').value);
+  fd.append('link',     document.getElementById('pub-link').value);
+  const imgFile = document.getElementById('pub-image').files[0];
+  if (imgFile) fd.append('image', imgFile);
+
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Publicando...';
+  try {
+    const r = await fetch('/admin/news/create', {method:'POST', body:fd});
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ Notícia publicada!', 'success');
+      document.getElementById('pub-title').value = '';
+      document.getElementById('pub-summary').value = '';
+      document.getElementById('pub-link').value = '';
+      document.getElementById('pub-preview').style.display = 'none';
+      document.getElementById('pub-image').value = '';
+    } else {
+      toast('❌ ' + d.message, 'error');
+    }
+  } catch(e) { toast('❌ Erro', 'error'); }
+  btn.disabled = false; btn.textContent = '📤 Publicar Notícia';
+}
+
+// ── IMAGE MODAL ────────────────────────────────
+function openImageModal(newsId) {
+  document.getElementById('modal-news-id').value = newsId;
+  document.getElementById('modal-preview').style.display = 'none';
+  document.getElementById('imageModal').style.display = 'flex';
+}
+function closeImageModal() {
+  document.getElementById('imageModal').style.display = 'none';
+}
+async function uploadNewsImage() {
+  const newsId = document.getElementById('modal-news-id').value;
+  const file = document.getElementById('modal-image').files[0];
+  if (!file) { toast('⚠️ Selecione uma imagem.', 'error'); return; }
+  const fd = new FormData();
+  fd.append('image', file);
+  const r = await fetch(`/admin/news/upload_image/${newsId}`, {method:'POST', body:fd});
+  const d = await r.json();
+  if (d.success) {
+    toast('🖼️ Imagem enviada!', 'success');
+    closeImageModal();
+  } else {
+    toast('❌ ' + d.message, 'error');
+  }
+}
+
+// ── MEDIA UPLOAD ───────────────────────────────
+async function uploadMedia() {
+  const file = document.getElementById('media-file').files[0];
+  if (!file) { toast('⚠️ Selecione uma imagem.', 'error'); return; }
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('caption', document.getElementById('media-caption').value);
+  const r = await fetch('/admin/media/upload', {method:'POST', body:fd});
+  const d = await r.json();
+  if (d.success) {
+    toast('✅ Imagem enviada!', 'success');
+    location.reload();
+  } else {
+    toast('❌ ' + d.message, 'error');
+  }
+}
+async function deleteMedia(id) {
+  if (!confirm('Excluir esta imagem?')) return;
+  const r = await fetch(`/admin/media/delete/${id}`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) {
+    document.getElementById(`media-${id}`).remove();
+    toast('🗑️ Imagem excluída.', 'success');
+  }
+}
+
+// ── ADS ────────────────────────────────────────
+async function createAd() {
+  const title = document.getElementById('ad-title').value.trim();
+  if (!title) { toast('⚠️ Título obrigatório.', 'error'); return; }
+  const fd = new FormData();
+  fd.append('title', title);
+  fd.append('text',  document.getElementById('ad-text').value);
+  fd.append('link',  document.getElementById('ad-link').value);
+  const imgFile = document.getElementById('ad-image').files[0];
+  if (imgFile) fd.append('image', imgFile);
+
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Criando...';
+  const r = await fetch('/admin/ads/create', {method:'POST', body:fd});
+  const d = await r.json();
+  if (d.success) {
+    toast('✅ Propaganda criada!', 'success');
+    setTimeout(() => location.reload(), 1000);
+  } else {
+    toast('❌ ' + d.message, 'error');
+  }
+  btn.disabled = false; btn.textContent = '📤 Criar Propaganda';
+}
+
+async function toggleAd(id) {
+  const r = await fetch(`/admin/ads/toggle/${id}`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) { toast(d.active ? '✅ Propaganda ativada.' : '⏸️ Propaganda pausada.', 'success'); setTimeout(()=>location.reload(),800); }
+}
+
+async function deleteAd(id) {
+  if (!confirm('Excluir esta propaganda?')) return;
+  const r = await fetch(`/admin/ads/delete/${id}`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) { document.getElementById(`ad-${id}`).remove(); toast('🗑️ Propaganda excluída.', 'success'); }
+}
+
+// ── PREVIEWS ──────────────────────────────────
+function previewPubImage(input) {
+  const p = document.getElementById('pub-preview');
+  if (input.files[0]) { p.src=URL.createObjectURL(input.files[0]); p.style.display='block'; }
+}
+function previewAdImage(input) {
+  const p = document.getElementById('ad-preview');
+  if (input.files[0]) { p.src=URL.createObjectURL(input.files[0]); p.style.display='block'; }
+}
+function previewMediaImage(input) {
+  const p = document.getElementById('media-preview');
+  if (input.files[0]) { p.src=URL.createObjectURL(input.files[0]); p.style.display='block'; }
+}
+function previewModalImage(input) {
+  const p = document.getElementById('modal-preview');
+  if (input.files[0]) { p.src=URL.createObjectURL(input.files[0]); p.style.display='block'; }
+}
+
+// Fechar modal ao clicar fora
+document.getElementById('imageModal').addEventListener('click', function(e) {
+  if (e.target === this) closeImageModal();
+});
+</script>
+</body>
+</html>

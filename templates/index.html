@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📻 Rádio SC — Notícias em Áudio</title>
+<style>
+  :root {
+    --bg: #0f0f13;
+    --surface: #1a1a24;
+    --surface2: #22222f;
+    --accent: #e94560;
+    --accent2: #f5a623;
+    --green: #27ae60;
+    --text: #e8e8f0;
+    --text2: #9090a8;
+    --border: rgba(255,255,255,0.08);
+    --radius: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,15,19,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 16px;
+  }
+  .header-inner {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 60px;
+  }
+  .logo-text {
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    flex: 1;
+  }
+  .live-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(233,69,96,0.15);
+    border: 1px solid rgba(233,69,96,0.3);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .live-dot {
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.4; transform:scale(0.8); }
+  }
+
+  /* FILTERS */
+  .filters-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0;
+    position: relative;
+  }
+  .filters-wrapper {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+  .filters-inner {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 10px 4px;
+    flex: 1;
+    scroll-behavior: smooth;
+  }
+  .filters-inner::-webkit-scrollbar { display: none; }
+  .filters-arrow {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 14px;
+    transition: all 0.2s;
+    z-index: 2;
+    margin: 0 4px;
+  }
+  .filters-arrow:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .filter-btn {
+    white-space: nowrap;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .filter-btn:hover, .filter-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* SEARCH */
+  .search-bar {
+    max-width: 680px;
+    margin: 16px auto 0;
+    padding: 0 16px;
+  }
+  .search-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text2); }
+
+  /* FEED */
+  .feed {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* NEWS CARD */
+  .news-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .news-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  .news-card.priority {
+    border-color: rgba(233,69,96,0.3);
+  }
+  .news-card.playing {
+    border-color: var(--green);
+    box-shadow: 0 0 20px rgba(39,174,96,0.2);
+  }
+
+  .card-image {
+    width: 100%;
+    max-height: 220px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .badge {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.08);
+    color: var(--text2);
+  }
+  .badge.city { background: rgba(245,166,35,0.15); color: var(--accent2); }
+  .badge.cat  { background: rgba(233,69,96,0.15); color: var(--accent); }
+  .meta-time {
+    font-size: 12px;
+    color: var(--text2);
+    margin-left: auto;
+  }
+
+  .card-title {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+  .card-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .card-title a:hover { color: var(--accent); }
+
+  .card-summary {
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.6;
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* AUDIO PLAYER */
+  .audio-player {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .play-btn {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s, background 0.2s;
+  }
+  .play-btn:hover { transform: scale(1.08); }
+  .play-btn.playing { background: var(--green); }
+  .player-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .player-label {
+    font-size: 11px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .player-progress {
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+  .player-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.2s;
+  }
+  .player-time {
+    font-size: 12px;
+    color: var(--text2);
+    text-align: right;
+    margin-top: 3px;
+  }
+  .no-audio-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text2);
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 10px 14px;
+  }
+
+  /* AD CARD */
+  .ad-card {
+    background: linear-gradient(135deg, var(--surface) 0%, rgba(245,166,35,0.05) 100%);
+    border: 1px solid rgba(245,166,35,0.2);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .ad-badge {
+    background: var(--accent2);
+    color: #000;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 3px 10px;
+    display: inline-block;
+    margin: 12px 0 0 16px;
+    border-radius: 4px;
+  }
+  .ad-body { padding: 10px 16px 16px; }
+  .ad-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .ad-text { font-size: 14px; color: var(--text2); margin-bottom: 12px; }
+  .ad-image { width: 100%; max-height: 180px; object-fit: cover; display: block; }
+
+  /* LOADING */
+  .spinner {
+    text-align: center;
+    padding: 40px;
+    color: var(--text2);
+    font-size: 14px;
+  }
+  .spinner::before {
+    content: '';
+    display: block;
+    width: 32px; height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .load-more-btn {
+    display: block;
+    width: 100%;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    border-radius: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    margin-top: 4px;
+  }
+  .load-more-btn:hover { background: var(--surface2); color: var(--text); }
+  .load-more-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text2);
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-state p { font-size: 15px; }
+
+  .admin-link {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    transition: all 0.2s;
+    z-index: 50;
+  }
+  .admin-link:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  @media (max-width: 480px) {
+    .card-title { font-size: 15px; }
+    .card-body { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo-text">📻 Rádio SC</div>
+    <div class="live-badge">
+      <div class="live-dot"></div>
+      Ao vivo
+    </div>
+  </div>
+</header>
+
+<div class="filters-bar">
+  <div class="filters-wrapper">
+    <button class="filters-arrow" id="arrowLeft" onclick="scrollFilters(-1)">‹</button>
+    <div class="filters-inner" id="filtersBar">
+      <button class="filter-btn active" data-type="all" onclick="setFilter('all','')">🌎 Todas</button>
+      <button class="filter-btn" data-type="region" data-value="norte" onclick="setFilter('region','norte')">🏔️ Norte de SC</button>
+      <!-- Filtros de cidade carregados via JS -->
+    </div>
+    <button class="filters-arrow" id="arrowRight" onclick="scrollFilters(1)">›</button>
+  </div>
+</div>
+
+<div class="search-bar">
+  <input class="search-input" type="text" id="searchInput" placeholder="🔍 Buscar notícias..." oninput="debounceSearch()">
+</div>
+
+<div class="feed" id="feed">
+  <div class="spinner" id="loadingSpinner">Carregando notícias...</div>
+</div>
+
+<button class="load-more-btn" id="loadMoreBtn" style="max-width:680px;margin:0 auto 32px;display:none" onclick="loadMore()">
+  ↓ Carregar mais notícias
+</button>
+
+<a href="/admin" class="admin-link">⚙️ Admin</a>
+
+<!-- Hidden audio element -->
+<audio id="globalAudio" preload="none"></audio>
+
+<script>
+const audio = document.getElementById('globalAudio');
+let currentPlayingId = null;
+let currentPage = 1;
+let isLoading = false;
+let hasMore = true;
+let currentFilter = { type: 'all', value: '' };
+let searchQuery = '';
+let searchTimer = null;
+let adInsertEvery = 5;
+let adIndex = 0;
+let allAds = [];
+
+// ── CATEGORY LABELS ───────────────────────────
+const CAT_LABELS = {
+  geral: '📰 Geral', policial: '🚨 Policial', politica: '🏛️ Política',
+  saude: '🏥 Saúde', esporte: '⚽ Esporte', economia: '💼 Economia',
+  clima: '🌧️ Clima', cultura: '🎭 Cultura', regional: '📍 Regional', local: '🏘️ Local'
+};
+const CITY_EMOJI = { 'Schroeder':'🏡', 'Joinville':'🏙️', 'Jaraguá do Sul':'🏭', 'Guaramirim':'🌿', 'Corupá':'⛰️', 'Blumenau':'🌺', 'Florianópolis':'🌉', 'Santa Catarina':'🌊', 'Norte de SC':'🏔️' };
+
+// ── INIT ──────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  await loadFilterOptions();
+  await loadNews(1);
+});
+
+function scrollFilters(dir) {
+  const bar = document.getElementById('filtersBar');
+  bar.scrollLeft += dir * 160;
+}
+
+async function loadFilterOptions() {
+  try {
+    const [cities, cats] = await Promise.all([
+      fetch('/api/cities').then(r=>r.json()),
+      fetch('/api/categories').then(r=>r.json())
+    ]);
+    const bar = document.getElementById('filtersBar');
+    bar.innerHTML = `<button class="filter-btn active" data-type="all" onclick="setFilter('all','')">🌎 Todas</button>`;
+    cities.forEach(c => {
+      const emoji = CITY_EMOJI[c] || '📍';
+      bar.innerHTML += `<button class="filter-btn" data-type="city" data-value="${c}" onclick="setFilter('city','${c}')">${emoji} ${c}</button>`;
+    });
+    cats.forEach(c => {
+      const label = CAT_LABELS[c] || ('📌 ' + c);
+      bar.innerHTML += `<button class="filter-btn" data-type="cat" data-value="${c}" onclick="setFilter('cat','${c}')">${label}</button>`;
+    });
+  } catch(e) { console.error(e); }
+}
+
+function setFilter(type, value) {
+  currentFilter = { type, value };
+  currentPage = 1;
+  hasMore = true;
+  document.querySelectorAll('.filter-btn').forEach(b => {
+    b.classList.toggle('active',
+      (type==='all' && b.dataset.type==='all') ||
+      (b.dataset.type===type && b.dataset.value===value)
+    );
+  });
+  document.getElementById('feed').innerHTML = '<div class="spinner">Filtrando...</div>';
+  loadNews(1, true);
+}
+
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => {
+    searchQuery = document.getElementById('searchInput').value.trim();
+    currentPage = 1; hasMore = true;
+    document.getElementById('feed').innerHTML = '<div class="spinner">Buscando...</div>';
+    loadNews(1, true);
+  }, 400);
+}
+
+async function loadNews(page=1, reset=false) {
+  if (isLoading) return;
+  isLoading = true;
+  document.getElementById('loadMoreBtn').disabled = true;
+
+  const params = new URLSearchParams({ page, per_page: 10 });
+  if (currentFilter.type === 'city')   params.set('city', currentFilter.value);
+  if (currentFilter.type === 'cat')    params.set('category', currentFilter.value);
+  if (currentFilter.type === 'region') params.set('region', currentFilter.value);
+  if (searchQuery) params.set('q', searchQuery);
+
+  try {
+    const data = await fetch(`/api/news?${params}`).then(r=>r.json());
+    if (reset) { document.getElementById('feed').innerHTML = ''; adIndex = 0; }
+    if (data.ads) allAds = data.ads;
+    
+    const feed = document.getElementById('feed');
+    if (data.news.length === 0 && page === 1) {
+      feed.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhuma notícia encontrada.</p></div>`;
+    } else {
+      data.news.forEach((n, i) => {
+        // Intercalar propaganda a cada N notícias
+        if (allAds.length > 0 && adIndex > 0 && adIndex % adInsertEvery === 0) {
+          const ad = allAds[(adIndex / adInsertEvery - 1) % allAds.length];
+          feed.appendChild(buildAdCard(ad));
+        }
+        feed.appendChild(buildNewsCard(n));
+        adIndex++;
+      });
+    }
+    hasMore = data.has_more;
+    currentPage = data.page;
+    document.getElementById('loadMoreBtn').style.display = hasMore ? 'block' : 'none';
+  } catch(e) {
+    console.error(e);
+    document.getElementById('feed').innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar notícias.</p></div>`;
+  }
+  isLoading = false;
+  document.getElementById('loadMoreBtn').disabled = false;
+}
+
+function loadMore() {
+  if (hasMore && !isLoading) loadNews(currentPage + 1);
+}
+
+// ── CARD BUILDERS ─────────────────────────────
+function formatTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if (diff < 3600)   return `há ${Math.round(diff/60)}min`;
+  if (diff < 86400)  return `há ${Math.round(diff/3600)}h`;
+  return d.toLocaleDateString('pt-BR');
+}
+
+function buildNewsCard(n) {
+  const card = document.createElement('div');
+  card.className = 'news-card' + (n.priority ? ' priority' : '');
+  card.id = `card-${n.id}`;
+
+  const catLabel = CAT_LABELS[n.category] || n.category;
+  const cityEmoji = CITY_EMOJI[n.city] || '📍';
+
+  // Determina imagem
+  const imgSrc = n.admin_image ? `/uploads/${n.admin_image}` : n.image_url;
+
+  let imageHtml = '';
+  if (imgSrc) {
+    imageHtml = `<img class="card-image" src="${escHtml(imgSrc)}" alt="" loading="lazy" onerror="this.style.display='none'">`;
+  }
+
+  let audioHtml = '';
+  if (n.audio_file) {
+    audioHtml = `
+    <div class="audio-player">
+      <button class="play-btn" id="play-${n.id}" onclick="togglePlay(${n.id},'${n.audio_file}')">▶</button>
+      <div class="player-info">
+        <div class="player-label">🎧 Ouça a notícia</div>
+        <div class="player-progress" onclick="seekAudio(event,${n.id})">
+          <div class="player-progress-fill" id="prog-${n.id}"></div>
+        </div>
+        <div class="player-time" id="time-${n.id}">0:00</div>
+      </div>
+    </div>`;
+  } else {
+    audioHtml = `<div class="no-audio-btn">⏳ Áudio sendo gerado...</div>`;
+  }
+
+  card.innerHTML = `
+    ${imageHtml}
+    <div class="card-body">
+      <div class="card-meta">
+        <span class="badge city">${cityEmoji} ${escHtml(n.city||'SC')}</span>
+        <span class="badge cat">${catLabel}</span>
+        <span class="meta-time">${formatTime(n.published_at)}</span>
+      </div>
+      <div class="card-title">
+        ${n.link ? `<a href="${escHtml(n.link)}" target="_blank" rel="noopener">${escHtml(n.title)}</a>` : escHtml(n.title)}
+      </div>
+      ${n.summary ? `<div class="card-summary">${escHtml(n.summary)}</div>` : ''}
+      ${audioHtml}
+      ${n.source ? `<div style="font-size:11px;color:var(--text2);margin-top:8px">Fonte: ${escHtml(n.source)}</div>` : ''}
+    </div>`;
+  return card;
+}
+
+function buildAdCard(ad) {
+  const card = document.createElement('div');
+  card.className = 'ad-card';
+  const imgHtml = ad.image ? `<img class="ad-image" src="/uploads/${escHtml(ad.image)}" alt="propaganda" loading="lazy">` : '';
+  let audioHtml = '';
+  if (ad.audio_file) {
+    audioHtml = `
+    <div class="audio-player">
+      <button class="play-btn" id="play-ad-${ad.id}" onclick="togglePlay('ad_${ad.id}','${ad.audio_file}')">▶</button>
+      <div class="player-info">
+        <div class="player-label">🔊 Publicidade</div>
+        <div class="player-progress">
+          <div class="player-progress-fill" id="prog-ad-${ad.id}"></div>
+        </div>
+      </div>
+    </div>`;
+  }
+  card.innerHTML = `
+    ${imgHtml}
+    <span class="ad-badge">Publicidade</span>
+    <div class="ad-body">
+      <div class="ad-title">${escHtml(ad.title)}</div>
+      ${ad.text ? `<div class="ad-text">${escHtml(ad.text)}</div>` : ''}
+      ${audioHtml}
+      ${ad.link ? `<a href="${escHtml(ad.link)}" target="_blank" style="font-size:13px;color:var(--accent2);">Saiba mais →</a>` : ''}
+    </div>`;
+  return card;
+}
+
+// ── AUDIO PLAYER ──────────────────────────────
+function togglePlay(id, file) {
+  const playBtn = document.getElementById(`play-${id}`);
+  if (currentPlayingId === id) {
+    if (audio.paused) { audio.play(); }
+    else { audio.pause(); }
+    return;
+  }
+  // Para o atual
+  if (currentPlayingId !== null) {
+    const prevBtn = document.getElementById(`play-${currentPlayingId}`);
+    if (prevBtn) { prevBtn.textContent = '▶'; prevBtn.classList.remove('playing'); }
+    const prevCard = document.getElementById(`card-${currentPlayingId}`);
+    if (prevCard) prevCard.classList.remove('playing');
+  }
+  currentPlayingId = id;
+  audio.src = `/audio/${file}`;
+  audio.play();
+  if (playBtn) { playBtn.textContent = '⏸'; playBtn.classList.add('playing'); }
+  const card = document.getElementById(`card-${id}`);
+  if (card) card.classList.add('playing');
+}
+
+audio.addEventListener('pause', () => {
+  if (currentPlayingId === null) return;
+  const btn = document.getElementById(`play-${currentPlayingId}`);
+  if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+});
+audio.addEventListener('play', () => {
+  if (currentPlayingId === null) return;
+  const btn = document.getElementById(`play-${currentPlayingId}`);
+  if (btn) { btn.textContent = '⏸'; btn.classList.add('playing'); }
+});
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration || currentPlayingId === null) return;
+  const pct = (audio.currentTime / audio.duration) * 100;
+  const prog = document.getElementById(`prog-${currentPlayingId}`);
+  if (prog) prog.style.width = pct + '%';
+  const mins = Math.floor(audio.currentTime/60);
+  const secs = Math.floor(audio.currentTime%60).toString().padStart(2,'0');
+  const timeEl = document.getElementById(`time-${currentPlayingId}`);
+  if (timeEl) timeEl.textContent = `${mins}:${secs}`;
+});
+audio.addEventListener('ended', () => {
+  if (currentPlayingId === null) return;
+  const btn = document.getElementById(`play-${currentPlayingId}`);
+  if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+  const card = document.getElementById(`card-${currentPlayingId}`);
+  if (card) card.classList.remove('playing');
+  const prog = document.getElementById(`prog-${currentPlayingId}`);
+  if (prog) prog.style.width = '0%';
+  const lastId = currentPlayingId;
+  currentPlayingId = null;
+  autoPlayNext(lastId);
+});
+
+function autoPlayNext(lastId) {
+  const allPlayers = [...document.querySelectorAll('.play-btn[id^="play-"]')];
+  const lastIndex = allPlayers.findIndex(b => b.id === `play-${lastId}`);
+  for (let i = lastIndex + 1; i < allPlayers.length; i++) {
+    const match = allPlayers[i].id.match(/^play-(\d+)$/);
+    if (!match) continue;
+    const onclick = allPlayers[i].getAttribute('onclick') || '';
+    const src = onclick.match(/'([^']+\.mp3)'/);
+    if (src) { togglePlay(parseInt(match[1]), src[1]); return; }
+  }
+}
+
+function seekAudio(e, id) {
+  if (currentPlayingId !== id || !audio.duration) return;
+  const rect = e.currentTarget.getBoundingClientRect();
+  const pct = (e.clientX - rect.left) / rect.width;
+  audio.currentTime = pct * audio.duration;
+}
+
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// Scroll infinito
+window.addEventListener('scroll', () => {
+  const scrolled = window.innerHeight + window.scrollY;
+  const total = document.body.offsetHeight;
+  if (scrolled >= total - 300 && hasMore && !isLoading) loadMore();
+});
+</script>
+</body>
+</html>

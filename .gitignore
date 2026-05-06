@@ -1,0 +1,10 @@
+venv/
+__pycache__/
+*.pyc
+*.db
+audio/
+uploads/
+*.zip
+gen_audio*.py
+radio_sc/
+.env
