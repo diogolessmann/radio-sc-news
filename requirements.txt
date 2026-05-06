@@ -1,4 +1,5 @@
 flask>=2.3.0
+gunicorn>=21.2.0
 feedparser>=6.0.10
 gtts>=2.3.2
 apscheduler>=3.10.4
