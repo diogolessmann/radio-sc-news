@@ -984,16 +984,16 @@ function mlLink(path) {
 function loadPromosView() {
   const grid = document.getElementById('promosGrid');
   const CATS = [
-    { icon:'📱', label:'Celulares',     path:'/ofertas#MLBCellphones' },
-    { icon:'💻', label:'Informática',   path:'/ofertas#MLBComputers' },
-    { icon:'🎧', label:'Eletrônicos',   path:'/ofertas#MLBElectronics' },
-    { icon:'👟', label:'Calçados',      path:'/ofertas#MLBShoes' },
-    { icon:'🏠', label:'Casa',          path:'/ofertas#MLBHomeAppliances' },
-    { icon:'⚽', label:'Esportes',      path:'/ofertas#MLBSports' },
-    { icon:'👗', label:'Moda',          path:'/ofertas#MLBClothing' },
-    { icon:'🧴', label:'Beleza',        path:'/ofertas#MLBBeauty' },
-    { icon:'🔧', label:'Ferramentas',   path:'/ofertas#MLBTools' },
-    { icon:'🎮', label:'Games',         path:'/ofertas#MLBVideoGames' },
+    { icon:'📱', label:'Celulares',   path:'/ofertas?q=celular+smartphone' },
+    { icon:'💻', label:'Informática', path:'/ofertas?q=notebook+computador' },
+    { icon:'🎧', label:'Eletrônicos', path:'/ofertas?q=eletronicos+fone+bluetooth' },
+    { icon:'👟', label:'Calçados',    path:'/ofertas?q=tenis+calcados' },
+    { icon:'🏠', label:'Casa',        path:'/ofertas?q=casa+moveis+decoracao' },
+    { icon:'⚽', label:'Esportes',    path:'/ofertas?q=esporte+fitness+academia' },
+    { icon:'👗', label:'Moda',        path:'/ofertas?q=roupa+moda+feminino' },
+    { icon:'🧴', label:'Beleza',      path:'/ofertas?q=perfume+beleza+cosmetico' },
+    { icon:'🔧', label:'Ferramentas', path:'/ofertas?q=ferramentas+furadeira' },
+    { icon:'🎮', label:'Games',       path:'/ofertas?q=videogame+controle+jogo' },
   ];
 
   grid.innerHTML = `
