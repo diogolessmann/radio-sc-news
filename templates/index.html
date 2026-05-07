@@ -328,7 +328,7 @@
   .cities-inner {
     display: flex;
     gap: 6px;
-    padding: 10px 16px;
+    padding: 10px 48px 10px 16px; /* padding-right extra = largura do fade, para o último botão não ficar obscurecido */
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -372,7 +372,7 @@
   .cats-inner {
     display: flex;
     gap: 5px;
-    padding: 8px 16px;
+    padding: 8px 48px 8px 16px; /* padding-right extra = largura do fade */
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -1139,7 +1139,13 @@ async function loadNews(page=1, reset=false) {
     if (data.ads) allAds = data.ads;
     const feed = document.getElementById('feed');
     if (data.news.length === 0 && page === 1) {
-      feed.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>Nenhuma notícia encontrada.</p></div>`;
+      const catLabel = activeCat ? (CAT_LABELS[activeCat] || activeCat) : '';
+      const cityLabel = activeCity || '';
+      let msg = 'Nenhuma notícia encontrada.';
+      if (cityLabel && catLabel) msg = `Nenhuma notícia de <b>${catLabel}</b> em <b>${cityLabel}</b> ainda.`;
+      else if (cityLabel) msg = `Nenhuma notícia de <b>${cityLabel}</b> ainda.`;
+      else if (catLabel) msg = `Nenhuma notícia de <b>${catLabel}</b> ainda.`;
+      feed.innerHTML = `<div class="empty-state"><div class="icon">📭</div><p>${msg}</p><p style="font-size:12px;margin-top:8px;color:var(--text2)">Tente outra combinação de filtros</p></div>`;
     } else {
       data.news.forEach(n => {
         if (allAds.length > 0 && adIndex > 0 && adIndex % adInsertEvery === 0) {
