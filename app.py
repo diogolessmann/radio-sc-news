@@ -118,10 +118,13 @@ def allowed_file(filename):
 # Rotas Públicas
 # ──────────────────────────────────────────────
 WA_CHANNEL_URL = os.environ.get('WA_CHANNEL_URL', '')
+TV_STREAM_ID   = os.environ.get('TV_STREAM_ID', 'W6fmb5Ucl7c')   # SCC SBT 24h
 
 @app.route('/')
 def index():
-    return render_template('index.html', wa_channel=WA_CHANNEL_URL)
+    return render_template('index.html',
+                           wa_channel=WA_CHANNEL_URL,
+                           tv_stream_id=TV_STREAM_ID)
 
 
 @app.route('/manifest.json')

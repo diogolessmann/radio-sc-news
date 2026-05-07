@@ -985,6 +985,149 @@
   .radio-stop-btn:hover { background: rgba(233,69,96,0.1); }
   .cat-btn[data-cat="radio"].active { background: var(--accent); border-color: var(--accent); color: #fff; }
   .cats-bar.theme-radio { border-color: var(--accent); }
+  .cat-btn[data-cat="tv"].active { background: #e50914; border-color: #e50914; color: #fff; }
+  .cats-bar.theme-tv { border-color: #e50914; }
+
+  /* ── TV VIEW ── */
+  .tv-view {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 16px 16px 40px;
+  }
+  .tv-header {
+    text-align: center;
+    padding: 14px 0 20px;
+  }
+  .tv-header h2 {
+    font-size: 22px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #e50914, #ff6b35);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .tv-header p { font-size: 13px; color: var(--text2); }
+
+  .tv-main-player {
+    background: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(229,9,20,0.3);
+    box-shadow: 0 8px 40px rgba(229,9,20,0.15);
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .tv-main-player::before {
+    content: '';
+    display: block;
+    padding-top: 56.25%; /* 16:9 */
+  }
+  .tv-main-player iframe {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border: none;
+  }
+  .tv-channel-badge {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid rgba(229,9,20,0.2);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+  }
+  .tv-channel-logo {
+    font-size: 28px;
+    flex-shrink: 0;
+  }
+  .tv-channel-info { flex: 1; }
+  .tv-channel-name { font-size: 15px; font-weight: 800; color: var(--text); }
+  .tv-channel-sub  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .tv-live-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(229,9,20,0.15);
+    border: 1px solid rgba(229,9,20,0.3);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #e50914;
+    flex-shrink: 0;
+  }
+  .tv-live-dot {
+    width: 6px; height: 6px;
+    background: #e50914;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  /* Grade de outros canais */
+  .tv-section-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .tv-channels-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .tv-channel-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: block;
+  }
+  .tv-channel-card:hover {
+    border-color: rgba(229,9,20,0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  }
+  .tv-channel-card.active {
+    border-color: #e50914;
+    background: linear-gradient(135deg, rgba(229,9,20,0.08), var(--surface));
+  }
+  .tv-ch-icon { font-size: 30px; margin-bottom: 6px; display: block; }
+  .tv-ch-name { font-size: 13px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+  .tv-ch-desc { font-size: 11px; color: var(--text2); }
+  .tv-ch-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 2px 7px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .tv-ch-badge.ao-vivo { background: rgba(229,9,20,0.15); color: #e50914; }
+  .tv-ch-badge.canal { background: rgba(52,152,219,0.15); color: #3498db; }
+
+  /* Ad slot TV */
+  .tv-ad-slot {
+    background: linear-gradient(135deg, rgba(229,9,20,0.04), var(--surface));
+    border: 1px dashed rgba(229,9,20,0.25);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    margin-top: 4px;
+  }
+  .tv-ad-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .tv-ad-cta { font-size: 13px; color: #e50914; font-weight: 700; }
 
   /* ── TUTORIAL (PRIMEIRA VISITA) ── */
   .tutorial-overlay {
@@ -1116,6 +1259,7 @@
     <button class="cat-btn" data-cat="esporte" onclick="setCat('esporte')">⚽ Esporte</button>
     <button class="cat-btn" data-cat="promos" onclick="setCat('promos')">💰 Promoções</button>
     <button class="cat-btn" data-cat="radio" onclick="setCat('radio')">📻 Rádio</button>
+    <button class="cat-btn" data-cat="tv" onclick="setCat('tv')">📺 TV</button>
   </div>
 </div>
 
@@ -1212,6 +1356,77 @@
   </div>
 </div>
 
+<!-- ── VIEW DE TV ── -->
+<div class="tv-view" id="tvView" style="display:none">
+  <div class="tv-header">
+    <h2>📺 TV Ao Vivo</h2>
+    <p>Assista à programação regional e nacional sem sair do site</p>
+  </div>
+
+  <!-- Player principal -->
+  <div class="tv-main-player" id="tvMainPlayer">
+    <iframe id="tvIframe"
+      src="https://www.youtube.com/embed/{{ tv_stream_id }}?autoplay=1&mute=0&rel=0&modestbranding=1"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen
+      loading="lazy">
+    </iframe>
+  </div>
+
+  <!-- Badge do canal ativo -->
+  <div class="tv-channel-badge">
+    <div class="tv-channel-logo" id="tvChLogo">📡</div>
+    <div class="tv-channel-info">
+      <div class="tv-channel-name" id="tvChName">SCC SBT Santa Catarina</div>
+      <div class="tv-channel-sub" id="tvChSub">Programação regional · Norte de SC</div>
+    </div>
+    <div class="tv-live-pill">
+      <div class="tv-live-dot"></div>
+      Ao vivo
+    </div>
+  </div>
+
+  <!-- Grade de canais -->
+  <div class="tv-section-title">Outros canais</div>
+  <div class="tv-channels-grid">
+
+    <div class="tv-channel-card active" id="tvch-scc" onclick="switchTvChannel('scc')">
+      <span class="tv-ch-badge ao-vivo">Ao vivo</span>
+      <span class="tv-ch-icon">📡</span>
+      <div class="tv-ch-name">SCC SBT SC</div>
+      <div class="tv-ch-desc">Programação regional · Norte de SC</div>
+    </div>
+
+    <div class="tv-channel-card" id="tvch-jpnews" onclick="switchTvChannel('jpnews')">
+      <span class="tv-ch-badge ao-vivo">Ao vivo</span>
+      <span class="tv-ch-icon">📰</span>
+      <div class="tv-ch-name">Jovem Pan News</div>
+      <div class="tv-ch-desc">Notícias 24h · Nacional</div>
+    </div>
+
+    <div class="tv-channel-card" id="tvch-cnbc" onclick="switchTvChannel('cnbc')">
+      <span class="tv-ch-badge ao-vivo">Ao vivo</span>
+      <span class="tv-ch-icon">💹</span>
+      <div class="tv-ch-name">CNBC Brasil</div>
+      <div class="tv-ch-desc">Economia e mercados</div>
+    </div>
+
+    <div class="tv-channel-card" id="tvch-nasa" onclick="switchTvChannel('nasa')">
+      <span class="tv-ch-badge ao-vivo">Ao vivo</span>
+      <span class="tv-ch-icon">🚀</span>
+      <div class="tv-ch-name">NASA TV</div>
+      <div class="tv-ch-desc">Ciência e espaço · 24h</div>
+    </div>
+
+  </div>
+
+  <!-- Slot de anunciante -->
+  <div class="tv-ad-slot">
+    <div class="tv-ad-label">✨ Espaço do patrocinador</div>
+    <div class="tv-ad-cta">Anuncie aqui e alcance quem assiste TV na região →</div>
+  </div>
+</div>
+
 <footer>
   <div class="footer-inner">
     <div class="footer-logo">📻 Rádio SC News</div>
@@ -1267,6 +1482,13 @@
         <div>
           <h3>Ouça as notícias em áudio</h3>
           <p>Clique em <b>"Ouvir esta notícia em áudio"</b> e um locutor vai ler a notícia pra você.</p>
+        </div>
+      </div>
+      <div class="tutorial-step">
+        <div class="tutorial-icon">📺</div>
+        <div>
+          <h3>Assista TV e ouça Rádio</h3>
+          <p>Toque em <b>📺 TV</b> ou <b>📻 Rádio</b> para assistir e ouvir ao vivo sem sair do site.</p>
         </div>
       </div>
       <div class="tutorial-step">
@@ -1399,6 +1621,53 @@ function stopRadio() {
   document.getElementById('radioStopBtn').style.display = 'none';
 }
 
+// ── TV AO VIVO ──
+const TV_CHANNELS = {
+  scc:    { name:'SCC SBT Santa Catarina', sub:'Programação regional · Norte de SC',  logo:'📡', vid:'{{ tv_stream_id }}' },
+  jpnews: { name:'Jovem Pan News',          sub:'Notícias 24h · Nacional',             logo:'📰', vid:'g1pWfNF5Gy0' },
+  cnbc:   { name:'CNBC Brasil',             sub:'Economia e mercados · 24h',           logo:'💹', vid:'xnNwREUPFGA' },
+  nasa:   { name:'NASA TV',                 sub:'Ciência e espaço · 24h',             logo:'🚀', vid:'21X5lGlDOfg' }
+};
+let currentTvChannel = 'scc';
+let tvActive = false;
+
+function switchTvChannel(id) {
+  const ch = TV_CHANNELS[id];
+  if (!ch) return;
+  currentTvChannel = id;
+
+  // Atualiza badge
+  document.getElementById('tvChLogo').textContent = ch.logo;
+  document.getElementById('tvChName').textContent = ch.name;
+  document.getElementById('tvChSub').textContent  = ch.sub;
+
+  // Atualiza iframe
+  const iframe = document.getElementById('tvIframe');
+  iframe.src = `https://www.youtube.com/embed/${ch.vid}?autoplay=1&mute=0&rel=0&modestbranding=1`;
+
+  // Atualiza cards ativos
+  document.querySelectorAll('.tv-channel-card').forEach(c => c.classList.remove('active'));
+  const card = document.getElementById(`tvch-${id}`);
+  if (card) card.classList.add('active');
+}
+
+function pauseTvIframe() {
+  if (!tvActive) return;
+  const iframe = document.getElementById('tvIframe');
+  // Salva o canal ativo mas remove o src para parar o vídeo
+  if (iframe) iframe.src = 'about:blank';
+  tvActive = false;
+}
+
+function resumeTvIframe() {
+  const ch = TV_CHANNELS[currentTvChannel] || TV_CHANNELS.scc;
+  const iframe = document.getElementById('tvIframe');
+  if (iframe) {
+    iframe.src = `https://www.youtube.com/embed/${ch.vid}?autoplay=1&mute=0&rel=0&modestbranding=1`;
+  }
+  tvActive = true;
+}
+
 // ── TUTORIAL (primeira visita) ──
 function closeTutorial() {
   document.getElementById('tutorialOverlay').style.display = 'none';
@@ -1511,7 +1780,7 @@ async function loadCounts() {
     // Badges nas categorias
     document.querySelectorAll('.cat-btn[data-cat]').forEach(btn => {
       const cat = btn.dataset.cat;
-      if (!cat || cat === 'promos') return;
+      if (!cat || cat === 'promos' || cat === 'radio' || cat === 'tv') return;
       const n = data.categories[cat];
       if (n) btn.innerHTML += ` <span class="count">(${n})</span>`;
     });
@@ -1533,6 +1802,7 @@ function setCat(cat) {
   const feed = document.getElementById('feed');
   const promosView = document.getElementById('promosView');
   const radioView  = document.getElementById('radioView');
+  const tvView     = document.getElementById('tvView');
   const searchBar  = document.querySelector('.search-bar');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
 
@@ -1542,8 +1812,12 @@ function setCat(cat) {
 
   // Tema de cor na barra de categorias
   const catsBar = document.getElementById('catsBar');
-  const specialCats = ['promos', 'radio'];
-  catsBar.className = 'cats-bar' + (cat && !specialCats.includes(cat) ? ` theme-${cat}` : cat === 'radio' ? ' theme-radio' : '');
+  const specialCats = ['promos', 'radio', 'tv'];
+  let theme = '';
+  if (cat && !specialCats.includes(cat)) theme = ` theme-${cat}`;
+  else if (cat === 'radio') theme = ' theme-radio';
+  else if (cat === 'tv')    theme = ' theme-tv';
+  catsBar.className = 'cats-bar' + theme;
 
   // Esconde tudo primeiro
   feed.style.display = 'none';
@@ -1551,6 +1825,7 @@ function setCat(cat) {
   searchBar.style.display = 'none';
   promosView.style.display = 'none';
   radioView.style.display  = 'none';
+  tvView.style.display     = 'none';
 
   if (cat === 'promos') {
     activeCat = 'promos';
@@ -1559,12 +1834,21 @@ function setCat(cat) {
   } else if (cat === 'radio') {
     activeCat = 'radio';
     radioView.style.display = 'block';
+    // Para a TV se estiver tocando
+    pauseTvIframe();
+  } else if (cat === 'tv') {
+    activeCat = 'tv';
+    tvView.style.display = 'block';
+    // Para o rádio se estiver tocando
+    if (currentRadio) stopRadio();
+    resumeTvIframe();
   } else {
     activeCat = cat;
     feed.style.display = 'flex';
     searchBar.style.display = 'block';
-    // Para o rádio se mudar de aba
+    // Para rádio e TV ao sair
     if (currentRadio) stopRadio();
+    pauseTvIframe();
     resetAndLoad();
   }
   setTimeout(scrollActiveIntoView, 50);
