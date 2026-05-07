@@ -20,6 +20,16 @@ ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID', 'ZYCQDYoXnl78dNdU6Je
 VOICE_EDGE_PRIMARY = 'pt-BR-AntonioNeural'
 VOICE_EDGE_FEMALE  = 'pt-BR-FranciscaNeural'
 
+# ── Pool de vozes ElevenLabs — alterna por notícia (round-robin) ──
+# Adicione mais vozes via env: ELEVENLABS_VOICE_ID_2, ELEVENLABS_VOICE_ID_3
+# Se só ELEVENLABS_VOICE_ID estiver configurado, usa apenas uma voz.
+_extra_voices = [
+    os.environ.get('ELEVENLABS_VOICE_ID_2', ''),
+    os.environ.get('ELEVENLABS_VOICE_ID_3', ''),
+]
+VOICE_POOL = [ELEVENLABS_VOICE_ID] + [v for v in _extra_voices if v]
+logger.info(f"Voice pool: {len(VOICE_POOL)} voz(es) configurada(s)")
+
 # Configurações de voz por categoria (usa sempre a voz configurada no Railway)
 # Variar stability/style cria percepção de "locução diferente" sem precisar de IDs extras
 VOICE_SETTINGS_BY_CATEGORY = {
@@ -73,6 +83,18 @@ def get_voice_settings(category):
     """Retorna as configurações de voz para a categoria da notícia."""
     cat = (category or '').lower()
     return VOICE_SETTINGS_BY_CATEGORY.get(cat, VOICE_SETTINGS_BY_CATEGORY['_default'])
+
+
+def pick_voice(news_id):
+    """
+    Seleciona voz do pool em round-robin pelo ID da notícia.
+    news_id=1 → VOICE_POOL[0], news_id=2 → VOICE_POOL[1], etc.
+    Garante alternância notícia a notícia.
+    """
+    if not VOICE_POOL:
+        return ELEVENLABS_VOICE_ID
+    idx = (int(news_id) if news_id is not None else 0) % len(VOICE_POOL)
+    return VOICE_POOL[idx]
 
 
 def clean_text_for_tts(text):
@@ -180,11 +202,13 @@ def generate_audio(title, summary, source=None, city=None, news_id=None, categor
         logger.info(f"Áudio já existe: {filename}")
         return filename
 
-    # 1. ElevenLabs — mesma voz configurada, settings variam por categoria
+    # 1. ElevenLabs — voz selecionada por round-robin + settings por categoria
     settings = get_voice_settings(category)
-    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(script, filepath, voice_settings=settings):
+    voice_id = pick_voice(news_id)
+    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(script, filepath, voice_id=voice_id, voice_settings=settings):
         if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
-            logger.info(f"Áudio ElevenLabs (cat={category}, stability={settings['stability']}, style={settings['style']}): {filename}")
+            pool_idx = (int(news_id) if news_id is not None else 0) % len(VOICE_POOL)
+            logger.info(f"Áudio ElevenLabs (voz {pool_idx+1}/{len(VOICE_POOL)}, cat={category}, stability={settings['stability']}, style={settings['style']}): {filename}")
             return filename
         if os.path.exists(filepath):
             os.remove(filepath)
