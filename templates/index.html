@@ -1404,11 +1404,11 @@
       <div class="tv-ch-desc">Notícias 24h · Nacional</div>
     </div>
 
-    <div class="tv-channel-card" id="tvch-cnbc" onclick="switchTvChannel('cnbc')">
-      <span class="tv-ch-badge ao-vivo">Ao vivo</span>
-      <span class="tv-ch-icon">💹</span>
-      <div class="tv-ch-name">CNBC Brasil</div>
-      <div class="tv-ch-desc">Economia e mercados</div>
+    <div class="tv-channel-card" id="tvch-cnn" onclick="switchTvChannel('cnn')" title="Abre no YouTube">
+      <span class="tv-ch-badge canal">↗ YouTube</span>
+      <span class="tv-ch-icon">📺</span>
+      <div class="tv-ch-name">CNN Brasil</div>
+      <div class="tv-ch-desc">Notícias · abre no YouTube</div>
     </div>
 
     <div class="tv-channel-card" id="tvch-nasa" onclick="switchTvChannel('nasa')">
@@ -1622,11 +1622,12 @@ function stopRadio() {
 }
 
 // ── TV AO VIVO ──
+// IDs de streams 24h verificados — SCC rotaciona periodicamente (atualizar TV_STREAM_ID no Railway se parar)
 const TV_CHANNELS = {
   scc:    { name:'SCC SBT Santa Catarina', sub:'Programação regional · Norte de SC',  logo:'📡', vid:'{{ tv_stream_id }}' },
-  jpnews: { name:'Jovem Pan News',          sub:'Notícias 24h · Nacional',             logo:'📰', vid:'g1pWfNF5Gy0' },
-  cnbc:   { name:'CNBC Brasil',             sub:'Economia e mercados · 24h',           logo:'💹', vid:'xnNwREUPFGA' },
-  nasa:   { name:'NASA TV',                 sub:'Ciência e espaço · 24h',             logo:'🚀', vid:'21X5lGlDOfg' }
+  jpnews: { name:'Jovem Pan News',          sub:'Notícias 24h · Nacional',             logo:'📰', vid:'D9dBBE4dKeY' },
+  cnn:    { name:'CNN Brasil',              sub:'Notícias e economia · 24h',           logo:'📺', vid:null, ytUrl:'https://www.youtube.com/@CNNbrasil/live' },
+  nasa:   { name:'NASA TV',                sub:'Ciência e espaço · 24h',              logo:'🚀', vid:'21X5lGlDOfg' }
 };
 let currentTvChannel = 'scc';
 let tvActive = false;
@@ -1634,6 +1635,13 @@ let tvActive = false;
 function switchTvChannel(id) {
   const ch = TV_CHANNELS[id];
   if (!ch) return;
+
+  // Canal sem embed (ex: CNN Brasil muda ID todo dia) → abre no YouTube
+  if (!ch.vid && ch.ytUrl) {
+    window.open(ch.ytUrl, '_blank', 'noopener');
+    return;
+  }
+
   currentTvChannel = id;
 
   // Atualiza badge

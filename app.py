@@ -118,7 +118,7 @@ def allowed_file(filename):
 # Rotas Públicas
 # ──────────────────────────────────────────────
 WA_CHANNEL_URL = os.environ.get('WA_CHANNEL_URL', '')
-TV_STREAM_ID   = os.environ.get('TV_STREAM_ID', 'W6fmb5Ucl7c')   # SCC SBT 24h
+TV_STREAM_ID   = os.environ.get('TV_STREAM_ID', 'jul4jAIThNI')   # SCC SBT 24h (atualizar no Railway se parar)
 
 @app.route('/')
 def index():
