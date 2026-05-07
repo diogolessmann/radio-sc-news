@@ -117,9 +117,11 @@ def allowed_file(filename):
 # ──────────────────────────────────────────────
 # Rotas Públicas
 # ──────────────────────────────────────────────
+WA_CHANNEL_URL = os.environ.get('WA_CHANNEL_URL', '')
+
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', wa_channel=WA_CHANNEL_URL)
 
 
 @app.route('/manifest.json')

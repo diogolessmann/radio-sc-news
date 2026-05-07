@@ -788,6 +788,100 @@
   }
   .admin-link:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+  /* ── BOTÃO WHATSAPP FLUTUANTE ── */
+  .whatsapp-float {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #25D366;
+    color: #fff;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 16px;
+    border-radius: 24px;
+    box-shadow: 0 4px 16px rgba(37,211,102,0.4);
+    transition: all 0.2s;
+    z-index: 50;
+  }
+  .whatsapp-float:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(37,211,102,0.6); }
+  .whatsapp-float svg { flex-shrink: 0; }
+
+  /* ── TUTORIAL (PRIMEIRA VISITA) ── */
+  .tutorial-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .tutorial-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 20px 20px;
+    max-width: 480px;
+    width: 100%;
+    padding: 28px 24px 24px;
+    position: relative;
+  }
+  .tutorial-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  .tutorial-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+  }
+  .tutorial-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface2);
+    border-radius: 12px;
+  }
+  .tutorial-step h3 { font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+  .tutorial-step p  { font-size: 13px; color: var(--text2); line-height: 1.5; }
+  .tutorial-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 14px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+  .tutorial-btn:hover { opacity: 0.9; }
+  .tutorial-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  .tutorial-title span {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   @media (max-width: 480px) {
     .card-title { font-size: 15px; }
     .card-body { padding: 12px; }
@@ -903,6 +997,44 @@
 </footer>
 
 <a href="/admin" class="admin-link">⚙️ Admin</a>
+
+<!-- Botão WhatsApp flutuante -->
+<a id="waFloatBtn" class="whatsapp-float" href="#" target="_blank" rel="noopener" style="display:none">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+  Canal de Notícias
+</a>
+
+<!-- Tutorial primeira visita -->
+<div class="tutorial-overlay" id="tutorialOverlay" style="display:none">
+  <div class="tutorial-card">
+    <div class="tutorial-title">Bem-vindo ao <span>Rádio SC News</span> 👋</div>
+    <div class="tutorial-steps">
+      <div class="tutorial-step">
+        <div class="tutorial-icon">🏙️</div>
+        <div>
+          <h3>Filtre pela sua cidade</h3>
+          <p>Toque em Schroeder, Guaramirim, Jaraguá ou Joinville para ver só as notícias da sua região.</p>
+        </div>
+      </div>
+      <div class="tutorial-step">
+        <div class="tutorial-icon">▶️</div>
+        <div>
+          <h3>Ouça as notícias em áudio</h3>
+          <p>Clique em <b>"Ouvir esta notícia em áudio"</b> e um locutor vai ler a notícia pra você.</p>
+        </div>
+      </div>
+      <div class="tutorial-step">
+        <div class="tutorial-icon">📲</div>
+        <div>
+          <h3>Compartilhe no WhatsApp</h3>
+          <p>Encontrou uma notícia importante? Mande direto pelo botão <b>Compartilhar</b> em cada card.</p>
+        </div>
+      </div>
+    </div>
+    <button class="tutorial-btn" onclick="closeTutorial()">Entendido — Ver as notícias!</button>
+  </div>
+</div>
+
 <audio id="globalAudio" preload="none"></audio>
 
 <script>
@@ -935,12 +1067,39 @@ const CITY_EMOJI = {
   'Norte de SC':'🏔️','Brasil':'🇧🇷'
 };
 
+// ── TUTORIAL (primeira visita) ──
+function closeTutorial() {
+  document.getElementById('tutorialOverlay').style.display = 'none';
+  try { localStorage.setItem('rsc_visited', '1'); } catch(e) {}
+}
+
+function checkTutorial() {
+  try {
+    if (!localStorage.getItem('rsc_visited')) {
+      setTimeout(() => {
+        document.getElementById('tutorialOverlay').style.display = 'flex';
+      }, 1200); // Abre depois que as notícias carregaram
+    }
+  } catch(e) {}
+}
+
+// ── WHATSAPP CHANNEL ──
+function initWhatsApp() {
+  const WA_CHANNEL = '{{ wa_channel }}'; // Configurável via env
+  if (WA_CHANNEL && WA_CHANNEL !== 'None' && WA_CHANNEL !== '') {
+    const btn = document.getElementById('waFloatBtn');
+    if (btn) { btn.href = WA_CHANNEL; btn.style.display = 'flex'; }
+  }
+}
+
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', async () => {
   loadWeather();
   loadDeals();
   loadCounts();
   await loadNews(1);
+  checkTutorial();
+  initWhatsApp();
 
   // Scroll horizontal com roda do mouse (desktop)
   document.querySelectorAll('.cities-inner, .cats-inner').forEach(el => {

@@ -21,14 +21,14 @@ RSS_FEEDS = [
     {
         'url': 'https://g1.globo.com/rss/g1/sc/',
         'source': 'G1 Santa Catarina',
-        'city': 'Santa Catarina',
+        'city': None,          # Usa detecção por keyword — pode ser qualquer cidade de SC
         'category': 'geral',
         'priority': True
     },
     {
         'url': 'https://ndmais.com.br/feed/',
         'source': 'ND Mais',
-        'city': 'Santa Catarina',
+        'city': None,          # Detecção automática de cidade
         'category': 'geral',
         'priority': False
     },
@@ -43,6 +43,13 @@ RSS_FEEDS = [
     {
         'url': 'https://g1.globo.com/rss/g1/sc/norte-catarinense/',
         'source': 'G1 Norte Catarinense',
+        'city': None,          # Norte de SC — keyword decide a cidade exata
+        'category': 'geral',
+        'priority': True
+    },
+    {
+        'url': 'https://ocp.news/tag/joinville/feed/',
+        'source': 'OCP News – Joinville',
         'city': 'Joinville',
         'category': 'geral',
         'priority': True
@@ -55,11 +62,33 @@ RSS_FEEDS = [
         'category': 'geral',
         'priority': True
     },
+    {
+        'url': 'https://ocp.news/tag/jaragua-do-sul/feed/',
+        'source': 'OCP News – Jaraguá do Sul',
+        'city': 'Jaraguá do Sul',
+        'category': 'geral',
+        'priority': True
+    },
+    # ── Norte de SC — Guaramirim ────────────────
+    {
+        'url': 'https://ocp.news/tag/guaramirim/feed/',
+        'source': 'OCP News – Guaramirim',
+        'city': 'Guaramirim',
+        'category': 'geral',
+        'priority': True
+    },
+    {
+        'url': 'https://ndmais.com.br/tag/guaramirim/feed/',
+        'source': 'ND Mais – Guaramirim',
+        'city': 'Guaramirim',
+        'category': 'geral',
+        'priority': True
+    },
     # ── Norte de SC — Schroeder, Guaramirim, Corupá (JDV) ──
     {
         'url': 'https://www.jdv.com.br/feed/',
         'source': 'JDV',
-        'city': None,
+        'city': None,          # JDV cobre Schroeder/Guaramirim/Corupá — keyword detecta
         'category': 'geral',
         'priority': True
     },
@@ -114,16 +143,17 @@ RSS_FEEDS = [
     },
 ]
 
+# Ordem importa: cidades mais específicas ANTES de genéricas
 CITY_KEYWORDS = {
-    'Schroeder': ['schroeder', 'schroder'],
-    'Joinville': ['joinville', 'joinvilense', 'joinvilhense'],
-    'Jaraguá do Sul': ['jaraguá do sul', 'jaragua do sul', 'jaraguaense'],
-    'Guaramirim': ['guaramirim'],
-    'Corupá': ['corupá', 'corupa'],
-    'Blumenau': ['blumenau', 'blumenauense'],
+    'Schroeder':     ['schroeder', 'schroder'],
+    'Guaramirim':    ['guaramirim'],
+    'Corupá':        ['corupá', 'corupa'],
+    'Joinville':     ['joinville', 'joinvilense', 'joinvilhense'],
+    'Jaraguá do Sul':['jaraguá do sul', 'jaragua do sul', 'jaraguaense', 'jaraguá'],
+    'Blumenau':      ['blumenau', 'blumenauense'],
     'Florianópolis': ['florianópolis', 'floripa', 'florianopolitano'],
-    'Norte de SC': ['norte catarinense', 'norte de santa catarina', 'região norte'],
-    'Santa Catarina': ['santa catarina', 'catarinense'],
+    'Norte de SC':   ['norte catarinense', 'norte de santa catarina', 'região norte'],
+    'Santa Catarina':['santa catarina', 'catarinense'],
 }
 
 # Cidades que pertencem ao Norte de SC (para o filtro de região)
