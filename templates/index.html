@@ -325,10 +325,8 @@
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     position: relative;
-    display: flex;
-    justify-content: center;
+    overflow: hidden;
   }
-  /* Fade edge direito para indicar scroll — alinhado ao container */
   .cities-bar::after {
     content: '';
     position: absolute;
@@ -341,9 +339,6 @@
   .cities-inner {
     display: flex;
     gap: 6px;
-    width: 100%;
-    max-width: 680px;
-    min-width: 0; /* obrigatório: permite overflow-x:auto funcionar dentro de flex */
     padding: 10px 48px 10px 16px;
     overflow-x: auto;
     scrollbar-width: none;
@@ -374,8 +369,7 @@
     border-bottom: 2px solid transparent;
     transition: border-color 0.3s;
     position: relative;
-    display: flex;
-    justify-content: center;
+    overflow: hidden;
   }
   .cats-bar::after {
     content: '';
@@ -389,9 +383,6 @@
   .cats-inner {
     display: flex;
     gap: 5px;
-    width: 100%;
-    max-width: 680px;
-    min-width: 0; /* obrigatório: permite overflow-x:auto funcionar dentro de flex */
     padding: 8px 48px 8px 16px;
     overflow-x: auto;
     scrollbar-width: none;
