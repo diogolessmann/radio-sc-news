@@ -1622,13 +1622,26 @@ function stopRadio() {
 }
 
 // ── TV AO VIVO ──
-// IDs de streams 24h verificados — SCC rotaciona periodicamente (atualizar TV_STREAM_ID no Railway se parar)
+// IDs são atualizados automaticamente via /api/live-channels (cache 10min, sem API key)
 const TV_CHANNELS = {
   scc:    { name:'SCC SBT Santa Catarina', sub:'Programação regional · Norte de SC',  logo:'📡', vid:'{{ tv_stream_id }}' },
   jpnews: { name:'Jovem Pan News',          sub:'Notícias 24h · Nacional',             logo:'📰', vid:'D9dBBE4dKeY' },
   cnn:    { name:'CNN Brasil',              sub:'Notícias e economia · 24h',           logo:'📺', vid:null, ytUrl:'https://www.youtube.com/@CNNbrasil/live' },
-  nasa:   { name:'NASA TV',                sub:'Ciência e espaço · 24h',              logo:'🚀', vid:'21X5lGlDOfg' }
+  nasa:   { name:'NASA TV',                sub:'Ciência e espaço · 24h',              logo:'🚀', vid:'uwXgcTc8oY8' }
 };
+let tvLiveLoaded = false;
+
+async function fetchLiveChannels() {
+  if (tvLiveLoaded) return;
+  try {
+    const data = await fetch('/api/live-channels').then(r => r.json());
+    if (data.scc)    TV_CHANNELS.scc.vid    = data.scc;
+    if (data.jpnews) TV_CHANNELS.jpnews.vid = data.jpnews;
+    if (data.nasa)   TV_CHANNELS.nasa.vid   = data.nasa;
+    tvLiveLoaded = true;
+    logger.debug && logger.debug('Live IDs atualizados', data);
+  } catch(e) { /* mantém fallback */ }
+}
 let currentTvChannel = 'scc';
 let tvActive = false;
 
@@ -1849,7 +1862,8 @@ function setCat(cat) {
     tvView.style.display = 'block';
     // Para o rádio se estiver tocando
     if (currentRadio) stopRadio();
-    resumeTvIframe();
+    // Busca IDs atuais antes de exibir o player
+    fetchLiveChannels().then(() => resumeTvIframe());
   } else {
     activeCat = cat;
     feed.style.display = 'flex';

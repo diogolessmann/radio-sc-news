@@ -118,7 +118,54 @@ def allowed_file(filename):
 # Rotas Públicas
 # ──────────────────────────────────────────────
 WA_CHANNEL_URL = os.environ.get('WA_CHANNEL_URL', '')
-TV_STREAM_ID   = os.environ.get('TV_STREAM_ID', 'jul4jAIThNI')   # SCC SBT 24h (atualizar no Railway se parar)
+TV_STREAM_ID   = os.environ.get('TV_STREAM_ID', 'EKqjDNytTkw')   # SCC SBT 24h — fallback estático
+
+# ── Canais monitorados para detecção automática de live ──
+LIVE_CHANNELS = {
+    'scc':    { 'channel_id': 'UCEzVIIPtAIfsRCEHwn4AOzw', 'fallback': 'EKqjDNytTkw' },
+    'jpnews': { 'channel_id': 'UCP391YRAjSOdM_bwievgaZA', 'fallback': 'D9dBBE4dKeY' },
+    'nasa':   { 'channel_id': 'UCLA_DiR1FfKNvjuUpBHmylQ', 'fallback': 'uwXgcTc8oY8' },
+}
+
+# Cache em memória: { 'scc': {'vid': 'abc123', 'ts': 1234567890.0} }
+_live_cache = {}
+LIVE_CACHE_TTL = 600  # 10 minutos
+
+def get_channel_live_id(channel_id, fallback=None):
+    """Segue o redirect de /live do canal e extrai o video ID atual. Sem API key."""
+    import re, requests as req
+    try:
+        url = f'https://www.youtube.com/channel/{channel_id}/live'
+        r = req.get(url, timeout=8, allow_redirects=True, headers={
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0'
+        })
+        # Tenta extrair do URL final após redirect
+        final = r.url
+        if 'watch?v=' in final:
+            return final.split('watch?v=')[1].split('&')[0]
+        # Fallback: busca no HTML da página
+        m = re.search(r'"videoId":"([A-Za-z0-9_-]{11})"', r.text)
+        if m:
+            return m.group(1)
+    except Exception as e:
+        logger.warning(f'Live detect failed for {channel_id}: {e}')
+    return fallback
+
+@app.route('/api/live-channels')
+def api_live_channels():
+    """Retorna os video IDs ao vivo de cada canal monitorado (cache 10min)."""
+    import time
+    now = time.time()
+    result = {}
+    for key, cfg in LIVE_CHANNELS.items():
+        cached = _live_cache.get(key)
+        if cached and now - cached['ts'] < LIVE_CACHE_TTL:
+            result[key] = cached['vid']
+        else:
+            vid = get_channel_live_id(cfg['channel_id'], cfg['fallback'])
+            _live_cache[key] = {'vid': vid, 'ts': now}
+            result[key] = vid
+    return jsonify(result)
 
 @app.route('/')
 def index():
