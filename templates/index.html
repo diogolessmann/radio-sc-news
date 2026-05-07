@@ -184,6 +184,61 @@
   .deal-orig { font-size: 10px; color: var(--text2); text-decoration: line-through; }
   .deal-free-ship { font-size: 10px; color: #27ae60; font-weight: 700; }
 
+  /* ── PROMOS VIEW ── */
+  .promos-view {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 14px 16px;
+  }
+  .promos-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .promos-header h2 { font-size: 18px; font-weight: 800; color: var(--text); }
+  .promos-header p { font-size: 12px; color: var(--text2); }
+  .promos-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  .promo-card {
+    background: var(--surface);
+    border: 1px solid rgba(245,166,35,0.2);
+    border-radius: 14px;
+    overflow: hidden;
+    text-decoration: none;
+    transition: transform 0.2s, border-color 0.2s;
+    display: flex;
+    flex-direction: column;
+  }
+  .promo-card:hover { transform: translateY(-2px); border-color: var(--accent2); }
+  .promo-img {
+    width: 100%;
+    height: 150px;
+    object-fit: contain;
+    background: #fff;
+    padding: 10px;
+  }
+  .promo-body { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 5px; }
+  .promo-discount {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 3px 8px;
+    border-radius: 5px;
+    align-self: flex-start;
+  }
+  .promo-title { font-size: 12px; color: var(--text); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .promo-price { font-size: 16px; font-weight: 800; color: var(--accent2); margin-top: auto; padding-top: 6px; }
+  .promo-orig { font-size: 11px; color: var(--text2); text-decoration: line-through; }
+  .promo-ship { font-size: 11px; color: #27ae60; font-weight: 700; }
+  .promo-ml-badge { font-size: 10px; color: var(--text2); margin-top: 4px; }
+  @media (max-width: 400px) { .promos-grid { grid-template-columns: 1fr; } }
+
   /* ── FILTERS ── */
   .filters-bar {
     background: var(--surface);
@@ -656,6 +711,18 @@
   ↓ Carregar mais notícias
 </button>
 
+<div class="promos-view" id="promosView" style="display:none">
+  <div class="promos-header">
+    <div>
+      <h2>💰 Promoções do Dia</h2>
+      <p>Ofertas com desconto no Mercado Livre · Atualizado a cada 30 min</p>
+    </div>
+  </div>
+  <div class="promos-grid" id="promosGrid">
+    <div class="spinner">Carregando ofertas...</div>
+  </div>
+</div>
+
 <footer>
   <div class="footer-inner">
     <div class="footer-logo">📻 Rádio SC News</div>
@@ -804,6 +871,8 @@ async function loadFilterOptions() {
     orderedCats.forEach(c => {
       bar.innerHTML += `<button class="filter-btn" data-type="cat" data-value="${c}" onclick="setFilter('cat','${c}')">${CAT_LABELS[c]||c}</button>`;
     });
+    bar.innerHTML += `<span style="color:rgba(255,255,255,0.12);font-size:20px;padding:0 2px;align-self:center;flex-shrink:0">│</span>`;
+    bar.innerHTML += `<button class="filter-btn" data-type="promos" onclick="setFilter('promos','')">💰 Promoções</button>`;
   } catch(e) { console.error(e); }
 }
 
@@ -816,8 +885,51 @@ function setFilter(type, value) {
       (b.dataset.type===type && b.dataset.value===value)
     );
   });
-  document.getElementById('feed').innerHTML = '<div class="spinner">Filtrando...</div>';
-  loadNews(1, true);
+
+  const feed = document.getElementById('feed');
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  const promosView = document.getElementById('promosView');
+  const searchBar = document.querySelector('.search-bar');
+
+  if (type === 'promos') {
+    feed.style.display = 'none';
+    loadMoreBtn.style.display = 'none';
+    searchBar.style.display = 'none';
+    promosView.style.display = 'block';
+    loadPromosView();
+  } else {
+    feed.style.display = 'flex';
+    searchBar.style.display = 'block';
+    promosView.style.display = 'none';
+    feed.innerHTML = '<div class="spinner">Filtrando...</div>';
+    loadNews(1, true);
+  }
+}
+
+async function loadPromosView() {
+  const grid = document.getElementById('promosGrid');
+  grid.innerHTML = '<div class="spinner">Carregando ofertas...</div>';
+  try {
+    const data = await fetch('/api/deals').then(r => r.json());
+    if (!data.deals || !data.deals.length) {
+      grid.innerHTML = '<div class="empty-state"><div class="icon">🛍️</div><p>Nenhuma oferta disponível no momento. Tente novamente em alguns minutos.</p></div>';
+      return;
+    }
+    grid.innerHTML = data.deals.map(d => `
+      <a class="promo-card" href="${d.link}" target="_blank" rel="noopener">
+        <img class="promo-img" src="${d.thumbnail}" alt="${d.title}" loading="lazy" onerror="this.style.background='#1a1a24'">
+        <div class="promo-body">
+          <span class="promo-discount">-${d.discount}% OFF</span>
+          <div class="promo-title">${d.title}</div>
+          <div class="promo-price">R$ ${d.price.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          <div class="promo-orig">de R$ ${d.original_price.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          ${d.free_shipping ? '<div class="promo-ship">✓ Frete grátis</div>' : ''}
+          <div class="promo-ml-badge">🛒 Mercado Livre</div>
+        </div>
+      </a>`).join('');
+  } catch(e) {
+    grid.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar ofertas.</p></div>';
+  }
 }
 
 function debounceSearch() {
