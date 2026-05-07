@@ -416,6 +416,24 @@ def admin_collect():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/admin/fix_sports', methods=['POST'])
+@login_required
+def admin_fix_sports():
+    """Recategoriza como esporte notícias de fontes esportivas mal categorizadas."""
+    SPORT_SOURCES = ('GE Futebol', 'GE Brasileirão', 'Gazeta Esportiva', 'Lance!')
+    placeholders = ','.join('?' * len(SPORT_SOURCES))
+    conn = get_db()
+    result = conn.execute(
+        f"UPDATE news SET category='esporte' WHERE source IN ({placeholders}) AND category != 'esporte'",
+        SPORT_SOURCES
+    )
+    fixed = result.rowcount
+    conn.commit()
+    conn.close()
+    logger.info(f"fix_sports: {fixed} notícias recategorizadas como esporte.")
+    return jsonify({'success': True, 'fixed': fixed, 'message': f'{fixed} notícias corrigidas para esporte.'})
+
+
 @app.route('/admin/generate_audio/<int:news_id>', methods=['POST'])
 @login_required
 def admin_generate_audio(news_id):

@@ -133,7 +133,7 @@ CATEGORY_KEYWORDS = {
     'policial': ['crime', 'assalto', 'homicídio', 'acidente', 'preso', 'policial', 'pm', 'delegacia', 'roubo', 'furto', 'morte', 'óbito', 'batida', 'colisão'],
     'politica': ['prefeitura', 'câmara', 'vereador', 'prefeito', 'eleição', 'governo', 'governador', 'deputado', 'política'],
     'saude': ['hospital', 'saúde', 'dengue', 'vacina', 'ubs', 'médico', 'doença', 'covid', 'pandemia'],
-    'esporte': ['futebol', 'esporte', 'atleta', 'campeonato', 'jogo', 'gol', 'time', 'torneio'],
+    'esporte': ['futebol', 'esporte', 'atleta', 'campeonato', 'jogo', 'gol', 'time', 'torneio', 'libertadores', 'brasileirão', 'brasileirao', 'escalações', 'escalacao', 'rodada', 'tabela do campeonato', 'série a', 'serie a', 'copa do brasil', 'flamengo', 'corinthians', 'palmeiras', 'são paulo', 'grêmio', 'internacional', 'cruzeiro', 'atlético'],
     'economia': ['emprego', 'empresa', 'mercado', 'economia', 'negócio', 'indústria', 'comércio', 'renda'],
     'clima': ['chuva', 'temporal', 'vento', 'frio', 'calor', 'enchente', 'clima', 'previsão do tempo'],
     'cultura': ['evento', 'festa', 'show', 'cultura', 'música', 'teatro', 'exposição', 'festival'],
@@ -232,7 +232,9 @@ def fetch_feed(feed_config):
 
         full_text = f"{title} {summary}"
         city = feed_config.get('city') or detect_city(full_text)
-        category = detect_category(full_text)
+        # Usa categoria do feed quando for explícita (esporte, local); senão detecta pelo texto
+        feed_cat = feed_config.get('category', 'geral')
+        category = feed_cat if feed_cat and feed_cat != 'geral' else detect_category(full_text)
 
         articles.append({
             'title': title[:500],
