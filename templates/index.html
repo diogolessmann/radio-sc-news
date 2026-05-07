@@ -312,15 +312,27 @@
   .cities-bar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    position: relative;
+  }
+  /* Fade edge direito para indicar scroll */
+  .cities-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 40px; height: 100%;
+    background: linear-gradient(to right, transparent, var(--surface));
+    pointer-events: none;
+    z-index: 1;
   }
   .cities-inner {
-    max-width: 680px;
-    margin: 0 auto;
     display: flex;
     gap: 6px;
     padding: 10px 16px;
     overflow-x: auto;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
   .cities-inner::-webkit-scrollbar { display: none; }
   .city-btn {
@@ -329,8 +341,8 @@
     border: 1px solid var(--border);
     color: var(--text2);
     border-radius: 20px;
-    padding: 7px 16px;
-    font-size: 14px;
+    padding: 7px 15px;
+    font-size: 13px;
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
@@ -345,15 +357,26 @@
     background: var(--bg);
     border-bottom: 2px solid transparent;
     transition: border-color 0.3s;
+    overflow: hidden;
+    position: relative;
+  }
+  .cats-bar::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 40px; height: 100%;
+    background: linear-gradient(to right, transparent, var(--bg));
+    pointer-events: none;
+    z-index: 1;
   }
   .cats-inner {
-    max-width: 680px;
-    margin: 0 auto;
     display: flex;
     gap: 5px;
     padding: 8px 16px;
     overflow-x: auto;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
   }
   .cats-inner::-webkit-scrollbar { display: none; }
   .cat-btn {
@@ -902,6 +925,17 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadDeals();
   loadCounts();
   await loadNews(1);
+
+  // Scroll horizontal com roda do mouse (desktop)
+  document.querySelectorAll('.cities-inner, .cats-inner').forEach(el => {
+    el.addEventListener('wheel', (e) => {
+      // Se rolagem é mais vertical que horizontal, converte para horizontal
+      if (Math.abs(e.deltaY) >= Math.abs(e.deltaX)) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY * 0.8;
+      }
+    }, { passive: false });
+  });
 });
 
 // ── WEATHER ──
@@ -983,6 +1017,7 @@ function setCity(city) {
   document.querySelectorAll('.city-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.city === city)
   );
+  setTimeout(scrollActiveIntoView, 50);
   resetAndLoad();
 }
 
@@ -1015,12 +1050,27 @@ function setCat(cat) {
     promosView.style.display = 'none';
     resetAndLoad();
   }
+  setTimeout(scrollActiveIntoView, 50);
 }
 
 function resetAndLoad() {
   currentPage = 1; hasMore = true; adIndex = 0;
   document.getElementById('feed').innerHTML = '<div class="spinner">Filtrando...</div>';
   loadNews(1, true);
+}
+
+// Rola o botão ativo para o centro da barra
+function scrollActiveIntoView() {
+  ['cities-inner', 'cats-inner'].forEach(id => {
+    const inner = document.getElementById(id) || document.querySelector('.' + id);
+    const active = inner ? inner.querySelector('.active') : null;
+    if (!active || !inner) return;
+    const innerLeft = inner.getBoundingClientRect().left;
+    const btnLeft   = active.getBoundingClientRect().left;
+    const btnCenter = active.offsetLeft + active.offsetWidth / 2;
+    const target    = btnCenter - inner.clientWidth / 2;
+    inner.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+  });
 }
 
 function mlLink(path) {
