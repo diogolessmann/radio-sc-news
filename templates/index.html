@@ -919,10 +919,10 @@ async function loadPromosView() {
       <a class="promo-card" href="${d.link}" target="_blank" rel="noopener">
         <img class="promo-img" src="${d.thumbnail}" alt="${d.title}" loading="lazy" onerror="this.style.background='#1a1a24'">
         <div class="promo-body">
-          <span class="promo-discount">-${d.discount}% OFF</span>
+          ${d.discount > 0 ? `<span class="promo-discount">-${d.discount}% OFF</span>` : '<span class="promo-discount" style="background:#27ae60">🔥 Oferta</span>'}
           <div class="promo-title">${d.title}</div>
           <div class="promo-price">R$ ${d.price.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-          <div class="promo-orig">de R$ ${d.original_price.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          ${d.original_price && d.discount > 0 ? `<div class="promo-orig">de R$ ${d.original_price.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>` : ''}
           ${d.free_shipping ? '<div class="promo-ship">✓ Frete grátis</div>' : ''}
           <div class="promo-ml-badge">🛒 Mercado Livre</div>
         </div>

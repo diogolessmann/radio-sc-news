@@ -242,59 +242,44 @@ def api_deals():
     try:
         import requests as _req
 
-        # Busca em múltiplas categorias populares com promoções reais
         SEARCH_QUERIES = [
-            ('fone bluetooth', 'MLB1051'),
-            ('smartwatch', 'MLB1051'),
-            ('caixa de som', 'MLB1051'),
-            ('carregador portatil', 'MLB1051'),
-            ('mouse sem fio', 'MLB1051'),
-            ('cadeira gamer', 'MLB9000'),
-            ('perfume importado', 'MLB1246'),
-            ('tenis', 'MLB1430'),
+            'oferta do dia eletronicos',
+            'fone bluetooth oferta',
+            'smartwatch oferta',
+            'caixa de som bluetooth oferta',
+            'carregador portatil oferta',
         ]
 
         deals = []
         seen_ids = set()
 
-        for q, cat in SEARCH_QUERIES:
+        for q in SEARCH_QUERIES:
             if len(deals) >= 10:
                 break
             try:
                 resp = _req.get(
                     'https://api.mercadolibre.com/sites/MLB/search',
-                    params={
-                        'q': q,
-                        'sort': 'relevance',
-                        'limit': 50,
-                        'condition': 'new',
-                        'promotions': 'default',
-                    },
+                    params={'q': q, 'sort': 'relevance', 'limit': 50, 'condition': 'new'},
                     timeout=8
                 )
                 if resp.status_code != 200:
                     continue
                 items = resp.json().get('results', [])
                 for item in items:
-                    if item['id'] in seen_ids:
+                    if item['id'] in seen_ids or not item.get('thumbnail'):
+                        continue
+                    price = item.get('price', 0)
+                    if price <= 0:
                         continue
                     orig = item.get('original_price')
-                    price = item.get('price', 0)
-                    # Aceita: com original_price OU com tag de promoção
-                    tags = [t.get('id','') for t in item.get('promotions', [])]
-                    is_promo = bool(orig and orig > price) or 'deal_of_the_day' in tags or 'best_price' in tags
-                    if not is_promo or price <= 0:
-                        continue
                     discount = round((1 - price / orig) * 100) if orig and orig > price else 0
-                    if discount < 5:
-                        continue
-                    thumb = (item.get('thumbnail') or '').replace('http://', 'https://')
+                    thumb = item['thumbnail'].replace('http://', 'https://')
                     seen_ids.add(item['id'])
                     deals.append({
                         'id': item['id'],
                         'title': item['title'][:70],
                         'price': price,
-                        'original_price': orig or price,
+                        'original_price': orig,
                         'discount': discount,
                         'thumbnail': thumb,
                         'link': build_affiliate_link(item.get('permalink', '')),
