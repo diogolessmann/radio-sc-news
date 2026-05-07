@@ -139,21 +139,17 @@ def api_news():
     where = ['n.active = 1']
     params = []
 
-    if region == 'norte':
-        placeholders = ','.join('?' * len(NORTE_SC_CITIES))
-        where.append(f'n.city IN ({placeholders})')
-        params.extend(NORTE_SC_CITIES)
-        # Futebol fora do filtro regional também
-        where.append("n.category != 'esporte'")
-    elif city:
+    # Filtro de cidade (independente)
+    if city:
         where.append('n.city = ?')
         params.append(city)
-        where.append("n.category != 'esporte'")
-    elif category:
+
+    # Filtro de categoria (independente — combina com cidade)
+    if category:
         where.append('n.category = ?')
         params.append(category)
     else:
-        # "Todas" — exclui futebol, que fica só na aba Esporte
+        # Esporte só aparece quando explicitamente selecionado
         where.append("n.category != 'esporte'")
 
     if search:
@@ -295,6 +291,23 @@ def api_deals():
     except Exception as e:
         logger.error(f"Erro ao buscar ofertas ML: {e}")
         return jsonify({'deals': [], 'cached': False})
+
+
+@app.route('/api/counts')
+def api_counts():
+    """Contagem de notícias por cidade e categoria para os badges."""
+    conn = get_db()
+    city_rows = conn.execute(
+        "SELECT city, COUNT(*) as n FROM news WHERE active=1 AND category != 'esporte' GROUP BY city"
+    ).fetchall()
+    cat_rows = conn.execute(
+        "SELECT category, COUNT(*) as n FROM news WHERE active=1 GROUP BY category"
+    ).fetchall()
+    conn.close()
+    return jsonify({
+        'cities': {r['city']: r['n'] for r in city_rows},
+        'categories': {r['category']: r['n'] for r in cat_rows}
+    })
 
 
 @app.route('/api/cities')

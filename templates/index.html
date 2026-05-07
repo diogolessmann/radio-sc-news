@@ -308,49 +308,60 @@
   }
   .promo-relampago:hover { background: rgba(245,166,35,0.2); }
 
-  /* ── FILTERS ── */
-  .filters-bar {
+  /* ── CITIES BAR ── */
+  .cities-bar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
   }
-  .filters-wrapper {
+  .cities-inner {
     max-width: 680px;
     margin: 0 auto;
     display: flex;
-    align-items: center;
-  }
-  .filters-inner {
-    display: flex;
     gap: 6px;
+    padding: 10px 16px;
     overflow-x: auto;
     scrollbar-width: none;
-    padding: 10px 4px;
-    flex: 1;
-    scroll-behavior: smooth;
   }
-  .filters-inner::-webkit-scrollbar { display: none; }
-  .filters-arrow {
-    background: transparent;
-    border: none;
-    color: var(--text2);
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    font-size: 18px;
-    transition: color 0.2s;
-  }
-  .filters-arrow:hover { color: var(--accent); }
-  .filter-btn {
+  .cities-inner::-webkit-scrollbar { display: none; }
+  .city-btn {
     white-space: nowrap;
     background: var(--surface2);
     border: 1px solid var(--border);
     color: var(--text2);
     border-radius: 20px;
+    padding: 7px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .city-btn:hover { border-color: var(--accent2); color: var(--text); }
+  .city-btn.active { background: var(--accent2); border-color: var(--accent2); color: #000; font-weight: 800; }
+  .city-btn .count { font-size: 10px; opacity: 0.7; margin-left: 3px; }
+
+  /* ── CATEGORIES BAR ── */
+  .cats-bar {
+    background: var(--bg);
+    border-bottom: 2px solid transparent;
+    transition: border-color 0.3s;
+  }
+  .cats-inner {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    gap: 5px;
+    padding: 8px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .cats-inner::-webkit-scrollbar { display: none; }
+  .cat-btn {
+    white-space: nowrap;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    border-radius: 16px;
     padding: 5px 13px;
     font-size: 12px;
     font-weight: 600;
@@ -358,12 +369,28 @@
     transition: all 0.2s;
     flex-shrink: 0;
   }
-  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
-  .filter-btn.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-  }
+  .cat-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .cat-btn .count { font-size: 10px; opacity: 0.65; margin-left: 2px; }
+  .cat-btn.active { color: #fff; }
+  .cat-btn[data-cat=""].active          { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.2); }
+  .cat-btn[data-cat="policial"].active  { background: #e74c3c; border-color: #e74c3c; }
+  .cat-btn[data-cat="politica"].active  { background: #9b59b6; border-color: #9b59b6; }
+  .cat-btn[data-cat="saude"].active     { background: #1abc9c; border-color: #1abc9c; }
+  .cat-btn[data-cat="economia"].active  { background: #e67e22; border-color: #e67e22; }
+  .cat-btn[data-cat="esporte"].active   { background: #27ae60; border-color: #27ae60; }
+  .cat-btn[data-cat="clima"].active     { background: #3498db; border-color: #3498db; }
+  .cat-btn[data-cat="cultura"].active   { background: #e91e8c; border-color: #e91e8c; }
+  .cat-btn[data-cat="promos"].active    { background: var(--accent2); border-color: var(--accent2); color: #000; }
+
+  /* Linha colorida na cats-bar conforme categoria ativa */
+  .cats-bar.theme-policial  { border-color: #e74c3c; }
+  .cats-bar.theme-politica  { border-color: #9b59b6; }
+  .cats-bar.theme-saude     { border-color: #1abc9c; }
+  .cats-bar.theme-economia  { border-color: #e67e22; }
+  .cats-bar.theme-esporte   { border-color: #27ae60; }
+  .cats-bar.theme-clima     { border-color: #3498db; }
+  .cats-bar.theme-cultura   { border-color: #e91e8c; }
+  .cats-bar.theme-promos    { border-color: var(--accent2); }
 
   /* ── SEARCH ── */
   .search-bar {
@@ -758,13 +785,27 @@
   <div class="deals-scroll" id="dealsScroll"></div>
 </div>
 
-<div class="filters-bar">
-  <div class="filters-wrapper">
-    <button class="filters-arrow" onclick="scrollFilters(-1)">‹</button>
-    <div class="filters-inner" id="filtersBar">
-      <button class="filter-btn active" data-type="all" onclick="setFilter('all','')">🌎 Todas</button>
-    </div>
-    <button class="filters-arrow" onclick="scrollFilters(1)">›</button>
+<!-- Barra de Cidades -->
+<div class="cities-bar">
+  <div class="cities-inner">
+    <button class="city-btn active" data-city="" onclick="setCity('')">🌎 Todas</button>
+    <button class="city-btn" data-city="Schroeder" onclick="setCity('Schroeder')">🏡 Schroeder</button>
+    <button class="city-btn" data-city="Guaramirim" onclick="setCity('Guaramirim')">🌿 Guaramirim</button>
+    <button class="city-btn" data-city="Jaraguá do Sul" onclick="setCity('Jaraguá do Sul')">🏭 Jaraguá</button>
+    <button class="city-btn" data-city="Joinville" onclick="setCity('Joinville')">🏙️ Joinville</button>
+  </div>
+</div>
+
+<!-- Barra de Categorias -->
+<div class="cats-bar" id="catsBar">
+  <div class="cats-inner">
+    <button class="cat-btn active" data-cat="" onclick="setCat('')">📰 Tudo</button>
+    <button class="cat-btn" data-cat="policial" onclick="setCat('policial')">🚨 Policial</button>
+    <button class="cat-btn" data-cat="politica" onclick="setCat('politica')">🏛️ Política</button>
+    <button class="cat-btn" data-cat="saude" onclick="setCat('saude')">🏥 Saúde</button>
+    <button class="cat-btn" data-cat="economia" onclick="setCat('economia')">💼 Economia</button>
+    <button class="cat-btn" data-cat="esporte" onclick="setCat('esporte')">⚽ Esporte</button>
+    <button class="cat-btn" data-cat="promos" onclick="setCat('promos')">💰 Promoções</button>
   </div>
 </div>
 
@@ -803,17 +844,17 @@
     <div class="footer-grid">
       <div class="footer-col">
         <h4>Cidades</h4>
-        <a onclick="setFilter('city','Schroeder');scrollToFeed()">🏡 Schroeder</a>
-        <a onclick="setFilter('city','Guaramirim');scrollToFeed()">🌿 Guaramirim</a>
-        <a onclick="setFilter('city','Jaraguá do Sul');scrollToFeed()">🏭 Jaraguá do Sul</a>
-        <a onclick="setFilter('city','Joinville');scrollToFeed()">🏙️ Joinville</a>
+        <a href="#" onclick="setCity('Schroeder');scrollToFeed();return false">🏡 Schroeder</a>
+        <a href="#" onclick="setCity('Guaramirim');scrollToFeed();return false">🌿 Guaramirim</a>
+        <a href="#" onclick="setCity('Jaraguá do Sul');scrollToFeed();return false">🏭 Jaraguá do Sul</a>
+        <a href="#" onclick="setCity('Joinville');scrollToFeed();return false">🏙️ Joinville</a>
       </div>
       <div class="footer-col">
         <h4>Categorias</h4>
-        <a onclick="setFilter('cat','policial');scrollToFeed()">🚨 Policial</a>
-        <a onclick="setFilter('cat','politica');scrollToFeed()">🏛️ Política</a>
-        <a onclick="setFilter('cat','esporte');scrollToFeed()">⚽ Esporte</a>
-        <a onclick="setFilter('cat','clima');scrollToFeed()">🌧️ Clima</a>
+        <a href="#" onclick="setCat('policial');scrollToFeed();return false">🚨 Policial</a>
+        <a href="#" onclick="setCat('politica');scrollToFeed();return false">🏛️ Política</a>
+        <a href="#" onclick="setCat('esporte');scrollToFeed();return false">⚽ Esporte</a>
+        <a href="#" onclick="setCat('clima');scrollToFeed();return false">🌧️ Clima</a>
       </div>
     </div>
     <div class="footer-bottom">
@@ -831,7 +872,8 @@ let currentPlayingId = null;
 let currentPage = 1;
 let isLoading = false;
 let hasMore = true;
-let currentFilter = { type: 'all', value: '' };
+let activeCity = '';   // '' = todas as cidades
+let activeCat  = '';   // '' = todas as categorias (excl. esporte)
 let searchQuery = '';
 let searchTimer = null;
 let adInsertEvery = 5;
@@ -858,7 +900,7 @@ const CITY_EMOJI = {
 window.addEventListener('DOMContentLoaded', async () => {
   loadWeather();
   loadDeals();
-  await loadFilterOptions();
+  loadCounts();
   await loadNews(1);
 });
 
@@ -910,69 +952,75 @@ async function loadDeals() {
   } catch(e) {}
 }
 
-function scrollFilters(dir) {
-  document.getElementById('filtersBar').scrollLeft += dir * 160;
-}
-
 function scrollToFeed() {
   document.getElementById('feed').scrollIntoView({ behavior: 'smooth' });
 }
 
-// ── FILTERS ──
-async function loadFilterOptions() {
+// ── COUNTS (badges nas abas) ──
+async function loadCounts() {
   try {
-    const [cities, cats] = await Promise.all([
-      fetch('/api/cities').then(r=>r.json()),
-      fetch('/api/categories').then(r=>r.json())
-    ]);
-    const CITY_ORDER = ['Schroeder','Guaramirim','Jaraguá do Sul','Joinville','Corupá','Blumenau','Florianópolis','Santa Catarina'];
-    const CAT_ORDER  = ['policial','politica','clima','saude','economia','esporte','cultura','local'];
-    const citySet = new Set(cities), catSet = new Set(cats);
-    const orderedCities = [...CITY_ORDER.filter(c=>citySet.has(c)), ...cities.filter(c=>!CITY_ORDER.includes(c)&&c!=='Brasil').sort()];
-    const orderedCats   = [...CAT_ORDER.filter(c=>catSet.has(c)),  ...cats.filter(c=>!CAT_ORDER.includes(c)&&c!=='geral').sort()];
-    const bar = document.getElementById('filtersBar');
-    bar.innerHTML = `<button class="filter-btn active" data-type="all" onclick="setFilter('all','')">🌎 Todas</button>`;
-    bar.innerHTML += `<button class="filter-btn" data-type="region" data-value="norte" onclick="setFilter('region','norte')">🏔️ Norte de SC</button>`;
-    orderedCities.forEach(c => {
-      bar.innerHTML += `<button class="filter-btn" data-type="city" data-value="${c}" onclick="setFilter('city','${c}')">${CITY_EMOJI[c]||'📍'} ${c}</button>`;
+    const data = await fetch('/api/counts').then(r => r.json());
+    // Badges nas cidades
+    document.querySelectorAll('.city-btn[data-city]').forEach(btn => {
+      const city = btn.dataset.city;
+      if (!city) return;
+      const n = data.cities[city];
+      if (n) btn.innerHTML += ` <span class="count">(${n})</span>`;
     });
-    bar.innerHTML += `<span style="color:rgba(255,255,255,0.12);font-size:20px;padding:0 2px;align-self:center;flex-shrink:0">│</span>`;
-    orderedCats.forEach(c => {
-      bar.innerHTML += `<button class="filter-btn" data-type="cat" data-value="${c}" onclick="setFilter('cat','${c}')">${CAT_LABELS[c]||c}</button>`;
+    // Badges nas categorias
+    document.querySelectorAll('.cat-btn[data-cat]').forEach(btn => {
+      const cat = btn.dataset.cat;
+      if (!cat || cat === 'promos') return;
+      const n = data.categories[cat];
+      if (n) btn.innerHTML += ` <span class="count">(${n})</span>`;
     });
-    bar.innerHTML += `<span style="color:rgba(255,255,255,0.12);font-size:20px;padding:0 2px;align-self:center;flex-shrink:0">│</span>`;
-    bar.innerHTML += `<button class="filter-btn" data-type="promos" onclick="setFilter('promos','')">💰 Promoções</button>`;
-  } catch(e) { console.error(e); }
+  } catch(e) {}
 }
 
-function setFilter(type, value) {
-  currentFilter = { type, value };
-  currentPage = 1; hasMore = true; adIndex = 0;
-  document.querySelectorAll('.filter-btn').forEach(b => {
-    b.classList.toggle('active',
-      (type==='all' && b.dataset.type==='all') ||
-      (b.dataset.type===type && b.dataset.value===value)
-    );
-  });
+// ── FILTROS: CIDADE ──
+function setCity(city) {
+  activeCity = city;
+  document.querySelectorAll('.city-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.city === city)
+  );
+  resetAndLoad();
+}
 
+// ── FILTROS: CATEGORIA ──
+function setCat(cat) {
   const feed = document.getElementById('feed');
-  const loadMoreBtn = document.getElementById('loadMoreBtn');
   const promosView = document.getElementById('promosView');
   const searchBar = document.querySelector('.search-bar');
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
 
-  if (type === 'promos') {
+  document.querySelectorAll('.cat-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.cat === cat)
+  );
+
+  // Tema de cor na barra de categorias
+  const catsBar = document.getElementById('catsBar');
+  catsBar.className = 'cats-bar' + (cat && cat !== 'promos' ? ` theme-${cat}` : '');
+
+  if (cat === 'promos') {
+    activeCat = 'promos';
     feed.style.display = 'none';
     loadMoreBtn.style.display = 'none';
     searchBar.style.display = 'none';
     promosView.style.display = 'block';
     loadPromosView();
   } else {
+    activeCat = cat;
     feed.style.display = 'flex';
     searchBar.style.display = 'block';
     promosView.style.display = 'none';
-    feed.innerHTML = '<div class="spinner">Filtrando...</div>';
-    loadNews(1, true);
+    resetAndLoad();
   }
+}
+
+function resetAndLoad() {
+  currentPage = 1; hasMore = true; adIndex = 0;
+  document.getElementById('feed').innerHTML = '<div class="spinner">Filtrando...</div>';
+  loadNews(1, true);
 }
 
 function mlLink(path) {
@@ -1032,9 +1080,8 @@ async function loadNews(page=1, reset=false) {
   isLoading = true;
   document.getElementById('loadMoreBtn').disabled = true;
   const params = new URLSearchParams({ page, per_page: 10 });
-  if (currentFilter.type === 'city')   params.set('city', currentFilter.value);
-  if (currentFilter.type === 'cat')    params.set('category', currentFilter.value);
-  if (currentFilter.type === 'region') params.set('region', currentFilter.value);
+  if (activeCity) params.set('city', activeCity);
+  if (activeCat && activeCat !== 'promos') params.set('category', activeCat);
   if (searchQuery) params.set('q', searchQuery);
   try {
     const data = await fetch(`/api/news?${params}`).then(r=>r.json());
