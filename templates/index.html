@@ -16,7 +16,7 @@
 <meta property="og:title" content="📻 Rádio SC News">
 <meta property="og:description" content="Notícias em áudio do Norte de Santa Catarina">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://radioscnews.com.br">
+<meta property="og:url" content="https://www.radioscnews.com.br">
 <style>
   :root {
     --bg: #0f0f13;
@@ -340,6 +340,8 @@
   .cities-inner {
     display: flex;
     gap: 6px;
+    max-width: 680px;
+    margin: 0 auto;
     padding: 10px 48px 10px 16px; /* padding-right extra = largura do fade, para o último botão não ficar obscurecido */
     overflow-x: auto;
     scrollbar-width: none;
@@ -384,6 +386,8 @@
   .cats-inner {
     display: flex;
     gap: 5px;
+    max-width: 680px;
+    margin: 0 auto;
     padding: 8px 48px 8px 16px; /* padding-right extra = largura do fade */
     overflow-x: auto;
     scrollbar-width: none;
@@ -1206,6 +1210,25 @@
     .card-body { padding: 12px; }
     .footer-grid { grid-template-columns: 1fr; }
   }
+
+  /* ── DESKTOP (>700px): alinha sombra-fade com o conteúdo centrado ── */
+  @media (min-width: 700px) {
+    /* A sombra de fade fica na borda direita do container de 680px */
+    .cities-bar::after {
+      right: calc(50% - 340px);
+    }
+    .cats-bar::after {
+      right: calc(50% - 340px);
+    }
+    /* Cards de notícia ligeiramente maiores no desktop */
+    .card-title { font-size: 17px; }
+    .card-summary { -webkit-line-clamp: 4; }
+    /* Grade radio e TV com 3 colunas */
+    .radio-grid { grid-template-columns: 1fr 1fr 1fr; }
+    .tv-channels-grid { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    /* Promos com 3 colunas */
+    .promos-grid { grid-template-columns: repeat(3, 1fr); }
+  }
 </style>
 </head>
 <body>
@@ -1639,7 +1662,7 @@ async function fetchLiveChannels() {
     if (data.jpnews) TV_CHANNELS.jpnews.vid = data.jpnews;
     if (data.nasa)   TV_CHANNELS.nasa.vid   = data.nasa;
     tvLiveLoaded = true;
-    logger.debug && logger.debug('Live IDs atualizados', data);
+    console.debug && console.debug('Live IDs atualizados', data);
   } catch(e) { /* mantém fallback */ }
 }
 let currentTvChannel = 'scc';

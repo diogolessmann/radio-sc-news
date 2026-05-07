@@ -821,13 +821,15 @@ def background_startup():
         logger.warning(f"Coleta inicial falhou: {e}")
 
 
-if __name__ == '__main__':
+# ── Inicialização que roda sempre (dev e produção/gunicorn) ──
+with app.app_context():
     init_db()
 
-    import threading
-    t = threading.Thread(target=background_startup, daemon=True)
-    t.start()
+import threading as _threading
+_t = _threading.Thread(target=background_startup, daemon=True)
+_t.start()
 
+if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'false').lower() == 'true'
     app.run(host='0.0.0.0', port=port, debug=debug)
