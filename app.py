@@ -143,12 +143,19 @@ def api_news():
         placeholders = ','.join('?' * len(NORTE_SC_CITIES))
         where.append(f'n.city IN ({placeholders})')
         params.extend(NORTE_SC_CITIES)
+        # Futebol fora do filtro regional também
+        where.append("n.category != 'esporte'")
     elif city:
         where.append('n.city = ?')
         params.append(city)
-    if category:
+        where.append("n.category != 'esporte'")
+    elif category:
         where.append('n.category = ?')
         params.append(category)
+    else:
+        # "Todas" — exclui futebol, que fica só na aba Esporte
+        where.append("n.category != 'esporte'")
+
     if search:
         where.append('(n.title LIKE ? OR n.summary LIKE ?)')
         params += [f'%{search}%', f'%{search}%']
