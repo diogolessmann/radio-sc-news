@@ -20,30 +20,59 @@ ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID', 'ZYCQDYoXnl78dNdU6Je
 VOICE_EDGE_PRIMARY = 'pt-BR-AntonioNeural'
 VOICE_EDGE_FEMALE  = 'pt-BR-FranciscaNeural'
 
-# Vozes por categoria — ElevenLabs
-VOICES_GENERAL  = [
-    'ZYCQDYoXnl78dNdU6JeG',  # voz original
-    'xNGAXaCH8MaasNuo7Hr7',  # masculina notícia
-    'czvzJwIVS2asEKnthV40',  # masculina comunicação
-]
-VOICES_FEMALE   = [
-    'RGymW84CSmfVugnA5tvA',  # feminina 1
-    '7eUAxNOneHxqfyRS77mW',  # feminina 2
-]
-VOICE_FOOTBALL  = 'YU8EsJtXFMyKMxYtheDk'  # narrador esportivo animado
+# Configurações de voz por categoria (usa sempre a voz configurada no Railway)
+# Variar stability/style cria percepção de "locução diferente" sem precisar de IDs extras
+VOICE_SETTINGS_BY_CATEGORY = {
+    'esporte': {
+        'stability': 0.35,        # mais variação = mais ânimo
+        'similarity_boost': 0.75,
+        'style': 0.65,            # mais expressivo — narrador esportivo
+        'use_speaker_boost': True,
+    },
+    'policial': {
+        'stability': 0.60,        # mais firme, sério
+        'similarity_boost': 0.85,
+        'style': 0.20,
+        'use_speaker_boost': True,
+    },
+    'saude': {
+        'stability': 0.75,        # calmo, tranquilizador
+        'similarity_boost': 0.80,
+        'style': 0.15,
+        'use_speaker_boost': True,
+    },
+    'clima': {
+        'stability': 0.70,
+        'similarity_boost': 0.80,
+        'style': 0.20,
+        'use_speaker_boost': True,
+    },
+    'politica': {
+        'stability': 0.65,
+        'similarity_boost': 0.85,
+        'style': 0.25,
+        'use_speaker_boost': True,
+    },
+    'economia': {
+        'stability': 0.68,
+        'similarity_boost': 0.82,
+        'style': 0.22,
+        'use_speaker_boost': True,
+    },
+    # padrão para geral/local/cultura
+    '_default': {
+        'stability': 0.55,
+        'similarity_boost': 0.80,
+        'style': 0.30,
+        'use_speaker_boost': True,
+    },
+}
 
 
-def get_voice_for_category(category):
-    """Retorna o Voice ID adequado para a categoria da notícia."""
-    import random
+def get_voice_settings(category):
+    """Retorna as configurações de voz para a categoria da notícia."""
     cat = (category or '').lower()
-    if cat == 'esporte':
-        return VOICE_FOOTBALL
-    if cat == 'breaking':
-        return random.choice(VOICES_FEMALE)
-    if cat in ('clima', 'saude'):
-        return random.choice(VOICES_FEMALE)
-    return random.choice(VOICES_GENERAL)
+    return VOICE_SETTINGS_BY_CATEGORY.get(cat, VOICE_SETTINGS_BY_CATEGORY['_default'])
 
 
 def clean_text_for_tts(text):
@@ -72,8 +101,8 @@ def build_news_script(title, summary, source=None, city=None):
     return ' '.join(parts)
 
 
-def _generate_with_elevenlabs(text, filepath, voice_id=None):
-    """Gera áudio via ElevenLabs API — voz de locutor profissional."""
+def _generate_with_elevenlabs(text, filepath, voice_id=None, voice_settings=None):
+    """Gera áudio via ElevenLabs API — usa sempre a voz configurada no Railway."""
     api_key = ELEVENLABS_API_KEY
     if not api_key:
         return False
@@ -86,15 +115,11 @@ def _generate_with_elevenlabs(text, filepath, voice_id=None):
         "Content-Type": "application/json",
         "Accept": "audio/mpeg",
     }
+    settings = voice_settings or VOICE_SETTINGS_BY_CATEGORY['_default']
     payload = {
         "text": text,
         "model_id": "eleven_multilingual_v2",
-        "voice_settings": {
-            "stability": 0.55,
-            "similarity_boost": 0.80,
-            "style": 0.30,
-            "use_speaker_boost": True,
-        },
+        "voice_settings": settings,
     }
 
     try:
@@ -155,11 +180,11 @@ def generate_audio(title, summary, source=None, city=None, news_id=None, categor
         logger.info(f"Áudio já existe: {filename}")
         return filename
 
-    # 1. ElevenLabs — voz selecionada pela categoria
-    voice_id = get_voice_for_category(category)
-    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(script, filepath, voice_id=voice_id):
+    # 1. ElevenLabs — mesma voz configurada, settings variam por categoria
+    settings = get_voice_settings(category)
+    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(script, filepath, voice_settings=settings):
         if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
-            logger.info(f"Áudio ElevenLabs ({category}) gerado: {filename}")
+            logger.info(f"Áudio ElevenLabs (cat={category}, stability={settings['stability']}, style={settings['style']}): {filename}")
             return filename
         if os.path.exists(filepath):
             os.remove(filepath)
