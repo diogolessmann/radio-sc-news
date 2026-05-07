@@ -810,6 +810,182 @@
   .whatsapp-float:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(37,211,102,0.6); }
   .whatsapp-float svg { flex-shrink: 0; }
 
+  /* ── RÁDIO VIEW ── */
+  .radio-view {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 16px 16px 40px;
+  }
+  .radio-header {
+    text-align: center;
+    padding: 16px 0 24px;
+  }
+  .radio-header h2 {
+    font-size: 22px;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .radio-header p { font-size: 13px; color: var(--text2); }
+
+  /* Mini-player fixo no topo da view quando tocando */
+  .radio-now-playing {
+    background: linear-gradient(135deg, #1a1a24, #22222f);
+    border: 1px solid rgba(233,69,96,0.3);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    display: none;
+    align-items: center;
+    gap: 14px;
+  }
+  .radio-now-playing.active { display: flex; }
+  .radio-np-icon {
+    font-size: 32px;
+    width: 56px; height: 56px;
+    background: var(--surface2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .radio-np-info { flex: 1; min-width: 0; }
+  .radio-np-label { font-size: 10px; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+  .radio-np-name { font-size: 16px; font-weight: 800; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .radio-np-freq { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .radio-np-wave {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 24px;
+    flex-shrink: 0;
+  }
+  .radio-np-wave span {
+    width: 4px;
+    background: var(--accent);
+    border-radius: 2px;
+    animation: wave 1.2s ease-in-out infinite;
+  }
+  .radio-np-wave span:nth-child(1) { height: 8px;  animation-delay: 0s; }
+  .radio-np-wave span:nth-child(2) { height: 18px; animation-delay: 0.15s; }
+  .radio-np-wave span:nth-child(3) { height: 12px; animation-delay: 0.3s; }
+  .radio-np-wave span:nth-child(4) { height: 20px; animation-delay: 0.45s; }
+  .radio-np-wave span:nth-child(5) { height: 10px; animation-delay: 0.6s; }
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.5); opacity: 0.6; }
+    50%       { transform: scaleY(1);   opacity: 1; }
+  }
+
+  /* Grid de estações */
+  .radio-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .radio-station-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px 14px 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    user-select: none;
+  }
+  .radio-station-card:hover { transform: translateY(-2px); border-color: rgba(233,69,96,0.4); box-shadow: 0 8px 24px rgba(0,0,0,0.4); }
+  .radio-station-card.playing {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(233,69,96,0.08), var(--surface));
+    box-shadow: 0 0 24px rgba(233,69,96,0.2);
+  }
+  .radio-station-card.coming-soon {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .radio-station-card.coming-soon:hover { transform: none; border-color: var(--border); box-shadow: none; }
+
+  .station-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  .station-badge.regional { background: rgba(245,166,35,0.15); color: var(--accent2); }
+  .station-badge.nacional  { background: rgba(52,152,219,0.15); color: #3498db; }
+  .station-badge.em-breve  { background: rgba(144,144,168,0.15); color: var(--text2); }
+
+  .station-icon { font-size: 36px; margin-bottom: 8px; display: block; }
+  .station-name { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 2px; }
+  .station-freq { font-size: 11px; color: var(--text2); margin-bottom: 12px; }
+
+  .station-play-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 20px;
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    justify-content: center;
+  }
+  .radio-station-card.playing .station-play-btn {
+    background: var(--surface2);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .station-play-btn:disabled { background: var(--surface2); color: var(--text2); cursor: default; }
+
+  /* Bloco de anunciante */
+  .radio-ad-slot {
+    background: linear-gradient(135deg, rgba(245,166,35,0.05), var(--surface));
+    border: 1px dashed rgba(245,166,35,0.3);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    margin-top: 8px;
+  }
+  .radio-ad-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .radio-ad-cta {
+    font-size: 13px;
+    color: var(--accent2);
+    font-weight: 700;
+  }
+  .radio-stop-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 1px solid rgba(233,69,96,0.3);
+    border-radius: 12px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 12px;
+  }
+  .radio-stop-btn:hover { background: rgba(233,69,96,0.1); }
+  .cat-btn[data-cat="radio"].active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .cats-bar.theme-radio { border-color: var(--accent); }
+
   /* ── TUTORIAL (PRIMEIRA VISITA) ── */
   .tutorial-overlay {
     position: fixed;
@@ -939,6 +1115,7 @@
     <button class="cat-btn" data-cat="economia" onclick="setCat('economia')">💼 Economia</button>
     <button class="cat-btn" data-cat="esporte" onclick="setCat('esporte')">⚽ Esporte</button>
     <button class="cat-btn" data-cat="promos" onclick="setCat('promos')">💰 Promoções</button>
+    <button class="cat-btn" data-cat="radio" onclick="setCat('radio')">📻 Rádio</button>
   </div>
 </div>
 
@@ -963,6 +1140,75 @@
   </div>
   <div class="promos-grid" id="promosGrid">
     <div class="spinner">Carregando ofertas...</div>
+  </div>
+</div>
+
+<!-- View de Rádio -->
+<div class="radio-view" id="radioView" style="display:none">
+  <div class="radio-header">
+    <h2>📻 Rádio Ao Vivo</h2>
+    <p>Escolha sua estação e ouça sem sair do site</p>
+  </div>
+
+  <!-- Now Playing -->
+  <div class="radio-now-playing" id="radioNowPlaying">
+    <div class="radio-np-icon" id="radioNpIcon">📻</div>
+    <div class="radio-np-info">
+      <div class="radio-np-label">🔴 Ao vivo agora</div>
+      <div class="radio-np-name" id="radioNpName">—</div>
+      <div class="radio-np-freq" id="radioNpFreq">—</div>
+    </div>
+    <div class="radio-np-wave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- Grade de estações -->
+  <div class="radio-grid">
+
+    <div class="radio-station-card" id="station-jaragua" onclick="playStation('jaragua')">
+      <span class="station-badge regional">Regional</span>
+      <span class="station-icon">🏔️</span>
+      <div class="station-name">Rádio Jaraguá</div>
+      <div class="station-freq">FM 101.3 · Jaraguá do Sul</div>
+      <button class="station-play-btn" id="btn-jaragua">▶ Ouvir ao vivo</button>
+    </div>
+
+    <div class="radio-station-card" id="station-rbn" onclick="playStation('rbn')">
+      <span class="station-badge regional">Regional</span>
+      <span class="station-icon">📡</span>
+      <div class="station-name">RBN FM</div>
+      <div class="station-freq">FM 94.3 · Jaraguá do Sul</div>
+      <button class="station-play-btn" id="btn-rbn">▶ Ouvir ao vivo</button>
+    </div>
+
+    <div class="radio-station-card coming-soon" id="station-schroeder">
+      <span class="station-badge em-breve">Em breve</span>
+      <span class="station-icon">🎙️</span>
+      <div class="station-name">Rádio Schroeder</div>
+      <div class="station-freq">FM 87.5 · Schroeder</div>
+      <button class="station-play-btn" disabled>Em breve</button>
+    </div>
+
+    <div class="radio-station-card" id="station-jp" onclick="playStation('jp')">
+      <span class="station-badge nacional">Nacional</span>
+      <span class="station-icon">📰</span>
+      <div class="station-name">Jovem Pan News</div>
+      <div class="station-freq">Notícias 24h · Nacional</div>
+      <button class="station-play-btn" id="btn-jp">▶ Ouvir ao vivo</button>
+    </div>
+
+  </div>
+
+  <!-- Botão parar -->
+  <button class="radio-stop-btn" id="radioStopBtn" onclick="stopRadio()" style="display:none">
+    ⏹ Parar transmissão
+  </button>
+
+  <!-- Slot de anunciante -->
+  <div class="radio-ad-slot" id="radioAdSlot">
+    <div class="radio-ad-label">✨ Espaço do patrocinador</div>
+    <div class="radio-ad-cta">Anuncie aqui e alcance quem ouve rádio na região →</div>
   </div>
 </div>
 
@@ -1066,6 +1312,92 @@ const CITY_EMOJI = {
   'Corupá':'⛰️','Blumenau':'🌺','Florianópolis':'🌉','Santa Catarina':'🌊',
   'Norte de SC':'🏔️','Brasil':'🇧🇷'
 };
+
+// ── RÁDIO AO VIVO ──
+const STATIONS = {
+  jaragua: {
+    name: 'Rádio Jaraguá FM',
+    freq: 'FM 101.3 · Jaraguá do Sul',
+    icon: '🏔️',
+    stream: 'https://cast.hoost.com.br:20132/stream'
+  },
+  rbn: {
+    name: 'RBN FM',
+    freq: 'FM 94.3 · Jaraguá do Sul',
+    icon: '📡',
+    stream: 'https://stream.loopert.com/stream/56'
+  },
+  jp: {
+    name: 'Jovem Pan News',
+    freq: 'Notícias 24h · Nacional',
+    icon: '📰',
+    stream: 'https://ice.fabricahost.com.br/pannewscuritiba'
+  }
+};
+
+let currentRadio = null;
+
+function playStation(id) {
+  const station = STATIONS[id];
+  if (!station) return;
+
+  // Para notícia se estiver tocando
+  if (currentPlayingId !== null) {
+    audio.pause();
+    const pb = document.getElementById(`play-${currentPlayingId}`);
+    if (pb) { pb.textContent = '▶'; pb.classList.remove('playing'); }
+    const pc = document.getElementById(`card-${currentPlayingId}`);
+    if (pc) pc.classList.remove('playing');
+    currentPlayingId = null;
+  }
+
+  // Se clicou na mesma que está tocando — para
+  if (currentRadio === id) {
+    stopRadio();
+    return;
+  }
+
+  // Atualiza UI dos cards
+  document.querySelectorAll('.radio-station-card:not(.coming-soon)').forEach(c => {
+    c.classList.remove('playing');
+    const b = c.querySelector('.station-play-btn');
+    if (b) b.textContent = '▶ Ouvir ao vivo';
+  });
+
+  const card = document.getElementById(`station-${id}`);
+  const btn  = document.getElementById(`btn-${id}`);
+  if (card) card.classList.add('playing');
+  if (btn)  btn.textContent = '⏸ Tocando...';
+
+  // Now Playing bar
+  document.getElementById('radioNpName').textContent = station.name;
+  document.getElementById('radioNpFreq').textContent = station.freq;
+  document.getElementById('radioNpIcon').textContent = station.icon;
+  document.getElementById('radioNowPlaying').classList.add('active');
+  document.getElementById('radioStopBtn').style.display = 'flex';
+
+  // Toca
+  audio.src = station.stream;
+  audio.play().catch(() => {
+    // Fallback: abre em nova aba se o stream falhar
+    if (btn) btn.textContent = '↗ Abrir stream';
+    card.onclick = () => window.open(station.stream, '_blank');
+  });
+  currentRadio = id;
+}
+
+function stopRadio() {
+  audio.pause();
+  audio.src = '';
+  currentRadio = null;
+  document.querySelectorAll('.radio-station-card').forEach(c => {
+    c.classList.remove('playing');
+    const b = c.querySelector('.station-play-btn:not(:disabled)');
+    if (b) b.textContent = '▶ Ouvir ao vivo';
+  });
+  document.getElementById('radioNowPlaying').classList.remove('active');
+  document.getElementById('radioStopBtn').style.display = 'none';
+}
 
 // ── TUTORIAL (primeira visita) ──
 function closeTutorial() {
@@ -1200,7 +1532,8 @@ function setCity(city) {
 function setCat(cat) {
   const feed = document.getElementById('feed');
   const promosView = document.getElementById('promosView');
-  const searchBar = document.querySelector('.search-bar');
+  const radioView  = document.getElementById('radioView');
+  const searchBar  = document.querySelector('.search-bar');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
 
   document.querySelectorAll('.cat-btn').forEach(b =>
@@ -1209,20 +1542,29 @@ function setCat(cat) {
 
   // Tema de cor na barra de categorias
   const catsBar = document.getElementById('catsBar');
-  catsBar.className = 'cats-bar' + (cat && cat !== 'promos' ? ` theme-${cat}` : '');
+  const specialCats = ['promos', 'radio'];
+  catsBar.className = 'cats-bar' + (cat && !specialCats.includes(cat) ? ` theme-${cat}` : cat === 'radio' ? ' theme-radio' : '');
+
+  // Esconde tudo primeiro
+  feed.style.display = 'none';
+  loadMoreBtn.style.display = 'none';
+  searchBar.style.display = 'none';
+  promosView.style.display = 'none';
+  radioView.style.display  = 'none';
 
   if (cat === 'promos') {
     activeCat = 'promos';
-    feed.style.display = 'none';
-    loadMoreBtn.style.display = 'none';
-    searchBar.style.display = 'none';
     promosView.style.display = 'block';
     loadPromosView();
+  } else if (cat === 'radio') {
+    activeCat = 'radio';
+    radioView.style.display = 'block';
   } else {
     activeCat = cat;
     feed.style.display = 'flex';
     searchBar.style.display = 'block';
-    promosView.style.display = 'none';
+    // Para o rádio se mudar de aba
+    if (currentRadio) stopRadio();
     resetAndLoad();
   }
   setTimeout(scrollActiveIntoView, 50);
