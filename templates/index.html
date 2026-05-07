@@ -398,6 +398,55 @@
   }
   .admin-link:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 
+  /* WEATHER BAR */
+  .weather-bar {
+    background: rgba(15,15,19,0.7);
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .weather-inner {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 8px 16px;
+  }
+  .weather-inner::-webkit-scrollbar { display: none; }
+  .weather-city {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    cursor: default;
+  }
+  .weather-city:last-child { border-right: none; }
+  .weather-city-name { font-size: 12px; color: var(--text2); }
+  .weather-temp { font-size: 18px; font-weight: 700; color: var(--text); }
+  .weather-icon { font-size: 20px; }
+  .weather-desc { font-size: 11px; color: var(--text2); text-transform: capitalize; }
+
+  /* GENERATE AUDIO BTN */
+  .gen-audio-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text2);
+    background: var(--surface2);
+    border: 1px dashed rgba(255,255,255,0.15);
+    border-radius: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+  }
+  .gen-audio-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .gen-audio-btn.loading { opacity: 0.6; cursor: wait; }
+
   @media (max-width: 480px) {
     .card-title { font-size: 15px; }
     .card-body { padding: 12px; }
@@ -415,6 +464,10 @@
     </div>
   </div>
 </header>
+
+<div class="weather-bar" id="weatherBar" style="display:none">
+  <div class="weather-inner" id="weatherInner"></div>
+</div>
 
 <div class="filters-bar">
   <div class="filters-wrapper">
@@ -468,9 +521,35 @@ const CITY_EMOJI = { 'Schroeder':'🏡', 'Joinville':'🏙️', 'Jaraguá do Sul
 
 // ── INIT ──────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
+  loadWeather();
   await loadFilterOptions();
   await loadNews(1);
 });
+
+// ── WEATHER ───────────────────────────────────
+async function loadWeather() {
+  try {
+    const data = await fetch('/api/weather').then(r => r.json());
+    if (!data.available || !data.weather.length) return;
+    const bar = document.getElementById('weatherBar');
+    const inner = document.getElementById('weatherInner');
+    inner.innerHTML = data.weather.map(w => `
+      <div class="weather-city" title="${w.description} · Sensação ${w.feels_like}°C · Vento ${w.wind}km/h">
+        <span class="weather-icon">${w.icon}</span>
+        <div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span class="weather-city-name">${w.emoji} ${w.city}</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:4px">
+            <span class="weather-temp">${w.temp}°</span>
+            <span class="weather-desc">${w.description}</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    bar.style.display = 'block';
+  } catch(e) { /* clima opcional, falha silenciosa */ }
+}
 
 function scrollFilters(dir) {
   const bar = document.getElementById('filtersBar');
@@ -606,7 +685,10 @@ function buildNewsCard(n) {
       </div>
     </div>`;
   } else {
-    audioHtml = `<div class="no-audio-btn">⏳ Áudio sendo gerado...</div>`;
+    audioHtml = `
+    <button class="gen-audio-btn" id="genbtn-${n.id}" onclick="generateAndPlay(${n.id}, this)">
+      🎙️ Ouvir notícia
+    </button>`;
   }
 
   card.innerHTML = `
@@ -721,6 +803,37 @@ function autoPlayNext(lastId) {
     const onclick = allPlayers[i].getAttribute('onclick') || '';
     const src = onclick.match(/'([^']+\.mp3)'/);
     if (src) { togglePlay(parseInt(match[1]), src[1]); return; }
+  }
+}
+
+async function generateAndPlay(id, btn) {
+  if (btn.classList.contains('loading')) return;
+  btn.classList.add('loading');
+  btn.textContent = '⏳ Gerando áudio...';
+  try {
+    const data = await fetch(`/api/audio/${id}`).then(r => r.json());
+    if (data.success) {
+      // Substitui o botão pelo player completo
+      const file = data.audio_url.replace('/audio/', '');
+      btn.parentElement.innerHTML = `
+        <div class="audio-player">
+          <button class="play-btn" id="play-${id}" onclick="togglePlay(${id},'${file}')">▶</button>
+          <div class="player-info">
+            <div class="player-label">🎧 Ouça a notícia</div>
+            <div class="player-progress" onclick="seekAudio(event,${id})">
+              <div class="player-progress-fill" id="prog-${id}"></div>
+            </div>
+            <div class="player-time" id="time-${id}">0:00</div>
+          </div>
+        </div>`;
+      togglePlay(id, file);
+    } else {
+      btn.classList.remove('loading');
+      btn.textContent = '❌ Erro ao gerar — tente novamente';
+    }
+  } catch(e) {
+    btn.classList.remove('loading');
+    btn.textContent = '❌ Erro — tente novamente';
   }
 }
 

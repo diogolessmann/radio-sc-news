@@ -194,6 +194,18 @@ def api_news():
     })
 
 
+@app.route('/api/weather')
+def api_weather():
+    """Clima atual das cidades do Norte de SC."""
+    try:
+        from weather import fetch_all_weather
+        data = fetch_all_weather()
+        return jsonify({'weather': data, 'available': len(data) > 0})
+    except Exception as e:
+        logger.error(f"Erro no clima: {e}")
+        return jsonify({'weather': [], 'available': False})
+
+
 @app.route('/api/cities')
 def api_cities():
     conn = get_db()
