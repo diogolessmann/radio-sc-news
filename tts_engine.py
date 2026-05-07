@@ -20,6 +20,31 @@ ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID', 'ZYCQDYoXnl78dNdU6Je
 VOICE_EDGE_PRIMARY = 'pt-BR-AntonioNeural'
 VOICE_EDGE_FEMALE  = 'pt-BR-FranciscaNeural'
 
+# Vozes por categoria — ElevenLabs
+VOICES_GENERAL  = [
+    'ZYCQDYoXnl78dNdU6JeG',  # voz original
+    'xNGAXaCH8MaasNuo7Hr7',  # masculina notícia
+    'czvzJwIVS2asEKnthV40',  # masculina comunicação
+]
+VOICES_FEMALE   = [
+    'RGymW84CSmfVugnA5tvA',  # feminina 1
+    '7eUAxNOneHxqfyRS77mW',  # feminina 2
+]
+VOICE_FOOTBALL  = 'YU8EsJtXFMyKMxYtheDk'  # narrador esportivo animado
+
+
+def get_voice_for_category(category):
+    """Retorna o Voice ID adequado para a categoria da notícia."""
+    import random
+    cat = (category or '').lower()
+    if cat == 'esporte':
+        return VOICE_FOOTBALL
+    if cat == 'breaking':
+        return random.choice(VOICES_FEMALE)
+    if cat in ('clima', 'saude'):
+        return random.choice(VOICES_FEMALE)
+    return random.choice(VOICES_GENERAL)
+
 
 def clean_text_for_tts(text):
     text = re.sub(r'https?://\S+', '', text)
@@ -115,9 +140,10 @@ def _generate_with_gtts(text, filepath):
         return False
 
 
-def generate_audio(title, summary, source=None, city=None, news_id=None):
+def generate_audio(title, summary, source=None, city=None, news_id=None, category=None):
     """
     Gera áudio MP3 para uma notícia.
+    Voz selecionada automaticamente pela categoria.
     Ordem: ElevenLabs → edge-tts → gTTS
     """
     script = build_news_script(title, summary, source, city)
@@ -129,10 +155,11 @@ def generate_audio(title, summary, source=None, city=None, news_id=None):
         logger.info(f"Áudio já existe: {filename}")
         return filename
 
-    # 1. ElevenLabs (melhor qualidade)
-    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(script, filepath):
+    # 1. ElevenLabs — voz selecionada pela categoria
+    voice_id = get_voice_for_category(category)
+    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(script, filepath, voice_id=voice_id):
         if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
-            logger.info(f"Áudio ElevenLabs gerado: {filename}")
+            logger.info(f"Áudio ElevenLabs ({category}) gerado: {filename}")
             return filename
         if os.path.exists(filepath):
             os.remove(filepath)
