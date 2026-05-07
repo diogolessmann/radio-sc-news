@@ -324,10 +324,11 @@
   .cities-bar {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    overflow: hidden;
     position: relative;
+    display: flex;
+    justify-content: center;
   }
-  /* Fade edge direito para indicar scroll */
+  /* Fade edge direito para indicar scroll — alinhado ao container */
   .cities-bar::after {
     content: '';
     position: absolute;
@@ -342,8 +343,7 @@
     gap: 6px;
     width: 100%;
     max-width: 680px;
-    margin: 0 auto;
-    padding: 10px 48px 10px 16px; /* padding-right extra = largura do fade, para o último botão não ficar obscurecido */
+    padding: 10px 48px 10px 16px;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
@@ -372,8 +372,9 @@
     background: var(--bg);
     border-bottom: 2px solid transparent;
     transition: border-color 0.3s;
-    overflow: hidden;
     position: relative;
+    display: flex;
+    justify-content: center;
   }
   .cats-bar::after {
     content: '';
@@ -389,8 +390,7 @@
     gap: 5px;
     width: 100%;
     max-width: 680px;
-    margin: 0 auto;
-    padding: 8px 48px 8px 16px; /* padding-right extra = largura do fade */
+    padding: 8px 48px 8px 16px;
     overflow-x: auto;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
