@@ -1,23 +1,24 @@
 """
-tts_engine.py — Geração de áudio com voz neural (Microsoft Edge TTS)
-Voz: pt-BR-AntonioNeural — narração estilo rádio, natural e fluente
-Fallback: gTTS (Google) caso edge-tts falhe
+tts_engine.py — Geração de áudio com ElevenLabs (primário) + edge-tts (fallback)
+Voz ElevenLabs: locutor de rádio profissional em português BR
 """
 import os
 import re
 import asyncio
 import logging
 import hashlib
+import requests
 
 logger = logging.getLogger(__name__)
 
 AUDIO_DIR = os.environ.get('AUDIO_DIR', 'audio')
 os.makedirs(AUDIO_DIR, exist_ok=True)
 
-# Voz principal — António soa como locutor de rádio
-VOICE_PRIMARY  = 'pt-BR-AntonioNeural'
-# Alternativa feminina natural
-VOICE_FEMALE   = 'pt-BR-FranciscaNeural'
+ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY', '')
+ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID', 'ZYCQDYoXnl78dNdU6JeG')
+
+VOICE_EDGE_PRIMARY = 'pt-BR-AntonioNeural'
+VOICE_EDGE_FEMALE  = 'pt-BR-FranciscaNeural'
 
 
 def clean_text_for_tts(text):
@@ -46,15 +47,52 @@ def build_news_script(title, summary, source=None, city=None):
     return ' '.join(parts)
 
 
-async def _edge_tts_generate(text, filepath, voice=VOICE_PRIMARY):
-    """Gera áudio via edge-tts (voz neural Microsoft)."""
+def _generate_with_elevenlabs(text, filepath, voice_id=None):
+    """Gera áudio via ElevenLabs API — voz de locutor profissional."""
+    api_key = ELEVENLABS_API_KEY
+    if not api_key:
+        return False
+
+    vid = voice_id or ELEVENLABS_VOICE_ID
+    url = f"https://api.elevenlabs.io/v1/text-to-speech/{vid}"
+
+    headers = {
+        "xi-api-key": api_key,
+        "Content-Type": "application/json",
+        "Accept": "audio/mpeg",
+    }
+    payload = {
+        "text": text,
+        "model_id": "eleven_multilingual_v2",
+        "voice_settings": {
+            "stability": 0.55,
+            "similarity_boost": 0.80,
+            "style": 0.30,
+            "use_speaker_boost": True,
+        },
+    }
+
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=30)
+        if resp.status_code == 200:
+            with open(filepath, 'wb') as f:
+                f.write(resp.content)
+            return True
+        else:
+            logger.warning(f"ElevenLabs erro {resp.status_code}: {resp.text[:200]}")
+            return False
+    except Exception as e:
+        logger.warning(f"ElevenLabs falhou: {e}")
+        return False
+
+
+async def _edge_tts_generate(text, filepath, voice=VOICE_EDGE_PRIMARY):
     import edge_tts
     communicate = edge_tts.Communicate(text, voice)
     await communicate.save(filepath)
 
 
-def _generate_with_edge_tts(text, filepath, voice=VOICE_PRIMARY):
-    """Wrapper síncrono para o edge-tts assíncrono."""
+def _generate_with_edge_tts(text, filepath, voice=VOICE_EDGE_PRIMARY):
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -67,7 +105,6 @@ def _generate_with_edge_tts(text, filepath, voice=VOICE_PRIMARY):
 
 
 def _generate_with_gtts(text, filepath):
-    """Fallback: Google TTS."""
     try:
         from gtts import gTTS
         tts = gTTS(text=text, lang='pt', slow=False)
@@ -81,8 +118,7 @@ def _generate_with_gtts(text, filepath):
 def generate_audio(title, summary, source=None, city=None, news_id=None):
     """
     Gera áudio MP3 para uma notícia.
-    Usa edge-tts (voz neural) com fallback para gTTS.
-    Retorna o nome do arquivo ou None em caso de erro.
+    Ordem: ElevenLabs → edge-tts → gTTS
     """
     script = build_news_script(title, summary, source, city)
 
@@ -93,19 +129,26 @@ def generate_audio(title, summary, source=None, city=None, news_id=None):
         logger.info(f"Áudio já existe: {filename}")
         return filename
 
-    # Tenta edge-tts primeiro (voz de rádio)
-    if _generate_with_edge_tts(script, filepath):
-        size = os.path.getsize(filepath)
-        if size > 1000:
-            logger.info(f"Áudio neural gerado: {filename} ({size} bytes)")
+    # 1. ElevenLabs (melhor qualidade)
+    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(script, filepath):
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
+            logger.info(f"Áudio ElevenLabs gerado: {filename}")
             return filename
-        os.remove(filepath)
+        if os.path.exists(filepath):
+            os.remove(filepath)
 
-    # Fallback: gTTS
+    # 2. Edge TTS (fallback neural)
+    if _generate_with_edge_tts(script, filepath):
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
+            logger.info(f"Áudio edge-tts (fallback): {filename}")
+            return filename
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+    # 3. gTTS (último recurso)
     if _generate_with_gtts(script, filepath):
-        size = os.path.getsize(filepath)
-        if size > 1000:
-            logger.info(f"Áudio gTTS (fallback): {filename} ({size} bytes)")
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
+            logger.info(f"Áudio gTTS (fallback): {filename}")
             return filename
 
     logger.error(f"Falha total ao gerar áudio: {filename}")
@@ -115,7 +158,7 @@ def generate_audio(title, summary, source=None, city=None, news_id=None):
 
 
 def generate_audio_for_ad(text, ad_id):
-    """Gera áudio para propaganda com voz feminina."""
+    """Gera áudio para propaganda."""
     clean = clean_text_for_tts(text)
     script = f"Publicidade. {clean}"
 
@@ -125,13 +168,20 @@ def generate_audio_for_ad(text, ad_id):
     if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
         return filename
 
-    if _generate_with_edge_tts(script, filepath, voice=VOICE_FEMALE):
-        if os.path.getsize(filepath) > 1000:
+    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(script, filepath):
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
             return filename
-        os.remove(filepath)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+    if _generate_with_edge_tts(script, filepath, voice=VOICE_EDGE_FEMALE):
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
+            return filename
+        if os.path.exists(filepath):
+            os.remove(filepath)
 
     if _generate_with_gtts(script, filepath):
-        if os.path.getsize(filepath) > 1000:
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
             return filename
 
     return None
