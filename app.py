@@ -222,6 +222,15 @@ import time as _time
 _deals_cache = {'data': [], 'ts': 0}
 DEALS_CACHE_SEC = 1800
 
+ML_AFFILIATE_ID = os.environ.get('ML_AFFILIATE_ID', '')
+
+def build_affiliate_link(url):
+    """Adiciona parâmetros de afiliado ML ao link do produto."""
+    if not url or not ML_AFFILIATE_ID:
+        return url
+    sep = '&' if '?' in url else '?'
+    return f"{url}{sep}matt_tool={ML_AFFILIATE_ID}&matt_word=radioscnews&matt_source=radioscnews&matt_campaign=ofertas"
+
 @app.route('/api/deals')
 def api_deals():
     """Ofertas com desconto do Mercado Livre."""
@@ -264,7 +273,7 @@ def api_deals():
                 'original_price': orig,
                 'discount': discount,
                 'thumbnail': thumb,
-                'link': item.get('permalink', ''),
+                'link': build_affiliate_link(item.get('permalink', '')),
                 'free_shipping': item.get('shipping', {}).get('free_shipping', False),
             })
             if len(deals) >= 10:
