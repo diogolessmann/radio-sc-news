@@ -206,13 +206,75 @@ def api_news():
 @app.route('/api/weather')
 def api_weather():
     """Clima atual das cidades do Norte de SC."""
+    import os
+    key_set = bool(os.environ.get('OPENWEATHER_API_KEY', ''))
     try:
         from weather import fetch_all_weather
         data = fetch_all_weather()
-        return jsonify({'weather': data, 'available': len(data) > 0})
+        return jsonify({'weather': data, 'available': len(data) > 0, 'key_set': key_set})
     except Exception as e:
         logger.error(f"Erro no clima: {e}")
-        return jsonify({'weather': [], 'available': False})
+        return jsonify({'weather': [], 'available': False, 'key_set': key_set})
+
+
+# Cache de ofertas ML (30 min)
+import time as _time
+_deals_cache = {'data': [], 'ts': 0}
+DEALS_CACHE_SEC = 1800
+
+@app.route('/api/deals')
+def api_deals():
+    """Ofertas com desconto do Mercado Livre."""
+    global _deals_cache
+    now = _time.time()
+    if now - _deals_cache['ts'] < DEALS_CACHE_SEC and _deals_cache['data']:
+        return jsonify({'deals': _deals_cache['data'], 'cached': True})
+
+    try:
+        import requests as _req
+        import random
+        queries = [
+            'fone bluetooth', 'smartwatch', 'caixa de som bluetooth',
+            'kindle', 'mouse sem fio', 'carregador portatil', 'tablet'
+        ]
+        q = random.choice(queries)
+        resp = _req.get(
+            'https://api.mercadolibre.com/sites/MLB/search',
+            params={'q': q, 'sort': 'relevance', 'limit': 30, 'condition': 'new'},
+            timeout=8
+        )
+        if resp.status_code != 200:
+            return jsonify({'deals': [], 'cached': False})
+
+        items = resp.json().get('results', [])
+        deals = []
+        for item in items:
+            orig = item.get('original_price')
+            price = item.get('price', 0)
+            if not orig or orig <= price or price <= 0:
+                continue
+            discount = round((1 - price / orig) * 100)
+            if discount < 10:
+                continue
+            thumb = (item.get('thumbnail') or '').replace('http://', 'https://')
+            deals.append({
+                'id': item['id'],
+                'title': item['title'][:70],
+                'price': price,
+                'original_price': orig,
+                'discount': discount,
+                'thumbnail': thumb,
+                'link': item.get('permalink', ''),
+                'free_shipping': item.get('shipping', {}).get('free_shipping', False),
+            })
+            if len(deals) >= 10:
+                break
+
+        _deals_cache = {'data': deals, 'ts': now}
+        return jsonify({'deals': deals, 'cached': False})
+    except Exception as e:
+        logger.error(f"Erro ao buscar ofertas ML: {e}")
+        return jsonify({'deals': [], 'cached': False})
 
 
 @app.route('/api/cities')
