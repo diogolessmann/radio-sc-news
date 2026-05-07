@@ -69,6 +69,15 @@ RSS_FEEDS = [
         'category': 'geral',
         'priority': True
     },
+    # ── Norte de SC — Jaraguá do Sul + Guaramirim (RBN 94.3 FM) ──
+    {
+        'url': 'https://portal.rbnfm.com.br/feed',
+        'source': 'RBN 94.3 FM',
+        'city': None,          # Cobre Jaraguá e Guaramirim — keyword detecta
+        'category': 'geral',
+        'priority': True,
+        'max_entries': 15
+    },
     # ── Norte de SC — Guaramirim ────────────────
     {
         'url': 'https://ocp.news/tag/guaramirim/feed/',
@@ -149,7 +158,7 @@ CITY_KEYWORDS = {
     'Guaramirim':    ['guaramirim'],
     'Corupá':        ['corupá', 'corupa'],
     'Joinville':     ['joinville', 'joinvilense', 'joinvilhense'],
-    'Jaraguá do Sul':['jaraguá do sul', 'jaragua do sul', 'jaraguaense', 'jaraguá'],
+    'Jaraguá do Sul':['jaraguá do sul', 'jaragua do sul', 'jaraguaense', 'jaraguá', 'hospital são josé', 'hospital jaraguá', 'br-280 jaraguá'],
     'Blumenau':      ['blumenau', 'blumenauense'],
     'Florianópolis': ['florianópolis', 'floripa', 'florianopolitano'],
     'Norte de SC':   ['norte catarinense', 'norte de santa catarina', 'região norte'],
