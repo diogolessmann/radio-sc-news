@@ -558,6 +558,32 @@ def admin_generate_audio(news_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/admin/clear_audio_cache', methods=['POST'])
+@login_required
+def admin_clear_audio_cache():
+    """Apaga todos os áudios gerados e limpa o campo audio_file no banco.
+    Use isso para forçar regerar com novas vozes."""
+    conn = get_db()
+    news_with_audio = conn.execute(
+        'SELECT id, audio_file FROM news WHERE audio_file IS NOT NULL'
+    ).fetchall()
+    deleted_files = 0
+    for row in news_with_audio:
+        filepath = os.path.join(AUDIO_DIR, row['audio_file'])
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+                deleted_files += 1
+            except Exception:
+                pass
+    conn.execute('UPDATE news SET audio_file = NULL WHERE audio_file IS NOT NULL')
+    conn.commit()
+    conn.close()
+    logger.info(f"Cache de áudio limpo: {deleted_files} arquivos removidos.")
+    return jsonify({'success': True, 'deleted_files': deleted_files,
+                    'message': f'{deleted_files} arquivos de áudio removidos. Novos áudios serão gerados com as vozes atuais.'})
+
+
 @app.route('/admin/generate_all_audio', methods=['POST'])
 @login_required
 def admin_generate_all_audio():

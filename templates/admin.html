@@ -193,6 +193,9 @@
       <button class="btn btn-blue" onclick="generateAllAudio()">
         🎵 Gerar Áudios Pendentes
       </button>
+      <button class="btn btn-danger" onclick="clearAudioCache()" title="Apaga todos os MP3 e força regeneração com as vozes atuais">
+        🗑️ Limpar Cache de Áudio
+      </button>
     </div>
 
     <div style="overflow-x:auto">
@@ -502,6 +505,26 @@ async function generateAllAudio() {
   } catch(e) { toast('❌ Erro', 'error'); }
   btn.disabled = false;
   btn.innerHTML = '🎵 Gerar Áudios Pendentes';
+}
+
+// ── CLEAR AUDIO CACHE ─────────────────────────
+async function clearAudioCache() {
+  if (!confirm('⚠️ Isso vai apagar TODOS os áudios gerados e forçar regeneração com as vozes atuais. Continuar?')) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-inline"></span> Limpando...';
+  try {
+    const r = await fetch('/admin/clear_audio_cache', {method:'POST'});
+    const d = await r.json();
+    if (d.success) {
+      toast(`🗑️ ${d.message}`, 'success');
+      setTimeout(() => location.reload(), 2000);
+    } else {
+      toast('❌ Erro ao limpar cache.', 'error');
+    }
+  } catch(e) { toast('❌ Erro', 'error'); }
+  btn.disabled = false;
+  btn.innerHTML = '🗑️ Limpar Cache de Áudio';
 }
 
 // ── DELETE NEWS ────────────────────────────────
