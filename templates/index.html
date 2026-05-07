@@ -239,6 +239,75 @@
   .promo-ml-badge { font-size: 10px; color: var(--text2); margin-top: 4px; }
   @media (max-width: 400px) { .promos-grid { grid-template-columns: 1fr; } }
 
+  /* ── PROMO HERO ── */
+  .promo-hero {
+    display: block;
+    background: linear-gradient(135deg, #f5a623 0%, #e94560 100%);
+    border-radius: 16px;
+    padding: 24px 20px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+    margin-bottom: 4px;
+  }
+  .promo-hero:hover { opacity: 0.92; }
+  .promo-hero-badge {
+    display: inline-block;
+    background: rgba(0,0,0,0.25);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+  }
+  .promo-hero-title { font-size: 22px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+  .promo-hero-sub { font-size: 13px; color: rgba(255,255,255,0.85); margin-bottom: 14px; }
+  .promo-hero-btn {
+    display: inline-block;
+    background: #fff;
+    color: #e94560;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 8px 18px;
+    border-radius: 20px;
+  }
+
+  /* ── PROMO CATEGORY CARDS ── */
+  .promo-cat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 8px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .promo-cat-card:hover { border-color: var(--accent2); background: var(--surface2); }
+  .promo-cat-icon { font-size: 26px; }
+  .promo-cat-label { font-size: 12px; font-weight: 600; color: var(--text); text-align: center; }
+
+  .promo-relampago {
+    display: block;
+    text-align: center;
+    background: rgba(245,166,35,0.1);
+    border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 12px;
+    padding: 14px;
+    color: var(--accent2);
+    font-size: 14px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+  .promo-relampago:hover { background: rgba(245,166,35,0.2); }
+
   /* ── FILTERS ── */
   .filters-bar {
     background: var(--surface);
@@ -906,30 +975,44 @@ function setFilter(type, value) {
   }
 }
 
-async function loadPromosView() {
+function mlLink(path) {
+  const aff = 'matt_tool=despachantelessmann&matt_word=radioscnews&matt_source=radioscnews&matt_campaign=ofertas';
+  const sep = path.includes('?') ? '&' : '?';
+  return `https://www.mercadolivre.com.br${path}${sep}${aff}`;
+}
+
+function loadPromosView() {
   const grid = document.getElementById('promosGrid');
-  grid.innerHTML = '<div class="spinner">Carregando ofertas...</div>';
-  try {
-    const data = await fetch('/api/deals').then(r => r.json());
-    if (!data.deals || !data.deals.length) {
-      grid.innerHTML = '<div class="empty-state"><div class="icon">🛍️</div><p>Nenhuma oferta disponível no momento. Tente novamente em alguns minutos.</p></div>';
-      return;
-    }
-    grid.innerHTML = data.deals.map(d => `
-      <a class="promo-card" href="${d.link}" target="_blank" rel="noopener">
-        <img class="promo-img" src="${d.thumbnail}" alt="${d.title}" loading="lazy" onerror="this.style.background='#1a1a24'">
-        <div class="promo-body">
-          ${d.discount > 0 ? `<span class="promo-discount">-${d.discount}% OFF</span>` : '<span class="promo-discount" style="background:#27ae60">🔥 Oferta</span>'}
-          <div class="promo-title">${d.title}</div>
-          <div class="promo-price">R$ ${d.price.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-          ${d.original_price && d.discount > 0 ? `<div class="promo-orig">de R$ ${d.original_price.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>` : ''}
-          ${d.free_shipping ? '<div class="promo-ship">✓ Frete grátis</div>' : ''}
-          <div class="promo-ml-badge">🛒 Mercado Livre</div>
-        </div>
-      </a>`).join('');
-  } catch(e) {
-    grid.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao carregar ofertas.</p></div>';
-  }
+  const CATS = [
+    { icon:'📱', label:'Celulares',     path:'/ofertas#MLBCellphones' },
+    { icon:'💻', label:'Informática',   path:'/ofertas#MLBComputers' },
+    { icon:'🎧', label:'Eletrônicos',   path:'/ofertas#MLBElectronics' },
+    { icon:'👟', label:'Calçados',      path:'/ofertas#MLBShoes' },
+    { icon:'🏠', label:'Casa',          path:'/ofertas#MLBHomeAppliances' },
+    { icon:'⚽', label:'Esportes',      path:'/ofertas#MLBSports' },
+    { icon:'👗', label:'Moda',          path:'/ofertas#MLBClothing' },
+    { icon:'🧴', label:'Beleza',        path:'/ofertas#MLBBeauty' },
+    { icon:'🔧', label:'Ferramentas',   path:'/ofertas#MLBTools' },
+    { icon:'🎮', label:'Games',         path:'/ofertas#MLBVideoGames' },
+  ];
+
+  grid.innerHTML = `
+    <a class="promo-hero" href="${mlLink('/ofertas')}" target="_blank" rel="noopener" style="grid-column:1/-1">
+      <div class="promo-hero-content">
+        <div class="promo-hero-badge">🔥 OFERTA DO DIA</div>
+        <div class="promo-hero-title">Até 70% OFF no Mercado Livre</div>
+        <div class="promo-hero-sub">10.000+ produtos com desconto. Novas ofertas todos os dias.</div>
+        <div class="promo-hero-btn">Ver todas as ofertas →</div>
+      </div>
+    </a>
+    ${CATS.map(c => `
+      <a class="promo-cat-card" href="${mlLink(c.path)}" target="_blank" rel="noopener">
+        <span class="promo-cat-icon">${c.icon}</span>
+        <span class="promo-cat-label">${c.label}</span>
+      </a>`).join('')}
+    <a class="promo-relampago" href="${mlLink('/ofertas#MLBFlashSales')}" target="_blank" rel="noopener" style="grid-column:1/-1">
+      ⚡ Ver Ofertas Relâmpago →
+    </a>`;
 }
 
 function debounceSearch() {
