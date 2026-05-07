@@ -79,34 +79,38 @@ RSS_FEEDS = [
         'category': 'geral',
         'priority': False
     },
-    # ── Futebol Nacional ────────────────────────
+    # ── Futebol Nacional (limitado a 5 por feed) ─
     {
         'url': 'https://ge.globo.com/rss/ge/futebol/',
         'source': 'GE Futebol',
         'city': 'Brasil',
         'category': 'esporte',
-        'priority': True
+        'priority': True,
+        'max_entries': 5
     },
     {
         'url': 'https://ge.globo.com/rss/ge/brasileirao-serie-a/',
         'source': 'GE Brasileirão',
         'city': 'Brasil',
         'category': 'esporte',
-        'priority': True
+        'priority': True,
+        'max_entries': 5
     },
     {
         'url': 'https://www.gazetaesportiva.com/feed/',
         'source': 'Gazeta Esportiva',
         'city': 'Brasil',
         'category': 'esporte',
-        'priority': False
+        'priority': False,
+        'max_entries': 3
     },
     {
         'url': 'https://lance.com.br/feed/',
         'source': 'Lance!',
         'city': 'Brasil',
         'category': 'esporte',
-        'priority': False
+        'priority': False,
+        'max_entries': 3
     },
 ]
 
@@ -194,8 +198,9 @@ def fetch_feed(feed_config):
                 logger.error(f"Falha total em {url}: {e2}")
                 return []
 
+    max_entries = feed_config.get('max_entries', 20)
     articles = []
-    for entry in feed.entries[:20]:
+    for entry in feed.entries[:max_entries]:
         title = clean_html(getattr(entry, 'title', ''))
         summary = clean_html(getattr(entry, 'summary', '') or getattr(entry, 'description', ''))
         link = getattr(entry, 'link', '')

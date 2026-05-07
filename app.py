@@ -162,9 +162,11 @@ def api_news():
 
     where_sql = ' AND '.join(where)
 
-    # Notícias + propagandas intercaladas
+    # Limita esporte a 10 por página mesmo que per_page seja maior
+    effective_limit = min(per_page, 10) if category == 'esporte' else per_page
+
     news_rows = conn.execute(f'''
-        SELECT n.*, 
+        SELECT n.*,
                GROUP_CONCAT(m.filename) as media_files
         FROM news n
         LEFT JOIN media m ON m.news_id = n.id AND m.type = "image"
@@ -172,7 +174,7 @@ def api_news():
         GROUP BY n.id
         ORDER BY n.priority DESC, n.published_at DESC
         LIMIT ? OFFSET ?
-    ''', params + [per_page, offset]).fetchall()
+    ''', params + [effective_limit, offset]).fetchall()
 
     total = conn.execute(
         f'SELECT COUNT(*) FROM news n WHERE {where_sql}', params
