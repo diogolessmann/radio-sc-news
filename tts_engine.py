@@ -21,14 +21,13 @@ VOICE_EDGE_PRIMARY = 'pt-BR-AntonioNeural'
 VOICE_EDGE_FEMALE  = 'pt-BR-FranciscaNeural'
 
 # ── Pool de vozes ElevenLabs — alterna por notícia (round-robin) ──
-# Adicione mais vozes via env: ELEVENLABS_VOICE_ID_2, ELEVENLABS_VOICE_ID_3
-# Se só ELEVENLABS_VOICE_ID estiver configurado, usa apenas uma voz.
+# Suporta até ELEVENLABS_VOICE_ID_9. Adicione IDs no Railway.
 _extra_voices = [
-    os.environ.get('ELEVENLABS_VOICE_ID_2', ''),
-    os.environ.get('ELEVENLABS_VOICE_ID_3', ''),
+    os.environ.get(f'ELEVENLABS_VOICE_ID_{i}', '')
+    for i in range(2, 10)   # VOICE_ID_2 até VOICE_ID_9
 ]
 VOICE_POOL = [ELEVENLABS_VOICE_ID] + [v for v in _extra_voices if v]
-logger.info(f"Voice pool: {len(VOICE_POOL)} voz(es) configurada(s)")
+logger.info(f"Voice pool: {len(VOICE_POOL)} voz(es) — {VOICE_POOL}")
 
 # Configurações de voz por categoria (usa sempre a voz configurada no Railway)
 # Variar stability/style cria percepção de "locução diferente" sem precisar de IDs extras
