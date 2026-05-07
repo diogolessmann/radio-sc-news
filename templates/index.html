@@ -983,17 +983,19 @@ function mlLink(path) {
 
 function loadPromosView() {
   const grid = document.getElementById('promosGrid');
+  const ML_BASE = 'https://lista.mercadolivre.com.br';
+  const AFF = 'matt_tool=despachantelessmann&matt_word=radioscnews&matt_source=radioscnews&matt_campaign=ofertas';
   const CATS = [
-    { icon:'📱', label:'Celulares',   path:'/ofertas?q=celular+smartphone' },
-    { icon:'💻', label:'Informática', path:'/ofertas?q=notebook+computador' },
-    { icon:'🎧', label:'Eletrônicos', path:'/ofertas?q=eletronicos+fone+bluetooth' },
-    { icon:'👟', label:'Calçados',    path:'/ofertas?q=tenis+calcados' },
-    { icon:'🏠', label:'Casa',        path:'/ofertas?q=casa+moveis+decoracao' },
-    { icon:'⚽', label:'Esportes',    path:'/ofertas?q=esporte+fitness+academia' },
-    { icon:'👗', label:'Moda',        path:'/ofertas?q=roupa+moda+feminino' },
-    { icon:'🧴', label:'Beleza',      path:'/ofertas?q=perfume+beleza+cosmetico' },
-    { icon:'🔧', label:'Ferramentas', path:'/ofertas?q=ferramentas+furadeira' },
-    { icon:'🎮', label:'Games',       path:'/ofertas?q=videogame+controle+jogo' },
+    { icon:'📱', label:'Celulares',   url:`${ML_BASE}/celulares-smartphones/?${AFF}` },
+    { icon:'💻', label:'Informática', url:`${ML_BASE}/computadores-acessorios/?${AFF}` },
+    { icon:'🎧', label:'Eletrônicos', url:`${ML_BASE}/eletronicos-audio-video/?${AFF}` },
+    { icon:'👟', label:'Calçados',    url:`${ML_BASE}/calcados/?${AFF}` },
+    { icon:'🏠', label:'Casa',        url:`${ML_BASE}/casa-moveis-decoracao/?${AFF}` },
+    { icon:'⚽', label:'Esportes',    url:`${ML_BASE}/esportes-fitness/?${AFF}` },
+    { icon:'👗', label:'Moda',        url:`${ML_BASE}/moda/?${AFF}` },
+    { icon:'🧴', label:'Beleza',      url:`${ML_BASE}/beleza-cuidado-pessoal/?${AFF}` },
+    { icon:'🔧', label:'Ferramentas', url:`${ML_BASE}/ferramentas-construcao/?${AFF}` },
+    { icon:'🎮', label:'Games',       url:`${ML_BASE}/video-games/?${AFF}` },
   ];
 
   grid.innerHTML = `
@@ -1006,7 +1008,7 @@ function loadPromosView() {
       </div>
     </a>
     ${CATS.map(c => `
-      <a class="promo-cat-card" href="${mlLink(c.path)}" target="_blank" rel="noopener">
+      <a class="promo-cat-card" href="${c.url}" target="_blank" rel="noopener">
         <span class="promo-cat-icon">${c.icon}</span>
         <span class="promo-cat-label">${c.label}</span>
       </a>`).join('')}
