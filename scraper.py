@@ -59,7 +59,7 @@ RSS_FEEDS = [
     {
         'url': 'https://www.jdv.com.br/feed/',
         'source': 'JDV',
-        'city': None,  # detecta cidade pelo texto
+        'city': None,
         'category': 'geral',
         'priority': True
     },
@@ -75,8 +75,37 @@ RSS_FEEDS = [
     {
         'url': 'https://ocp.news/feed/',
         'source': 'OCP News',
-        'city': None,  # detecta cidade pelo texto
+        'city': None,
         'category': 'geral',
+        'priority': False
+    },
+    # ── Futebol Nacional ────────────────────────
+    {
+        'url': 'https://ge.globo.com/rss/ge/futebol/',
+        'source': 'GE Futebol',
+        'city': 'Brasil',
+        'category': 'esporte',
+        'priority': True
+    },
+    {
+        'url': 'https://ge.globo.com/rss/ge/brasileirao-serie-a/',
+        'source': 'GE Brasileirão',
+        'city': 'Brasil',
+        'category': 'esporte',
+        'priority': True
+    },
+    {
+        'url': 'https://www.gazetaesportiva.com/feed/',
+        'source': 'Gazeta Esportiva',
+        'city': 'Brasil',
+        'category': 'esporte',
+        'priority': False
+    },
+    {
+        'url': 'https://lance.com.br/feed/',
+        'source': 'Lance!',
+        'city': 'Brasil',
+        'category': 'esporte',
         'priority': False
     },
 ]

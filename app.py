@@ -226,6 +226,46 @@ def serve_upload(filename):
     return send_from_directory(UPLOAD_DIR, filename)
 
 
+@app.route('/api/audio/<int:news_id>')
+def api_get_audio(news_id):
+    """Gera e retorna áudio de uma notícia — acesso público (geração sob demanda)."""
+    conn = get_db()
+    news = conn.execute('SELECT * FROM news WHERE id=? AND active=1', (news_id,)).fetchone()
+    conn.close()
+
+    if not news:
+        return jsonify({'success': False, 'message': 'Notícia não encontrada.'}), 404
+
+    # Já tem áudio gerado
+    if news['audio_file']:
+        audio_path = os.path.join(AUDIO_DIR, news['audio_file'])
+        if os.path.exists(audio_path):
+            return jsonify({'success': True, 'audio_url': f"/audio/{news['audio_file']}"})
+
+    # Gera sob demanda
+    try:
+        from tts_engine import generate_audio
+        audio_file = generate_audio(
+            title=news['title'],
+            summary=news['summary'] or '',
+            source=news['source'],
+            city=news['city'],
+            news_id=news_id,
+            category=news['category']
+        )
+        if audio_file:
+            conn = get_db()
+            conn.execute('UPDATE news SET audio_file=? WHERE id=?', (audio_file, news_id))
+            conn.commit()
+            conn.close()
+            return jsonify({'success': True, 'audio_url': f'/audio/{audio_file}'})
+        else:
+            return jsonify({'success': False, 'message': 'Falha ao gerar áudio.'}), 500
+    except Exception as e:
+        logger.error(f"Erro ao gerar áudio público {news_id}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 # ──────────────────────────────────────────────
 # Rotas Admin — Autenticação
 # ──────────────────────────────────────────────
@@ -311,7 +351,8 @@ def admin_generate_audio(news_id):
             summary=news['summary'] or '',
             source=news['source'],
             city=news['city'],
-            news_id=news_id
+            news_id=news_id,
+            category=news['category']
         )
         if audio_file:
             conn = get_db()
@@ -344,7 +385,8 @@ def admin_generate_all_audio():
                 summary=news['summary'] or '',
                 source=news['source'],
                 city=news['city'],
-                news_id=news['id']
+                news_id=news['id'],
+                category=news['category']
             )
             if audio_file:
                 conn = get_db()
