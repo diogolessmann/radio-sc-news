@@ -562,13 +562,40 @@ async function loadFilterOptions() {
       fetch('/api/cities').then(r=>r.json()),
       fetch('/api/categories').then(r=>r.json())
     ]);
+
+    // Ordem de cidades: do mais local ao mais amplo
+    const CITY_ORDER = ['Schroeder','Guaramirim','Jaraguá do Sul','Joinville','Corupá','Blumenau','Florianópolis','Santa Catarina','Brasil'];
+    // Ordem de categorias: por relevância
+    const CAT_ORDER = ['policial','politica','clima','saude','economia','esporte','cultura','local','geral'];
+
+    const citySet = new Set(cities);
+    const catSet  = new Set(cats);
+
+    const orderedCities = [
+      ...CITY_ORDER.filter(c => citySet.has(c)),
+      ...cities.filter(c => !CITY_ORDER.includes(c)).sort()
+    ];
+    const orderedCats = [
+      ...CAT_ORDER.filter(c => catSet.has(c)),
+      ...cats.filter(c => !CAT_ORDER.includes(c)).sort()
+    ];
+
     const bar = document.getElementById('filtersBar');
+    // 1. Todas
     bar.innerHTML = `<button class="filter-btn active" data-type="all" onclick="setFilter('all','')">🌎 Todas</button>`;
-    cities.forEach(c => {
+    // 2. Norte de SC (destaque regional)
+    bar.innerHTML += `<button class="filter-btn" data-type="region" data-value="norte" onclick="setFilter('region','norte')">🏔️ Norte de SC</button>`;
+    // 3. Cidades (mais local primeiro)
+    orderedCities.forEach(c => {
+      if (c === 'Brasil') return; // Brasil fica fora — não é cidade regional
       const emoji = CITY_EMOJI[c] || '📍';
       bar.innerHTML += `<button class="filter-btn" data-type="city" data-value="${c}" onclick="setFilter('city','${c}')">${emoji} ${c}</button>`;
     });
-    cats.forEach(c => {
+    // 4. Separador visual
+    bar.innerHTML += `<span style="color:rgba(255,255,255,0.15);font-size:18px;padding:0 4px;align-self:center">|</span>`;
+    // 5. Categorias por relevância
+    orderedCats.forEach(c => {
+      if (c === 'geral') return; // geral já está em "Todas"
       const label = CAT_LABELS[c] || ('📌 ' + c);
       bar.innerHTML += `<button class="filter-btn" data-type="cat" data-value="${c}" onclick="setFilter('cat','${c}')">${label}</button>`;
     });
