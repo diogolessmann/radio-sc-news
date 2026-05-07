@@ -227,7 +227,8 @@ def fetch_feed(feed_config):
                     image_url = enc.get('href') or enc.get('url')
                     break
 
-        if not title or not link:
+        # Valida que o link é uma URL real (http/https)
+        if not title or not link or not link.startswith(('http://', 'https://')):
             continue
 
         full_text = f"{title} {summary}"

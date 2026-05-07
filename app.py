@@ -122,6 +122,12 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/manifest.json')
+def manifest():
+    from flask import send_from_directory
+    return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
+
+
 @app.route('/api/news')
 def api_news():
     """Feed de notícias paginado com filtros."""
@@ -136,7 +142,7 @@ def api_news():
     NORTE_SC_CITIES = ('Schroeder', 'Joinville', 'Jaraguá do Sul', 'Guaramirim', 'Corupá', 'Norte de SC')
 
     conn = get_db()
-    where = ['n.active = 1']
+    where = ['n.active = 1', "n.link IS NOT NULL", "n.link != ''", "n.link LIKE 'http%'"]
     params = []
 
     # Filtro de cidade (independente)

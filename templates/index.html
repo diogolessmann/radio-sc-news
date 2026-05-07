@@ -5,6 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📻 Rádio SC News — Norte de Santa Catarina</title>
 <meta name="description" content="Notícias em áudio do Norte de Santa Catarina — Schroeder, Jaraguá do Sul, Guaramirim e Joinville">
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0f0f13">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rádio SC News">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<!-- Open Graph para WhatsApp/redes -->
+<meta property="og:title" content="📻 Rádio SC News">
+<meta property="og:description" content="Notícias em áudio do Norte de Santa Catarina">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://radioscnews.com.br">
 <style>
   :root {
     --bg: #0f0f13;
@@ -554,46 +566,50 @@
     margin-bottom: 10px;
   }
   .play-btn {
-    width: 42px; height: 42px;
+    width: 46px; height: 46px;
     border-radius: 50%;
     border: none;
     background: var(--accent);
     color: #fff;
-    font-size: 15px;
+    font-size: 17px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
     transition: transform 0.15s, background 0.2s;
+    box-shadow: 0 4px 14px rgba(233,69,96,0.4);
   }
-  .play-btn:hover { transform: scale(1.08); }
-  .play-btn.playing { background: var(--green); }
+  .play-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(233,69,96,0.6); }
+  .play-btn.playing { background: var(--green); box-shadow: 0 4px 14px rgba(39,174,96,0.4); }
   .player-info { flex: 1; min-width: 0; }
-  .player-label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px; }
+  .player-label { font-size: 11px; color: var(--text2); letter-spacing: 0.5px; margin-bottom: 5px; font-weight: 600; }
   .player-progress { height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; overflow: hidden; cursor: pointer; }
   .player-progress-fill { height: 100%; background: var(--accent); border-radius: 2px; width: 0%; transition: width 0.2s; }
   .player-time { font-size: 11px; color: var(--text2); text-align: right; margin-top: 3px; }
 
+  /* Botão de gerar áudio — destaque total */
   .gen-audio-btn {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text2);
-    background: var(--surface2);
-    border: 1px dashed rgba(255,255,255,0.12);
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--accent), #c0392b);
+    border: none;
     border-radius: 12px;
-    padding: 11px 14px;
+    padding: 13px 16px;
     cursor: pointer;
     width: 100%;
     transition: all 0.2s;
     margin-bottom: 10px;
+    box-shadow: 0 4px 14px rgba(233,69,96,0.35);
+    letter-spacing: 0.3px;
   }
-  .gen-audio-btn:hover { border-color: var(--accent); color: var(--accent); }
-  .gen-audio-btn.loading { opacity: 0.6; cursor: wait; }
+  .gen-audio-btn:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(233,69,96,0.5); }
+  .gen-audio-btn.loading { opacity: 0.7; cursor: wait; transform: none; }
 
   /* Rodapé do card: fonte + whatsapp */
   .card-footer {
@@ -789,7 +805,7 @@
     </div>
     <div class="live-badge">
       <div class="live-dot"></div>
-      Ao vivo
+      Atualizado
     </div>
   </div>
 </header>
@@ -1201,7 +1217,7 @@ function buildNewsCard(n) {
           <div class="player-time" id="time-${n.id}">0:00</div>
         </div>
       </div>`
-    : `<button class="gen-audio-btn" id="genbtn-${n.id}" onclick="generateAndPlay(${n.id},this)">🎙️ Ouvir notícia</button>`;
+    : `<button class="gen-audio-btn" id="genbtn-${n.id}" onclick="generateAndPlay(${n.id},this)">▶ Ouvir esta notícia em áudio</button>`;
 
   card.innerHTML = `
     ${urgenteHtml}
