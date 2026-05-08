@@ -1542,6 +1542,7 @@
     <button class="cat-btn" data-cat="promos" onclick="setCat('promos')">💰 Promoções</button>
     <button class="cat-btn" data-cat="radio" onclick="setCat('radio')">📻 Rádio</button>
     <button class="cat-btn" data-cat="tv" onclick="setCat('tv')">📺 TV</button>
+    <button class="cat-btn" id="btnTransmissoes" data-cat="transmissoes" onclick="toggleTransmissoes()">📡 Transmissões</button>
   </div>
 </div>
 
@@ -2038,7 +2039,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadWeather();
   loadDeals();
   loadCounts();
-  loadTransmissions();
+  // Transmissões carregam só quando usuário clica no ícone
   await loadNews(1);
   checkTutorial();
   initWhatsApp();
@@ -2505,15 +2506,41 @@ const TYPE_EMOJIS = {
   show: '🎵', tv: '📺', geral: '📡'
 };
 
+let transmissionsLoaded = false;
+let transmissionsVisible = false;
+
+function toggleTransmissoes() {
+  const btn = document.getElementById('btnTransmissoes');
+  const section = document.getElementById('transmissionsSection');
+  const newsContainer = document.getElementById('newsContainer') || document.querySelector('.news-feed, #news-feed, main');
+
+  transmissionsVisible = !transmissionsVisible;
+
+  if (transmissionsVisible) {
+    btn.classList.add('active');
+    section.style.display = 'block';
+    // Esconde o feed de notícias
+    document.querySelectorAll('.cat-btn:not(#btnTransmissoes)').forEach(b => b.classList.remove('active'));
+    if (!transmissionsLoaded) loadTransmissions();
+  } else {
+    btn.classList.remove('active');
+    section.style.display = 'none';
+    // Volta para "Tudo"
+    setCat('');
+  }
+}
+
 async function loadTransmissions() {
   try {
     const data = await fetch('/api/transmissions').then(r => r.json());
     const hasLive = data.live && data.live.length > 0;
     const hasScheduled = data.scheduled && data.scheduled.length > 0;
+    transmissionsLoaded = true;
 
-    if (!hasLive && !hasScheduled) return;
-
-    document.getElementById('transmissionsSection').style.display = 'block';
+    if (!hasLive && !hasScheduled) {
+      document.getElementById('transmissionsSection').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2)">📡 Nenhuma transmissão agendada no momento.</div>';
+      return;
+    }
 
     // Ao Vivo
     if (hasLive) {
