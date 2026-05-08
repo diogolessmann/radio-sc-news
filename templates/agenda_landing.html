@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agenda SC — Sistema de Agendamento Online para sua empresa</title>
+<meta name="description" content="Sistema de agendamento online para pequenos negócios do Norte de Santa Catarina. Simples, rápido e acessível.">
+<style>
+  :root {
+    --bg:#0f0f13; --surface:#1a1a24; --surface2:#22222f;
+    --accent:#e94560; --accent2:#f5a623; --green:#27ae60;
+    --text:#e8e8f0; --text2:#9090a8; --border:rgba(255,255,255,0.08);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  a{color:inherit;text-decoration:none}
+
+  /* NAV */
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-logo{font-size:18px;font-weight:800;background:linear-gradient(135deg,#27ae60,#2ecc71);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .nav-links{display:flex;gap:12px;align-items:center}
+  .btn-ghost{padding:8px 18px;border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;background:none;transition:.2s}
+  .btn-ghost:hover{border-color:var(--green);color:var(--green)}
+  .btn-primary{padding:8px 20px;background:linear-gradient(135deg,#27ae60,#2ecc71);border:none;border-radius:10px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;transition:.2s}
+  .btn-primary:hover{opacity:.9;transform:translateY(-1px)}
+
+  /* HERO */
+  .hero{text-align:center;padding:80px 24px 60px;max-width:800px;margin:0 auto}
+  .hero-badge{display:inline-block;background:rgba(39,174,96,.15);color:var(--green);border:1px solid rgba(39,174,96,.3);padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:24px}
+  .hero h1{font-size:clamp(32px,6vw,58px);font-weight:900;line-height:1.1;margin-bottom:20px}
+  .hero h1 span{background:linear-gradient(135deg,#27ae60,#2ecc71);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .hero p{font-size:clamp(15px,2vw,19px);color:var(--text2);line-height:1.6;margin-bottom:36px;max-width:560px;margin-left:auto;margin-right:auto}
+  .hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn-big{padding:14px 32px;font-size:16px;font-weight:700;border-radius:14px;cursor:pointer;border:none;transition:.2s}
+  .btn-big.green{background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff}
+  .btn-big.green:hover{opacity:.9;transform:translateY(-2px);box-shadow:0 8px 24px rgba(39,174,96,.35)}
+  .btn-big.outline{background:none;border:1px solid var(--border);color:var(--text)}
+  .btn-big.outline:hover{border-color:var(--green);color:var(--green)}
+
+  /* DEMO BOX */
+  .demo-box{max-width:480px;margin:48px auto;background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:24px;text-align:left}
+  .demo-title{font-size:13px;color:var(--text2);margin-bottom:14px;text-align:center}
+  .demo-msg{background:var(--surface2);border-radius:12px;padding:14px 16px;margin-bottom:10px;font-size:14px;line-height:1.5}
+  .demo-msg.green-border{border-left:3px solid var(--green)}
+  .demo-msg strong{color:var(--green)}
+
+  /* FEATURES */
+  .section{max-width:1000px;margin:0 auto;padding:60px 24px}
+  .section-title{text-align:center;font-size:28px;font-weight:800;margin-bottom:8px}
+  .section-sub{text-align:center;color:var(--text2);font-size:15px;margin-bottom:48px}
+  .features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+  .feature-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+  .feature-icon{font-size:32px;margin-bottom:14px}
+  .feature-card h3{font-size:16px;font-weight:700;margin-bottom:8px}
+  .feature-card p{font-size:13px;color:var(--text2);line-height:1.6}
+
+  /* HOW IT WORKS */
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;margin-top:40px}
+  .step{text-align:center;padding:24px 16px}
+  .step-num{width:48px;height:48px;background:linear-gradient(135deg,#27ae60,#2ecc71);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:20px;margin:0 auto 16px}
+  .step h3{font-size:15px;font-weight:700;margin-bottom:8px}
+  .step p{font-size:13px;color:var(--text2);line-height:1.5}
+
+  /* PRICING */
+  .pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-top:40px}
+  .plan-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;position:relative}
+  .plan-card.featured{border-color:var(--green);box-shadow:0 0 0 1px var(--green),0 12px 32px rgba(39,174,96,.2)}
+  .plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;padding:4px 16px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
+  .plan-name{font-size:15px;color:var(--text2);margin-bottom:8px}
+  .plan-price{font-size:40px;font-weight:900;margin-bottom:4px}
+  .plan-price span{font-size:16px;font-weight:400;color:var(--text2)}
+  .plan-desc{font-size:13px;color:var(--text2);margin-bottom:20px}
+  .plan-features{list-style:none;margin-bottom:24px}
+  .plan-features li{font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .plan-features li:last-child{border:none}
+
+  /* WHO */
+  .who-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-top:32px}
+  .who-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+  .who-card .ico{font-size:28px;margin-bottom:8px}
+  .who-card p{font-size:12px;color:var(--text2)}
+
+  /* CTA BOTTOM */
+  .cta-bottom{background:linear-gradient(135deg,rgba(39,174,96,.15),rgba(39,174,96,.05));border:1px solid rgba(39,174,96,.2);border-radius:24px;padding:60px 24px;text-align:center;max-width:700px;margin:0 auto 80px}
+  .cta-bottom h2{font-size:clamp(24px,4vw,36px);font-weight:900;margin-bottom:12px}
+  .cta-bottom p{color:var(--text2);font-size:15px;margin-bottom:32px}
+
+  /* FOOTER */
+  footer{border-top:1px solid var(--border);padding:24px;text-align:center;color:var(--text2);font-size:13px}
+  footer a{color:var(--green)}
+</style>
+</head>
+<body>
+
+<nav>
+  <a href="/agenda" class="nav-logo">📅 Agenda SC</a>
+  <div class="nav-links">
+    <a href="/agenda/entrar"><button class="btn-ghost">Entrar</button></a>
+    <a href="/agenda/cadastro"><button class="btn-primary">Começar grátis</button></a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">✅ 30 dias grátis · Sem cartão</div>
+  <h1>Seu negócio com<br><span>agendamento online</span><br>em minutos</h1>
+  <p>Chega de WhatsApp travado com "que horas tem vaga?". Seus clientes agendam sozinhos, você recebe a notificação e foca no trabalho.</p>
+  <div class="hero-btns">
+    <a href="/agenda/cadastro"><button class="btn-big green">🚀 Criar minha agenda grátis</button></a>
+    <a href="#como-funciona"><button class="btn-big outline">Ver como funciona</button></a>
+  </div>
+</div>
+
+<!-- DEMO VISUAL -->
+<div class="demo-box">
+  <div class="demo-title">📱 Veja o que seu cliente vê ao agendar</div>
+  <div class="demo-msg green-border">
+    <strong>✅ Agendamento confirmado!</strong><br>
+    João Silva — Corte de cabelo<br>
+    📅 Amanhã, sexta-feira · 14h00<br>
+    📍 Barbearia Silva — Schroeder
+  </div>
+  <div class="demo-msg">
+    <strong>📲 Você recebe no WhatsApp:</strong><br>
+    "Novo agendamento! João Silva agendou Corte de cabelo para amanhã às 14h. WhatsApp: (47) 99999-8888"
+  </div>
+</div>
+
+<!-- FEATURES -->
+<div class="section">
+  <div class="section-title">Tudo que você precisa</div>
+  <div class="section-sub">Simples de usar. Poderoso na prática.</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🔗</div>
+      <h3>Seu link personalizado</h3>
+      <p>Você recebe um link único para compartilhar no WhatsApp, Instagram e cartão de visita. Ex: <strong>agenda.radioscnews.com.br/barbearia-silva</strong></p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📅</div>
+      <h3>Horários automáticos</h3>
+      <p>Você define os dias e horários de funcionamento. O sistema gera os slots disponíveis automaticamente — sem conflito, sem erro.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💬</div>
+      <h3>Notificação no WhatsApp</h3>
+      <p>A cada agendamento novo, você recebe o nome e WhatsApp do cliente. Confirme ou cancele diretamente do seu painel.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>Painel de controle</h3>
+      <p>Veja todos os agendamentos do dia, da semana, confirme, cancele ou marque como concluído. Tudo num só lugar.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📣</div>
+      <h3>Destaque no Rádio SC News</h3>
+      <p>Seu negócio aparece no portal de notícias regional mais acessado do Norte de SC. Mais visibilidade, mais clientes.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📱</div>
+      <h3>Funciona no celular</h3>
+      <p>Seus clientes agendam do celular em menos de 1 minuto. Sem precisar baixar nenhum aplicativo.</p>
+    </div>
+  </div>
+</div>
+
+<!-- COMO FUNCIONA -->
+<div class="section" id="como-funciona" style="background:var(--surface);border-radius:24px">
+  <div class="section-title">Como funciona</div>
+  <div class="section-sub">Do cadastro ao primeiro agendamento em menos de 5 minutos</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Cadastre seu negócio</h3>
+      <p>Nome, tipo de serviço, horários de funcionamento. Pronto em 2 minutos.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Compartilhe o link</h3>
+      <p>Mande no status do WhatsApp, no Instagram, no cartão de visita digital.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Cliente agenda sozinho</h3>
+      <p>Ele escolhe o serviço, o dia e o horário. Sem te incomodar.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h3>Você recebe e confirma</h3>
+      <p>Notificação no WhatsApp. Confirme com um clique no painel.</p>
+    </div>
+  </div>
+</div>
+
+<!-- QUEM USA -->
+<div class="section">
+  <div class="section-title">Para qualquer negócio local</div>
+  <div class="section-sub">Se você atende por hora marcada, o Agenda SC é pra você</div>
+  <div class="who-grid">
+    <div class="who-card"><div class="ico">💈</div><p>Barbearia</p></div>
+    <div class="who-card"><div class="ico">💇</div><p>Salão de Beleza</p></div>
+    <div class="who-card"><div class="ico">🏥</div><p>Clínica / Saúde</p></div>
+    <div class="who-card"><div class="ico">🦷</div><p>Dentista</p></div>
+    <div class="who-card"><div class="ico">💅</div><p>Estética</p></div>
+    <div class="who-card"><div class="ico">🔧</div><p>Mecânica</p></div>
+    <div class="who-card"><div class="ico">📋</div><p>Despachante</p></div>
+    <div class="who-card"><div class="ico">⚖️</div><p>Advocacia</p></div>
+    <div class="who-card"><div class="ico">🐾</div><p>Pet Shop</p></div>
+    <div class="who-card"><div class="ico">💪</div><p>Personal Trainer</p></div>
+  </div>
+</div>
+
+<!-- PREÇOS -->
+<div class="section" id="precos">
+  <div class="section-title">Preços simples e transparentes</div>
+  <div class="section-sub">Sem taxa de adesão. Cancele quando quiser.</div>
+  <div class="pricing-grid">
+    <div class="plan-card">
+      <div class="plan-name">🆓 Grátis</div>
+      <div class="plan-price">R$0<span>/mês</span></div>
+      <div class="plan-desc">Primeiros 30 dias sem pagar nada</div>
+      <ul class="plan-features">
+        <li>✅ Página de agendamento</li>
+        <li>✅ Até 3 serviços</li>
+        <li>✅ Notificação WhatsApp</li>
+        <li>✅ Painel de controle</li>
+        <li>❌ Destaque no portal</li>
+      </ul>
+      <a href="/agenda/cadastro"><button class="btn-primary" style="width:100%">Começar grátis</button></a>
+    </div>
+    <div class="plan-card featured">
+      <div class="plan-badge">⭐ Mais popular</div>
+      <div class="plan-name">🚀 Pro</div>
+      <div class="plan-price">R$79<span>/mês</span></div>
+      <div class="plan-desc">Para negócios que querem crescer</div>
+      <ul class="plan-features">
+        <li>✅ Serviços ilimitados</li>
+        <li>✅ Agendamentos ilimitados</li>
+        <li>✅ Notificação WhatsApp</li>
+        <li>✅ Painel completo</li>
+        <li>✅ <strong>Destaque no Rádio SC News</strong></li>
+        <li>✅ Suporte via WhatsApp</li>
+      </ul>
+      <a href="/agenda/cadastro"><button class="btn-big green" style="width:100%">Assinar por R$79/mês</button></a>
+    </div>
+  </div>
+</div>
+
+<!-- CTA FINAL -->
+<div class="section" style="padding-top:0">
+  <div class="cta-bottom">
+    <h2>Comece hoje, é grátis</h2>
+    <p>Em menos de 5 minutos seu link de agendamento está no ar.<br>Sem burocracia, sem cartão de crédito.</p>
+    <a href="/agenda/cadastro"><button class="btn-big green">🚀 Criar minha agenda agora</button></a>
+  </div>
+</div>
+
+<footer>
+  <p>Agenda SC · Powered by <a href="/">Rádio SC News</a> · Norte de Santa Catarina</p>
+</footer>
+
+</body>
+</html>
