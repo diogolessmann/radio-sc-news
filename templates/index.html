@@ -2260,6 +2260,27 @@
       <div class="tv-ch-desc">Notícias · abre no YouTube</div>
     </div>
 
+    <div class="tv-channel-card" id="tvch-record" onclick="switchTvChannel('record')" title="Abre no YouTube">
+      <span class="tv-ch-badge canal">↗ YouTube</span>
+      <span class="tv-ch-icon">🔴</span>
+      <div class="tv-ch-name">Record News</div>
+      <div class="tv-ch-desc">Notícias 24h · Nacional</div>
+    </div>
+
+    <div class="tv-channel-card" id="tvch-bandnews" onclick="switchTvChannel('bandnews')" title="Abre no YouTube">
+      <span class="tv-ch-badge canal">↗ YouTube</span>
+      <span class="tv-ch-icon">📡</span>
+      <div class="tv-ch-name">Band News TV</div>
+      <div class="tv-ch-desc">Notícias e debates · 24h</div>
+    </div>
+
+    <div class="tv-channel-card" id="tvch-assembleia" onclick="switchTvChannel('assembleia')" title="Abre no YouTube">
+      <span class="tv-ch-badge canal">↗ YouTube</span>
+      <span class="tv-ch-icon">🏛️</span>
+      <div class="tv-ch-name">TV Assembleia SC</div>
+      <div class="tv-ch-desc">Legislativo · Santa Catarina</div>
+    </div>
+
     <div class="tv-channel-card" id="tvch-nasa" onclick="switchTvChannel('nasa')">
       <span class="tv-ch-badge ao-vivo">Ao vivo</span>
       <span class="tv-ch-icon">🚀</span>
@@ -2473,10 +2494,13 @@ function stopRadio() {
 // ── TV AO VIVO ──
 // IDs são atualizados automaticamente via /api/live-channels (cache 10min, sem API key)
 const TV_CHANNELS = {
-  scc:    { name:'SCC SBT Santa Catarina', sub:'Programação regional · Norte de SC',  logo:'📡', vid:'{{ tv_stream_id }}' },
-  jpnews: { name:'Jovem Pan News',          sub:'Notícias 24h · Nacional',             logo:'📰', vid:'D9dBBE4dKeY' },
-  cnn:    { name:'CNN Brasil',              sub:'Notícias e economia · 24h',           logo:'📺', vid:null, ytUrl:'https://www.youtube.com/@CNNbrasil/live' },
-  nasa:   { name:'NASA TV',                sub:'Ciência e espaço · 24h',              logo:'🚀', vid:'uwXgcTc8oY8' }
+  scc:        { name:'SCC SBT Santa Catarina', sub:'Programação regional · Norte de SC',  logo:'📡', vid:'{{ tv_stream_id }}' },
+  jpnews:     { name:'Jovem Pan News',          sub:'Notícias 24h · Nacional',             logo:'📰', vid:'D9dBBE4dKeY' },
+  cnn:        { name:'CNN Brasil',              sub:'Notícias e economia · 24h',           logo:'📺', vid:null, ytUrl:'https://www.youtube.com/@CNNbrasil/live' },
+  record:     { name:'Record News',             sub:'Notícias 24h · Nacional',             logo:'🔴', vid:null, ytUrl:'https://www.youtube.com/@recordnews/live' },
+  bandnews:   { name:'Band News TV',            sub:'Notícias e debates · 24h',            logo:'📡', vid:null, ytUrl:'https://www.youtube.com/@BandNewsTV/live' },
+  assembleia: { name:'TV Assembleia SC',        sub:'Política e legislativo · Santa Catarina', logo:'🏛️', vid:null, ytUrl:'https://www.youtube.com/@TVAssembleiasc/live' },
+  nasa:       { name:'NASA TV',                 sub:'Ciência e espaço · 24h',              logo:'🚀', vid:'uwXgcTc8oY8' }
 };
 let tvLiveLoaded = false;
 
