@@ -175,6 +175,7 @@
     <button class="nav-btn" onclick="showTab('media')">🖼️ Mídia</button>
     <button class="nav-btn" onclick="showTab('ads')">📢 Propagandas</button>
     <button class="nav-btn" onclick="showTab('transmissions')">📡 Transmissões</button>
+    <button class="nav-btn" onclick="showTab('youtube')">▶️ YouTube</button>
     <a href="/" target="_blank" class="nav-btn" style="text-decoration:none">🌐 Ver Site</a>
   </nav>
   <a href="/logout" class="logout-btn">🚪 Sair</a>
@@ -197,6 +198,7 @@
     <button class="tab-btn" onclick="showTab('media')">🖼️ Mídia</button>
     <button class="tab-btn" onclick="showTab('ads')">📢 Propagandas</button>
     <button class="tab-btn" onclick="showTab('transmissions')">📡 Transmissões</button>
+    <button class="tab-btn" onclick="showTab('youtube')">▶️ YouTube</button>
   </div>
 
   <!-- TAB: NOTÍCIAS -->
@@ -597,6 +599,65 @@
 
   </div>
 
+  <!-- TAB: YOUTUBE -->
+  <div id="tab-youtube" class="tab-content">
+
+    <!-- Adicionar Canal -->
+    <div class="form-card">
+      <h3>▶️ Adicionar Canal YouTube</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome do Canal</label>
+          <input type="text" id="yt-name" placeholder="Ex: Ancapsu">
+        </div>
+        <div class="form-group">
+          <label>Channel ID (UCxxxxxxxx)</label>
+          <input type="text" id="yt-channel-id" placeholder="Ex: UCLTWPE7XrHEe8m_xAmNbQ-Q">
+        </div>
+        <div class="form-group">
+          <label>Categoria</label>
+          <select id="yt-category">
+            <option value="economia">💰 Economia</option>
+            <option value="politica">🏛️ Política</option>
+            <option value="noticias">📰 Notícias</option>
+            <option value="geral">📺 Geral</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="addYtChannel()">➕ Adicionar Canal</button>
+        <button class="btn btn-blue" onclick="refreshYtCache()">🔄 Atualizar Cache de Vídeos</button>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3>📋 Canais Configurados</h3>
+      <button class="btn btn-blue btn-sm" onclick="loadYtChannelsAdmin()">🔄 Atualizar</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="channels-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nome</th>
+            <th>Categoria</th>
+            <th>Channel ID</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="ytTableBody">
+          <tr><td colspan="6" style="color:var(--text2);padding:20px 12px">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:12px;color:var(--text2);font-size:13px">
+      💡 O RSS do YouTube atualiza automaticamente. Cache de vídeos válido por 15 minutos.
+      Para encontrar o Channel ID de um canal: acesse o canal no YouTube, clique em "Sobre" → compartilhar → copiar o link. O ID começa com <code>UC</code>.
+    </p>
+
+  </div>
+
 </div>
 
 <!-- MODAL: Upload imagem para notícia -->
@@ -623,7 +684,7 @@
 // ── TABS ──────────────────────────────────────
 const TAB_KEYWORDS = {
   news: 'notícia', publish: 'publicar', media: 'mídia',
-  ads: 'propagan', transmissions: 'transmiss'
+  ads: 'propagan', transmissions: 'transmiss', youtube: 'youtube'
 };
 function showTab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -638,6 +699,9 @@ function showTab(name) {
   if (name === 'transmissions') {
     loadTransmissionsAdmin();
     loadChannelsAdmin();
+  }
+  if (name === 'youtube') {
+    loadYtChannelsAdmin();
   }
 }
 
@@ -1067,6 +1131,104 @@ async function checkLiveNow() {
     }
   } catch(e) { toast('❌ Erro', 'error'); }
   btn.disabled = false; btn.innerHTML = '🔴 Verificar Ao Vivo Agora';
+}
+
+// ── YOUTUBE CHANNELS ──────────────────────────────────────────
+const YT_CAT_LABELS_ADMIN = { economia:'💰 Economia', politica:'🏛️ Política', noticias:'📰 Notícias', geral:'📺 Geral' };
+
+async function loadYtChannelsAdmin() {
+  try {
+    const list = await fetch('/admin/youtube-channels').then(r => r.json());
+    const tbody = document.getElementById('ytTableBody');
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text2);padding:20px 12px">Nenhum canal cadastrado.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(ch => `
+      <tr id="yt-row-${ch.id}">
+        <td>${ch.id}</td>
+        <td><strong>${ch.name}</strong></td>
+        <td>${YT_CAT_LABELS_ADMIN[ch.category] || ch.category}</td>
+        <td><code style="font-size:11px">${ch.channel_id}</code></td>
+        <td>
+          <span style="color:${ch.active ? 'var(--green)' : 'var(--text2)'}">
+            ${ch.active ? '✅ Ativo' : '⏸ Pausado'}
+          </span>
+        </td>
+        <td>
+          <div class="table-actions">
+            <button class="btn btn-ghost btn-sm" onclick="toggleYtChannel(${ch.id})">${ch.active ? '⏸ Pausar' : '▶️ Ativar'}</button>
+            <a href="https://www.youtube.com/channel/${ch.channel_id}" target="_blank" class="btn btn-ghost btn-sm">🔗</a>
+            <button class="btn btn-danger btn-sm" onclick="deleteYtChannel(${ch.id})">🗑️</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  } catch(e) {
+    toast('❌ Erro ao carregar canais YouTube.', 'error');
+  }
+}
+
+async function addYtChannel() {
+  const name      = document.getElementById('yt-name').value.trim();
+  const channelId = document.getElementById('yt-channel-id').value.trim();
+  const category  = document.getElementById('yt-category').value;
+
+  if (!name || !channelId) { toast('⚠️ Nome e Channel ID obrigatórios.', 'error'); return; }
+  if (!channelId.startsWith('UC')) { toast('⚠️ Channel ID deve começar com UC...', 'error'); return; }
+
+  const fd = new FormData();
+  fd.append('name', name);
+  fd.append('channel_id', channelId);
+  fd.append('category', category);
+
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Salvando...';
+  try {
+    const r = await fetch('/admin/youtube-channels', {method:'POST', body:fd});
+    const d = await r.json();
+    if (d.success) {
+      toast('✅ Canal adicionado!', 'success');
+      document.getElementById('yt-name').value = '';
+      document.getElementById('yt-channel-id').value = '';
+      loadYtChannelsAdmin();
+    } else {
+      toast('❌ ' + d.message, 'error');
+    }
+  } catch(e) { toast('❌ Erro ao salvar.', 'error'); }
+  btn.disabled = false; btn.textContent = '➕ Adicionar Canal';
+}
+
+async function deleteYtChannel(id) {
+  if (!confirm('Excluir este canal YouTube?')) return;
+  const r = await fetch(`/admin/youtube-channels/${id}/delete`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) {
+    const row = document.getElementById(`yt-row-${id}`);
+    if (row) row.remove();
+    toast('🗑️ Canal excluído.', 'success');
+  }
+}
+
+async function toggleYtChannel(id) {
+  const r = await fetch(`/admin/youtube-channels/${id}/toggle`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) {
+    toast(d.active ? '✅ Canal ativado.' : '⏸ Canal pausado.', 'success');
+    loadYtChannelsAdmin();
+  }
+}
+
+async function refreshYtCache() {
+  const btn = event.target;
+  btn.disabled = true; btn.textContent = '⏳ Atualizando...';
+  try {
+    const r = await fetch('/api/youtube-videos?force=1').then(r => r.json());
+    const total = (r.channels || []).reduce((s, ch) => s + (ch.videos || []).length, 0);
+    toast(`✅ Cache atualizado! ${total} vídeos carregados.`, 'success');
+  } catch(e) {
+    toast('❌ Erro ao atualizar cache.', 'error');
+  }
+  btn.disabled = false; btn.textContent = '🔄 Atualizar Cache de Vídeos';
 }
 </script>
 </body>

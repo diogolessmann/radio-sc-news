@@ -986,6 +986,91 @@
   .cats-bar.theme-radio { border-color: var(--accent); }
   .cat-btn[data-cat="tv"].active { background: #e50914; border-color: #e50914; color: #fff; }
   .cats-bar.theme-tv { border-color: #e50914; }
+  .cat-btn[data-cat="youtube"].active { background: #ff0000; border-color: #ff0000; color: #fff; }
+  .cats-bar.theme-youtube { border-color: #ff0000; }
+
+  /* ── YOUTUBE SECTION ── */
+  .yt-section { padding-bottom: 80px; }
+  .yt-filter-bar {
+    display: flex; gap: 8px; padding: 12px 16px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .yt-filter-bar::-webkit-scrollbar { display: none; }
+  .yt-filter-btn {
+    white-space: nowrap; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 20px;
+    padding: 6px 16px; color: var(--text2); font-size: 13px;
+    cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+  }
+  .yt-filter-btn.active { background: #ff0000; border-color: #ff0000; color: #fff; }
+  .yt-channel-block { margin-bottom: 24px; }
+  .yt-channel-header {
+    display: flex; align-items: center; gap: 8px; padding: 12px 16px 8px;
+  }
+  .yt-channel-name { font-size: 15px; font-weight: 700; color: var(--text); }
+  .yt-channel-badge {
+    font-size: 11px; padding: 2px 8px; border-radius: 10px;
+    border: 1px solid; font-weight: 600;
+  }
+  .yt-videos-row {
+    display: flex; gap: 10px; padding: 0 16px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .yt-videos-row::-webkit-scrollbar { display: none; }
+  .yt-video-card {
+    flex-shrink: 0; width: 180px; cursor: pointer; border-radius: 10px;
+    overflow: hidden; background: var(--surface2); transition: transform 0.2s;
+  }
+  .yt-video-card:hover { transform: scale(1.03); }
+  .yt-video-thumb-wrap {
+    position: relative; width: 100%; padding-top: 56.25%; overflow: hidden;
+  }
+  .yt-video-thumb-wrap img {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  .yt-play-overlay {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px; height: 40px; background: rgba(0,0,0,0.72);
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 14px; color: #fff;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .yt-video-card:hover .yt-play-overlay,
+  .yt-video-card:active .yt-play-overlay { opacity: 1; }
+  .yt-video-title {
+    font-size: 12px; font-weight: 600; color: var(--text);
+    padding: 8px 8px 2px;
+    display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4;
+  }
+  .yt-video-date { font-size: 11px; color: var(--text2); padding: 2px 8px 8px; }
+  .yt-empty { text-align: center; padding: 40px 16px; color: var(--text2); }
+
+  /* ── YOUTUBE MODAL ── */
+  .yt-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.9); z-index: 999;
+    align-items: center; justify-content: center; padding: 16px;
+  }
+  .yt-modal.open { display: flex; }
+  .yt-modal-box {
+    background: #000; border-radius: 12px; overflow: hidden;
+    width: 100%; max-width: 720px;
+  }
+  .yt-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: var(--surface);
+  }
+  .yt-modal-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+  .yt-modal-close {
+    background: none; border: none; color: var(--text2);
+    font-size: 20px; cursor: pointer; padding: 4px 8px; margin-left: 8px;
+  }
+  .yt-modal-player { position: relative; padding-top: 56.25%; }
+  .yt-modal-player iframe {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;
+  }
 
   /* ── TV VIEW ── */
   .tv-view {
@@ -1543,6 +1628,7 @@
     <button class="cat-btn" data-cat="radio" onclick="setCat('radio')">📻 Rádio</button>
     <button class="cat-btn" data-cat="tv" onclick="setCat('tv')">📺 TV</button>
     <button class="cat-btn" id="btnTransmissoes" data-cat="transmissoes" onclick="toggleTransmissoes()">📡 Transmissões</button>
+    <button class="cat-btn" id="btnYoutube" data-cat="youtube" onclick="toggleYoutube()">▶️ YouTube</button>
   </div>
 </div>
 
@@ -1579,6 +1665,34 @@
     </div>
     <div class="stream-modal-player">
       <iframe id="streamModalIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  </div>
+</div>
+
+<!-- ── YOUTUBE SECTION ── -->
+<div class="yt-section" id="youtubeSection" style="display:none">
+  <div class="yt-filter-bar">
+    <button class="yt-filter-btn active" data-cat="all" onclick="filterYtCat('all')">🎬 Todos</button>
+    <button class="yt-filter-btn" data-cat="economia" onclick="filterYtCat('economia')">💰 Economia</button>
+    <button class="yt-filter-btn" data-cat="politica" onclick="filterYtCat('politica')">🏛️ Política</button>
+    <button class="yt-filter-btn" data-cat="noticias" onclick="filterYtCat('noticias')">📰 Notícias</button>
+  </div>
+  <div id="ytLoading" style="text-align:center;padding:40px 0;display:none">
+    <div class="spinner" style="margin:0 auto 12px"></div>
+    <p style="color:var(--text2)">Carregando vídeos do YouTube...</p>
+  </div>
+  <div id="ytChannelsContainer"></div>
+</div>
+
+<!-- YouTube Video Modal -->
+<div class="yt-modal" id="ytModal">
+  <div class="yt-modal-box">
+    <div class="yt-modal-header">
+      <div class="yt-modal-title" id="ytModalTitle"></div>
+      <button class="yt-modal-close" onclick="closeYtModal()">✕</button>
+    </div>
+    <div class="yt-modal-player">
+      <iframe id="ytModalIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
     </div>
   </div>
 </div>
@@ -2525,6 +2639,11 @@ function toggleTransmissoes() {
     if (searchBar) searchBar.style.display = 'none';
     if (loadMore) loadMore.style.display = 'none';
     document.querySelectorAll('.cat-btn:not(#btnTransmissoes)').forEach(b => b.classList.remove('active'));
+    // Esconde YouTube se estiver aberto
+    const ytSec = document.getElementById('youtubeSection');
+    if (ytSec) ytSec.style.display = 'none';
+    youtubeVisible = false;
+    document.getElementById('btnYoutube')?.classList.remove('active');
     if (!transmissionsLoaded) loadTransmissions();
   } else {
     btn.classList.remove('active');
@@ -2628,6 +2747,126 @@ function closeStreamModal() {
 // Fecha modal ao clicar fora
 document.getElementById('streamModal').addEventListener('click', function(e) {
   if (e.target === this) closeStreamModal();
+});
+
+// ── YOUTUBE CHANNELS ────────────────────────────────────────────────────────
+let youtubeLoaded = false;
+let youtubeVisible = false;
+let allYtChannels = [];
+let currentYtCat = 'all';
+
+const YT_CAT_EMOJIS  = { economia:'💰', politica:'🏛️', noticias:'📰', geral:'📺' };
+const YT_CAT_LABELS  = { economia:'Economia', politica:'Política', noticias:'Notícias', geral:'Geral' };
+const YT_CAT_COLORS  = { economia:'#e67e22', politica:'#9b59b6', noticias:'#3498db', geral:'#95a5a6' };
+
+function toggleYoutube() {
+  const btn       = document.getElementById('btnYoutube');
+  const section   = document.getElementById('youtubeSection');
+  const feed      = document.getElementById('feed');
+  const searchBar = document.querySelector('.search-bar');
+  const loadMore  = document.getElementById('loadMoreBtn');
+
+  youtubeVisible = !youtubeVisible;
+
+  if (youtubeVisible) {
+    btn.classList.add('active');
+    section.style.display = 'block';
+    if (feed)      feed.style.display = 'none';
+    if (searchBar) searchBar.style.display = 'none';
+    if (loadMore)  loadMore.style.display = 'none';
+    document.querySelectorAll('.cat-btn:not(#btnYoutube)').forEach(b => b.classList.remove('active'));
+    // Esconde transmissões se estiverem abertas
+    const txSection = document.getElementById('transmissionsSection');
+    if (txSection) txSection.style.display = 'none';
+    transmissionsVisible = false;
+    document.getElementById('btnTransmissoes')?.classList.remove('active');
+    if (!youtubeLoaded) loadYoutubeChannels();
+  } else {
+    btn.classList.remove('active');
+    section.style.display = 'none';
+    if (feed)      feed.style.display = 'block';
+    if (searchBar) searchBar.style.display = 'block';
+    setCat('');
+  }
+}
+
+async function loadYoutubeChannels() {
+  document.getElementById('ytLoading').style.display = 'block';
+  document.getElementById('ytChannelsContainer').innerHTML = '';
+  try {
+    const data = await fetch('/api/youtube-videos').then(r => r.json());
+    allYtChannels = data.channels || [];
+    youtubeLoaded = true;
+    renderYtChannels(allYtChannels);
+  } catch(e) {
+    document.getElementById('ytChannelsContainer').innerHTML =
+      '<div class="yt-empty">⚠️ Erro ao carregar vídeos. Tente novamente mais tarde.</div>';
+  } finally {
+    document.getElementById('ytLoading').style.display = 'none';
+  }
+}
+
+function renderYtChannels(channels) {
+  const container = document.getElementById('ytChannelsContainer');
+  const visible   = channels.filter(ch => ch.videos && ch.videos.length > 0);
+
+  if (!visible.length) {
+    container.innerHTML = '<div class="yt-empty">▶️ Nenhum vídeo disponível no momento.</div>';
+    return;
+  }
+
+  container.innerHTML = visible.map(ch => {
+    const emoji = YT_CAT_EMOJIS[ch.category]  || '📺';
+    const label = YT_CAT_LABELS[ch.category]  || ch.category;
+    const color = YT_CAT_COLORS[ch.category]  || '#95a5a6';
+
+    const cardsHtml = ch.videos.map(v => {
+      const safeTitle = escHtml(v.title).replace(/'/g, '&#39;');
+      return `<div class="yt-video-card" onclick="openYtModal('${escHtml(v.video_id)}','${safeTitle}')">
+        <div class="yt-video-thumb-wrap">
+          <img src="${escHtml(v.thumbnail)}" alt="" loading="lazy" onerror="this.style.opacity='.3'">
+          <div class="yt-play-overlay">▶</div>
+        </div>
+        <div class="yt-video-title">${escHtml(v.title)}</div>
+        <div class="yt-video-date">${escHtml(v.published_fmt || '')}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="yt-channel-block" data-category="${escHtml(ch.category)}">
+      <div class="yt-channel-header">
+        <span>${emoji}</span>
+        <span class="yt-channel-name">${escHtml(ch.name)}</span>
+        <span class="yt-channel-badge" style="background:${color}22;color:${color};border-color:${color}55">${label}</span>
+      </div>
+      <div class="yt-videos-row">${cardsHtml}</div>
+    </div>`;
+  }).join('');
+}
+
+function filterYtCat(cat) {
+  currentYtCat = cat;
+  document.querySelectorAll('.yt-filter-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.cat === cat));
+  const filtered = (cat === 'all') ? allYtChannels : allYtChannels.filter(ch => ch.category === cat);
+  renderYtChannels(filtered);
+}
+
+function openYtModal(videoId, title) {
+  document.getElementById('ytModalTitle').textContent = title || 'Vídeo';
+  document.getElementById('ytModalIframe').src =
+    `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+  document.getElementById('ytModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeYtModal() {
+  document.getElementById('ytModalIframe').src = '';
+  document.getElementById('ytModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.getElementById('ytModal').addEventListener('click', function(e) {
+  if (e.target === this) closeYtModal();
 });
 </script>
 </body>

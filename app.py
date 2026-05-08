@@ -123,6 +123,17 @@ def init_db():
             last_checked TEXT,
             created_at TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS youtube_channels (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            channel_id TEXT NOT NULL UNIQUE,
+            category TEXT DEFAULT 'geral',
+            description TEXT,
+            active INTEGER DEFAULT 1,
+            sort_order INTEGER DEFAULT 0,
+            created_at TEXT
+        );
     ''')
     conn.commit()
     conn.close()
@@ -1068,9 +1079,185 @@ def background_startup():
     logger.info("Thread de verificação de transmissões ao vivo iniciada.")
 
 
+# ── YouTube Channels ──────────────────────────────────────────
+# Canais pré-configurados semeados na primeira inicialização
+CURATED_YT_CHANNELS = [
+    # Economia
+    {'name': 'Ancapsu',               'channel_id': 'UCLTWPE7XrHEe8m_xAmNbQ-Q', 'category': 'economia', 'sort_order': 1},
+    {'name': 'Paulo Kogos',           'channel_id': 'UCmArkwjUI8VRHudOjEsVCUw',  'category': 'economia', 'sort_order': 2},
+    {'name': 'Instituto Mises Brasil','channel_id': 'UCb9T91q727Ld4c3lqq3w6Xw',  'category': 'economia', 'sort_order': 3},
+    # Política
+    {'name': 'Nikolas Ferreira',      'channel_id': 'UCxI9vN6UbxmBt8VIvUKtJaA',  'category': 'politica', 'sort_order': 4},
+    {'name': 'Eduardo Bolsonaro',     'channel_id': 'UCkR6xPOHhpjq3wnFchVI4sg',  'category': 'politica', 'sort_order': 5},
+    {'name': 'Jovem Pan News',        'channel_id': 'UCP391YRAjSOdM_bwievgaZA',  'category': 'politica', 'sort_order': 6},
+    # Notícias
+    {'name': 'Record News',           'channel_id': 'UCuiLR4p6wQ3xLEm15pEn1Xw',  'category': 'noticias', 'sort_order': 7},
+    {'name': 'Brasil Paralelo',       'channel_id': 'UCKDjjeeBmdaiicey2nImISw',   'category': 'noticias', 'sort_order': 8},
+    {'name': 'Portal R7',             'channel_id': 'UCIwRd7CNbYcTUp-VCtMqkDw',  'category': 'noticias', 'sort_order': 9},
+]
+
+_yt_videos_cache = {'data': None, 'ts': 0}
+YT_CACHE_TTL = 900  # 15 minutos
+
+
+def seed_youtube_channels():
+    """Semeia canais curados se a tabela estiver vazia."""
+    conn = get_db()
+    count = conn.execute('SELECT COUNT(*) FROM youtube_channels').fetchone()[0]
+    if count == 0:
+        for ch in CURATED_YT_CHANNELS:
+            try:
+                conn.execute('''
+                    INSERT OR IGNORE INTO youtube_channels
+                    (name, channel_id, category, active, sort_order, created_at)
+                    VALUES (?, ?, ?, 1, ?, ?)
+                ''', (ch['name'], ch['channel_id'], ch['category'],
+                      ch['sort_order'], datetime.now().isoformat()))
+            except Exception:
+                pass
+        conn.commit()
+        logger.info(f"YouTube: {len(CURATED_YT_CHANNELS)} canais pré-configurados inseridos.")
+    conn.close()
+
+
+def fetch_yt_rss(channel_id, max_videos=5):
+    """Busca últimos vídeos de um canal YouTube via RSS (sem API key)."""
+    import feedparser
+    url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+    try:
+        feed = feedparser.parse(url)
+        videos = []
+        for entry in feed.entries[:max_videos]:
+            vid_id = getattr(entry, 'yt_videoid', None)
+            if not vid_id:
+                link = getattr(entry, 'link', '')
+                if 'v=' in link:
+                    vid_id = link.split('v=')[1].split('&')[0]
+            if not vid_id:
+                continue
+            published = getattr(entry, 'published', '')
+            try:
+                from datetime import datetime as _dt
+                pub = _dt.fromisoformat(published.replace('Z', '+00:00'))
+                published_fmt = pub.strftime('%d/%m/%Y')
+            except Exception:
+                published_fmt = published[:10] if published else ''
+            videos.append({
+                'video_id': vid_id,
+                'title': entry.get('title', ''),
+                'published': published,
+                'published_fmt': published_fmt,
+                'thumbnail': f"https://i.ytimg.com/vi/{vid_id}/mqdefault.jpg",
+                'embed_url': f"https://www.youtube.com/embed/{vid_id}?autoplay=1&rel=0",
+                'watch_url': f"https://www.youtube.com/watch?v={vid_id}",
+            })
+        return videos
+    except Exception as e:
+        logger.warning(f"Erro RSS YouTube {channel_id}: {e}")
+        return []
+
+
+@app.route('/api/youtube-videos')
+def api_youtube_videos():
+    """Retorna vídeos recentes dos canais YouTube configurados (cache 15 min)."""
+    global _yt_videos_cache
+    import time as _t
+    now = _t.time()
+    category = request.args.get('category', '')
+    force = request.args.get('force', '')
+
+    if not force and _yt_videos_cache['data'] and now - _yt_videos_cache['ts'] < YT_CACHE_TTL:
+        data = _yt_videos_cache['data']
+        filtered = [ch for ch in data if ch['category'] == category] if category else data
+        return jsonify({'channels': filtered, 'cached': True})
+
+    conn = get_db()
+    channels = conn.execute(
+        'SELECT * FROM youtube_channels WHERE active=1 ORDER BY sort_order, name'
+    ).fetchall()
+    conn.close()
+
+    result = []
+    for ch in channels:
+        videos = fetch_yt_rss(ch['channel_id'], max_videos=5)
+        result.append({
+            'id': ch['id'],
+            'name': ch['name'],
+            'channel_id': ch['channel_id'],
+            'category': ch['category'],
+            'videos': videos,
+        })
+
+    _yt_videos_cache = {'data': result, 'ts': now}
+    filtered = [ch for ch in result if ch['category'] == category] if category else result
+    return jsonify({'channels': filtered, 'cached': False})
+
+
+@app.route('/admin/youtube-channels', methods=['GET', 'POST'])
+@login_required
+def admin_youtube_channels():
+    if request.method == 'POST':
+        data = request.form
+        name       = data.get('name', '').strip()
+        channel_id = data.get('channel_id', '').strip()
+        category   = data.get('category', 'geral').strip()
+        if not name or not channel_id:
+            return jsonify({'success': False, 'message': 'Nome e Channel ID obrigatórios.'}), 400
+        conn = get_db()
+        try:
+            cur = conn.execute('''
+                INSERT INTO youtube_channels (name, channel_id, category, active, sort_order, created_at)
+                VALUES (?, ?, ?, 1,
+                    (SELECT COALESCE(MAX(sort_order), 0)+1 FROM youtube_channels),
+                    ?)
+            ''', (name, channel_id, category, datetime.now().isoformat()))
+            conn.commit()
+            ch_id = cur.lastrowid
+            conn.close()
+            _yt_videos_cache['ts'] = 0  # invalida cache
+            return jsonify({'success': True, 'id': ch_id})
+        except Exception as e:
+            conn.close()
+            return jsonify({'success': False, 'message': str(e)}), 409
+    conn = get_db()
+    channels = conn.execute(
+        'SELECT * FROM youtube_channels ORDER BY sort_order, name'
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(c) for c in channels])
+
+
+@app.route('/admin/youtube-channels/<int:ch_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_youtube_channel(ch_id):
+    conn = get_db()
+    conn.execute('DELETE FROM youtube_channels WHERE id=?', (ch_id,))
+    conn.commit()
+    conn.close()
+    _yt_videos_cache['ts'] = 0
+    return jsonify({'success': True})
+
+
+@app.route('/admin/youtube-channels/<int:ch_id>/toggle', methods=['POST'])
+@login_required
+def admin_toggle_youtube_channel(ch_id):
+    conn = get_db()
+    ch = conn.execute('SELECT active FROM youtube_channels WHERE id=?', (ch_id,)).fetchone()
+    if not ch:
+        conn.close()
+        return jsonify({'success': False}), 404
+    new_state = 0 if ch['active'] else 1
+    conn.execute('UPDATE youtube_channels SET active=? WHERE id=?', (new_state, ch_id))
+    conn.commit()
+    conn.close()
+    _yt_videos_cache['ts'] = 0
+    return jsonify({'success': True, 'active': new_state})
+
+
 # ── Inicialização que roda sempre (dev e produção/gunicorn) ──
 with app.app_context():
     init_db()
+    seed_youtube_channels()
 
 import threading as _threading
 _t = _threading.Thread(target=background_startup, daemon=True)
