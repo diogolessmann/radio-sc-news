@@ -1090,6 +1090,7 @@ CURATED_YT_CHANNELS = [
     {'name': 'Nikolas Ferreira',      'channel_id': 'UCxI9vN6UbxmBt8VIvUKtJaA',  'category': 'politica', 'sort_order': 4},
     {'name': 'Eduardo Bolsonaro',     'channel_id': 'UCkR6xPOHhpjq3wnFchVI4sg',  'category': 'politica', 'sort_order': 5},
     {'name': 'Jovem Pan News',        'channel_id': 'UCP391YRAjSOdM_bwievgaZA',  'category': 'politica', 'sort_order': 6},
+    {'name': 'Romeu Zema',            'channel_id': 'UCBY16QLJLEUEjwzc-V09tKg',  'category': 'politica', 'sort_order': 7},
     # Notícias
     {'name': 'Record News',           'channel_id': 'UCuiLR4p6wQ3xLEm15pEn1Xw',  'category': 'noticias', 'sort_order': 7},
     {'name': 'Brasil Paralelo',       'channel_id': 'UCKDjjeeBmdaiicey2nImISw',   'category': 'noticias', 'sort_order': 8},
@@ -1118,7 +1119,7 @@ def seed_youtube_channels():
         conn.commit()
         logger.info(f"YouTube: {len(CURATED_YT_CHANNELS)} canais pré-configurados inseridos.")
     else:
-        # Migração: substitui Paulo Kogos (posta 1x/semana) por Empiricus (diário)
+        # Migração 1: Paulo Kogos → Empiricus
         kogos = conn.execute(
             "SELECT id FROM youtube_channels WHERE channel_id='UCmArkwjUI8VRHudOjEsVCUw'"
         ).fetchone()
@@ -1129,6 +1130,19 @@ def seed_youtube_channels():
             )
             conn.commit()
             logger.info("YouTube: Paulo Kogos → Empiricus (migração aplicada).")
+        # Migração 2: adiciona Romeu Zema se ainda não existe
+        zema = conn.execute(
+            "SELECT id FROM youtube_channels WHERE channel_id='UCBY16QLJLEUEjwzc-V09tKg'"
+        ).fetchone()
+        if not zema:
+            conn.execute('''
+                INSERT OR IGNORE INTO youtube_channels
+                (name, channel_id, category, active, sort_order, created_at)
+                VALUES (?, ?, ?, 1, 7, ?)
+            ''', ('Romeu Zema', 'UCBY16QLJLEUEjwzc-V09tKg', 'politica',
+                  datetime.now().isoformat()))
+            conn.commit()
+            logger.info("YouTube: Romeu Zema adicionado (migração).")
     conn.close()
 
 
