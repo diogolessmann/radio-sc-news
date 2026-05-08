@@ -148,6 +148,29 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_classifieds_category ON classifieds(category);
         CREATE INDEX IF NOT EXISTS idx_classifieds_city     ON classifieds(city);
 
+        CREATE TABLE IF NOT EXISTS jobs (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            title            TEXT NOT NULL,
+            company          TEXT NOT NULL,
+            description      TEXT,
+            category         TEXT DEFAULT 'outros',
+            job_type         TEXT DEFAULT 'clt',
+            salary           TEXT,
+            city             TEXT DEFAULT 'Schroeder',
+            contact_whatsapp TEXT NOT NULL,
+            contact_email    TEXT,
+            status           TEXT DEFAULT 'pending',
+            views            INTEGER DEFAULT 0,
+            featured         INTEGER DEFAULT 0,
+            created_at       TEXT,
+            approved_at      TEXT,
+            expires_at       TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_jobs_status   ON jobs(status);
+        CREATE INDEX IF NOT EXISTS idx_jobs_city     ON jobs(city);
+        CREATE INDEX IF NOT EXISTS idx_jobs_category ON jobs(category);
+
         CREATE TABLE IF NOT EXISTS youtube_channels (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -1483,6 +1506,177 @@ def admin_toggle_featured_classified(ad_id):
         return jsonify({'success': False}), 404
     new_val = 0 if row['featured'] else 1
     conn.execute('UPDATE classifieds SET featured=? WHERE id=?', (new_val, ad_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'featured': new_val})
+
+
+# ── Vagas de Emprego ──────────────────────────────────────────────────────────
+JOB_CATEGORIES = {
+    'industria':   {'label': 'Indústria',      'emoji': '🏭'},
+    'comercio':    {'label': 'Comércio',        'emoji': '🛒'},
+    'servicos':    {'label': 'Serviços',        'emoji': '🔧'},
+    'saude':       {'label': 'Saúde',           'emoji': '🏥'},
+    'construcao':  {'label': 'Construção',      'emoji': '🏗️'},
+    'transporte':  {'label': 'Transporte',      'emoji': '🚛'},
+    'educacao':    {'label': 'Educação',        'emoji': '📚'},
+    'alimentacao': {'label': 'Alimentação',     'emoji': '🍕'},
+    'admin':       {'label': 'Administrativo',  'emoji': '👔'},
+    'tecnologia':  {'label': 'Tecnologia',      'emoji': '💻'},
+    'outros':      {'label': 'Outros',          'emoji': '📦'},
+}
+
+JOB_TYPES = {
+    'clt':         'CLT',
+    'pj':          'PJ',
+    'temporario':  'Temporário',
+    'estagio':     'Estágio',
+    'meio_periodo':'Meio Período',
+    'freelance':   'Freelance',
+}
+
+JOB_CITIES = ['Schroeder', 'Jaraguá do Sul', 'Guaramirim', 'Joinville', 'Corupá', 'Outra cidade']
+
+
+@app.route('/api/jobs')
+def api_jobs():
+    city     = request.args.get('city', '').strip()
+    category = request.args.get('category', '').strip()
+    page     = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 12))
+    offset   = (page - 1) * per_page
+
+    conn = get_db()
+    where  = ["status='approved'", "datetime('now') < expires_at"]
+    params = []
+    if city:
+        where.append('city=?'); params.append(city)
+    if category:
+        where.append('category=?'); params.append(category)
+
+    sql = f"""
+        SELECT * FROM jobs WHERE {' AND '.join(where)}
+        ORDER BY featured DESC, approved_at DESC
+        LIMIT ? OFFSET ?
+    """
+    rows = conn.execute(sql, params + [per_page + 1, offset]).fetchall()
+    has_more = len(rows) > per_page
+    jobs_list = [dict(r) for r in rows[:per_page]]
+    conn.close()
+    return jsonify({'jobs': jobs_list, 'has_more': has_more, 'page': page})
+
+
+@app.route('/api/jobs/submit', methods=['POST'])
+def api_submit_job():
+    data = request.form
+    title    = data.get('title', '').strip()
+    company  = data.get('company', '').strip()
+    whatsapp = data.get('contact_whatsapp', '').strip()
+    city     = data.get('city', 'Schroeder').strip()
+    category = data.get('category', 'outros').strip()
+    job_type = data.get('job_type', 'clt').strip()
+
+    if not title or not company or not whatsapp:
+        return jsonify({'success': False, 'error': 'Título, empresa e WhatsApp são obrigatórios.'}), 400
+    if category not in JOB_CATEGORIES:
+        category = 'outros'
+    if job_type not in JOB_TYPES:
+        job_type = 'clt'
+
+    from datetime import timedelta
+    now = datetime.now().isoformat()
+    expires = (datetime.now() + timedelta(days=30)).isoformat()
+
+    conn = get_db()
+    conn.execute('''
+        INSERT INTO jobs
+        (title, company, description, category, job_type, salary, city,
+         contact_whatsapp, contact_email, status, created_at, expires_at)
+        VALUES (?,?,?,?,?,?,?,?,?,'pending',?,?)
+    ''', (
+        title, company,
+        data.get('description', '').strip(),
+        category, job_type,
+        data.get('salary', '').strip(),
+        city, whatsapp,
+        data.get('contact_email', '').strip(),
+        now, expires
+    ))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'message': 'Vaga enviada para análise!'})
+
+
+@app.route('/api/jobs/<int:job_id>/view', methods=['POST'])
+def api_job_view(job_id):
+    conn = get_db()
+    conn.execute('UPDATE jobs SET views = views + 1 WHERE id=?', (job_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+# ── Admin — Vagas ──────────────────────────────────────────────
+@app.route('/admin/jobs')
+@login_required
+def admin_list_jobs():
+    conn  = get_db()
+    rows  = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC').fetchall()
+    counts = {
+        'pending':  conn.execute("SELECT COUNT(*) FROM jobs WHERE status='pending'").fetchone()[0],
+        'approved': conn.execute("SELECT COUNT(*) FROM jobs WHERE status='approved'").fetchone()[0],
+        'rejected': conn.execute("SELECT COUNT(*) FROM jobs WHERE status='rejected'").fetchone()[0],
+    }
+    conn.close()
+    return jsonify({'jobs': [dict(r) for r in rows], 'counts': counts})
+
+
+@app.route('/admin/jobs/<int:job_id>/approve', methods=['POST'])
+@login_required
+def admin_approve_job(job_id):
+    from datetime import timedelta
+    now     = datetime.now().isoformat()
+    expires = (datetime.now() + timedelta(days=30)).isoformat()
+    conn = get_db()
+    conn.execute(
+        "UPDATE jobs SET status='approved', approved_at=?, expires_at=? WHERE id=?",
+        (now, expires, job_id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/jobs/<int:job_id>/reject', methods=['POST'])
+@login_required
+def admin_reject_job(job_id):
+    conn = get_db()
+    conn.execute("UPDATE jobs SET status='rejected' WHERE id=?", (job_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/jobs/<int:job_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_job(job_id):
+    conn = get_db()
+    conn.execute('DELETE FROM jobs WHERE id=?', (job_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/jobs/<int:job_id>/toggle_featured', methods=['POST'])
+@login_required
+def admin_toggle_featured_job(job_id):
+    conn = get_db()
+    row  = conn.execute('SELECT featured FROM jobs WHERE id=?', (job_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'success': False}), 404
+    new_val = 0 if row['featured'] else 1
+    conn.execute('UPDATE jobs SET featured=? WHERE id=?', (new_val, job_id))
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'featured': new_val})

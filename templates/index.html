@@ -1822,6 +1822,85 @@
     border: none;
   }
 
+  /* ── VAGAS DE EMPREGO ── */
+  .vagas-section { max-width:680px; margin:0 auto; padding:0 0 32px; }
+  .vagas-header { display:flex; align-items:center; justify-content:space-between; padding:20px 16px 12px; flex-wrap:wrap; gap:10px; }
+  .vagas-header h2 { font-size:18px; font-weight:800; }
+  .vagas-header p  { font-size:13px; color:var(--text2); margin-top:2px; }
+  .vagas-filter-bar { display:flex; gap:6px; overflow-x:auto; padding:0 16px 12px; scrollbar-width:none; }
+  .vagas-filter-bar::-webkit-scrollbar { display:none; }
+  .vagas-filter-btn { flex-shrink:0; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:var(--surface2); color:var(--text2); font-size:12.5px; cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .vagas-filter-btn.active { background:var(--green); border-color:var(--green); color:#fff; font-weight:700; }
+  .vagas-city-bar { display:flex; gap:6px; overflow-x:auto; padding:0 16px 12px; scrollbar-width:none; }
+  .vagas-city-bar::-webkit-scrollbar { display:none; }
+  .vagas-city-btn { flex-shrink:0; padding:5px 12px; border-radius:20px; border:1px solid var(--border); background:var(--surface); color:var(--text2); font-size:12px; cursor:pointer; transition:all .2s; white-space:nowrap; }
+  .vagas-city-btn.active { background:rgba(39,174,96,.15); border-color:var(--green); color:var(--green); font-weight:700; }
+
+  .jobs-list { display:flex; flex-direction:column; gap:10px; padding:0 12px; }
+
+  .job-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    cursor: default;
+    transition: border-color .2s, transform .15s;
+    position: relative;
+  }
+  .job-card:hover { border-color: var(--green); transform: translateY(-1px); }
+  .job-card.featured { border-color: rgba(245,166,35,.5); }
+
+  .job-featured-badge {
+    position:absolute; top:12px; right:12px;
+    background:rgba(245,166,35,.15); color:var(--accent2);
+    border:1px solid rgba(245,166,35,.3); border-radius:8px;
+    font-size:10px; font-weight:700; padding:3px 8px;
+  }
+  .job-top { display:flex; align-items:flex-start; gap:12px; margin-bottom:10px; }
+  .job-icon { width:44px; height:44px; border-radius:10px; background:rgba(39,174,96,.12); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .job-info { flex:1; min-width:0; }
+  .job-title { font-size:15px; font-weight:800; margin-bottom:3px; line-height:1.3; }
+  .job-company { font-size:13px; color:var(--text2); font-weight:600; }
+  .job-badges { display:flex; gap:6px; flex-wrap:wrap; margin:8px 0; }
+  .job-badge { font-size:11px; font-weight:700; padding:3px 9px; border-radius:6px; }
+  .job-badge.city { background:rgba(245,166,35,.12); color:var(--accent2); }
+  .job-badge.type { background:rgba(52,152,219,.12); color:#3498db; }
+  .job-badge.cat  { background:rgba(39,174,96,.12); color:var(--green); }
+  .job-salary { font-size:14px; font-weight:800; color:var(--green); margin:6px 0 8px; }
+  .job-desc { font-size:13px; color:var(--text2); line-height:1.5; margin-bottom:12px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+  .job-wa-btn { display:inline-flex; align-items:center; gap:8px; background:var(--green); color:#fff; font-weight:700; font-size:13px; padding:10px 18px; border-radius:10px; text-decoration:none; transition:opacity .2s; }
+  .job-wa-btn:hover { opacity:.88; }
+
+  .publish-job-btn {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    z-index: 90;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #27ae60, #2ecc71);
+    color: #fff;
+    font-weight: 800;
+    font-size: 14px;
+    padding: 13px 20px;
+    border-radius: 50px;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(39,174,96,.5);
+    transition: transform .2s, box-shadow .2s;
+  }
+  .publish-job-btn:hover { transform:translateY(-2px); box-shadow:0 6px 24px rgba(39,174,96,.6); }
+
+  /* Modal de Vaga */
+  .job-modal { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:300; display:flex; align-items:flex-end; opacity:0; pointer-events:none; transition:opacity .3s; }
+  .job-modal.open { opacity:1; pointer-events:all; }
+  .job-modal-box { background:var(--surface); border-radius:20px 20px 0 0; width:100%; max-height:92vh; overflow-y:auto; padding:24px 20px 40px; transform:translateY(100%); transition:transform .35s cubic-bezier(.4,0,.2,1); }
+  .job-modal.open .job-modal-box { transform:translateY(0); }
+  .job-modal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .job-modal-header h3 { font-size:18px; font-weight:800; }
+  .job-modal-close { background:var(--surface2); border:none; color:var(--text); width:32px; height:32px; border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
   /* ── DESKTOP (>700px): alinha sombra-fade com o conteúdo centrado ── */
   @media (min-width: 700px) {
     /* A sombra de fade fica na borda direita do container de 680px */
@@ -1897,6 +1976,7 @@
     <button class="cat-btn" id="btnTransmissoes" data-cat="transmissoes" onclick="toggleTransmissoes()">📡 Transmissões</button>
     <button class="cat-btn" id="btnYoutube" data-cat="youtube" onclick="toggleYoutube()">▶️ YouTube</button>
     <button class="cat-btn" id="btnAnuncios" data-cat="anuncios" onclick="toggleAnuncios()">📢 Anúncios</button>
+    <button class="cat-btn" id="btnVagas" data-cat="vagas" onclick="toggleVagas()">💼 Vagas</button>
   </div>
 </div>
 
@@ -2119,6 +2199,170 @@
 
     <button class="cl-submit-btn" id="clSubmitBtn" onclick="submitClassified()">
       📤 Enviar para análise
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     VAGAS DE EMPREGO
+══════════════════════════════════════ -->
+<div class="vagas-section" id="vagasSection" style="display:none">
+
+  <div class="vagas-header">
+    <div>
+      <h2>💼 Vagas de Emprego</h2>
+      <p>Norte de Santa Catarina · Schroeder · Jaraguá do Sul · Joinville</p>
+    </div>
+  </div>
+
+  <!-- Filtro por cidade -->
+  <div class="vagas-city-bar">
+    <button class="vagas-city-btn active" data-city="" onclick="filterJobsCity('')">📍 Todas</button>
+    <button class="vagas-city-btn" data-city="Schroeder" onclick="filterJobsCity('Schroeder')">🏡 Schroeder</button>
+    <button class="vagas-city-btn" data-city="Jaraguá do Sul" onclick="filterJobsCity('Jaraguá do Sul')">🏭 Jaraguá do Sul</button>
+    <button class="vagas-city-btn" data-city="Guaramirim" onclick="filterJobsCity('Guaramirim')">🌿 Guaramirim</button>
+    <button class="vagas-city-btn" data-city="Joinville" onclick="filterJobsCity('Joinville')">🏙️ Joinville</button>
+  </div>
+
+  <!-- Filtro por categoria -->
+  <div class="vagas-filter-bar">
+    <button class="vagas-filter-btn active" data-cat="" onclick="filterJobsCat('')">🗂️ Todas</button>
+    <button class="vagas-filter-btn" data-cat="industria"   onclick="filterJobsCat('industria')">🏭 Indústria</button>
+    <button class="vagas-filter-btn" data-cat="comercio"    onclick="filterJobsCat('comercio')">🛒 Comércio</button>
+    <button class="vagas-filter-btn" data-cat="servicos"    onclick="filterJobsCat('servicos')">🔧 Serviços</button>
+    <button class="vagas-filter-btn" data-cat="saude"       onclick="filterJobsCat('saude')">🏥 Saúde</button>
+    <button class="vagas-filter-btn" data-cat="construcao"  onclick="filterJobsCat('construcao')">🏗️ Construção</button>
+    <button class="vagas-filter-btn" data-cat="transporte"  onclick="filterJobsCat('transporte')">🚛 Transporte</button>
+    <button class="vagas-filter-btn" data-cat="admin"       onclick="filterJobsCat('admin')">👔 Adm.</button>
+    <button class="vagas-filter-btn" data-cat="alimentacao" onclick="filterJobsCat('alimentacao')">🍕 Alimentação</button>
+    <button class="vagas-filter-btn" data-cat="tecnologia"  onclick="filterJobsCat('tecnologia')">💻 TI</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="vagasLoading" style="text-align:center;padding:40px 0;display:none">
+    <div class="spinner" style="margin:0 auto 12px"></div>
+    <p style="color:var(--text2)">Carregando vagas...</p>
+  </div>
+
+  <!-- Lista de vagas -->
+  <div class="jobs-list" id="jobsList"></div>
+
+  <button id="vagasLoadMoreBtn" style="display:none;margin:16px auto 0;max-width:300px"
+    class="load-more-btn" onclick="loadMoreVagas()">↓ Ver mais vagas</button>
+
+  <!-- Estado vazio -->
+  <div id="vagasEmpty" style="display:none;text-align:center;padding:48px 20px">
+    <div style="font-size:48px;margin-bottom:12px">💼</div>
+    <p style="font-weight:700;margin-bottom:6px">Nenhuma vaga no momento</p>
+    <p style="color:var(--text2);font-size:13px">Seja o primeiro a divulgar uma vaga na região!</p>
+  </div>
+
+</div>
+
+<!-- Botão flutuante: Publicar Vaga -->
+<button class="publish-job-btn" id="publishJobBtn" onclick="openJobModal()">
+  ✚ Publicar Vaga
+</button>
+
+<!-- Modal: Formulário de Vaga -->
+<div class="job-modal" id="jobModal">
+  <div class="job-modal-box">
+    <div class="job-modal-header">
+      <h3>💼 Publicar Vaga</h3>
+      <button class="job-modal-close" onclick="closeJobModal()">✕</button>
+    </div>
+
+    <!-- Aviso -->
+    <div style="background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);border-radius:10px;padding:12px 16px;margin-bottom:18px;display:flex;gap:12px;align-items:flex-start">
+      <span style="font-size:20px;flex-shrink:0">✅</span>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:var(--green);margin-bottom:3px">Vaga publicada após análise</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.5">Gratuito · Fica no ar por 30 dias · Nossa equipe avalia antes de publicar · Candidatos entram em contato via WhatsApp.</div>
+      </div>
+    </div>
+
+    <!-- Linha 1: Cargo + Empresa -->
+    <div class="cl-form-row">
+      <div class="cl-form-group">
+        <label>Cargo / Função *</label>
+        <input id="job-title" type="text" placeholder="Ex: Auxiliar de Produção">
+      </div>
+      <div class="cl-form-group">
+        <label>Empresa *</label>
+        <input id="job-company" type="text" placeholder="Ex: WEG Equipamentos">
+      </div>
+    </div>
+
+    <!-- Linha 2: Categoria + Tipo -->
+    <div class="cl-form-row">
+      <div class="cl-form-group">
+        <label>Área *</label>
+        <select id="job-category">
+          <option value="industria">🏭 Indústria</option>
+          <option value="comercio">🛒 Comércio</option>
+          <option value="servicos">🔧 Serviços</option>
+          <option value="saude">🏥 Saúde</option>
+          <option value="construcao">🏗️ Construção</option>
+          <option value="transporte">🚛 Transporte</option>
+          <option value="admin">👔 Administrativo</option>
+          <option value="alimentacao">🍕 Alimentação</option>
+          <option value="tecnologia">💻 Tecnologia</option>
+          <option value="educacao">📚 Educação</option>
+          <option value="outros">📦 Outros</option>
+        </select>
+      </div>
+      <div class="cl-form-group">
+        <label>Tipo de contrato</label>
+        <select id="job-type">
+          <option value="clt">CLT</option>
+          <option value="pj">PJ</option>
+          <option value="temporario">Temporário</option>
+          <option value="estagio">Estágio</option>
+          <option value="meio_periodo">Meio Período</option>
+          <option value="freelance">Freelance</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Linha 3: Cidade + Salário -->
+    <div class="cl-form-row">
+      <div class="cl-form-group">
+        <label>Cidade *</label>
+        <select id="job-city">
+          <option value="Schroeder">🏡 Schroeder</option>
+          <option value="Jaraguá do Sul">🏭 Jaraguá do Sul</option>
+          <option value="Guaramirim">🌿 Guaramirim</option>
+          <option value="Joinville">🏙️ Joinville</option>
+          <option value="Corupá">⛰️ Corupá</option>
+          <option value="Outra cidade">📍 Outra cidade</option>
+        </select>
+      </div>
+      <div class="cl-form-group">
+        <label>Salário (opcional)</label>
+        <input id="job-salary" type="text" placeholder="Ex: R$ 2.500 ou A combinar">
+      </div>
+    </div>
+
+    <!-- Descrição -->
+    <div class="cl-form-group">
+      <label>Descrição da vaga</label>
+      <textarea id="job-description" placeholder="Requisitos, benefícios, horário de trabalho, etc." style="min-height:90px"></textarea>
+    </div>
+
+    <!-- Contato -->
+    <div class="cl-form-row">
+      <div class="cl-form-group">
+        <label>WhatsApp para contato *</label>
+        <input id="job-whatsapp" type="tel" placeholder="(47) 99999-9999">
+      </div>
+      <div class="cl-form-group">
+        <label>E-mail (opcional)</label>
+        <input id="job-email" type="email" placeholder="rh@empresa.com.br">
+      </div>
+    </div>
+
+    <button class="cl-submit-btn" id="jobSubmitBtn" onclick="submitJob()" style="background:linear-gradient(135deg,#27ae60,#2ecc71)">
+      📤 Enviar Vaga para Análise
     </button>
   </div>
 </div>
@@ -2734,6 +2978,14 @@ function closeSpecialSections() {
   document.getElementById('btnAnuncios')?.classList.remove('active');
   const floatBtn = document.getElementById('publishClassifiedBtn');
   if (floatBtn) floatBtn.style.display = 'none';
+
+  // Vagas
+  const vgSec = document.getElementById('vagasSection');
+  if (vgSec) vgSec.style.display = 'none';
+  vagasVisible = false;
+  document.getElementById('btnVagas')?.classList.remove('active');
+  const jobFloatBtn = document.getElementById('publishJobBtn');
+  if (jobFloatBtn) jobFloatBtn.style.display = 'none';
 }
 
 // ── FILTROS: CATEGORIA ──
@@ -3605,6 +3857,229 @@ async function submitClassified() {
   }
   btn.disabled = false;
   btn.textContent = '📤 Enviar para análise';
+}
+
+// ════════════════════════════════════════════
+//  VAGAS DE EMPREGO
+// ════════════════════════════════════════════
+let vagasVisible  = false;
+let vagasLoaded   = false;
+let vagasPage     = 1;
+let vagasHasMore  = false;
+let vagasCat      = '';
+let vagasCity     = '';
+
+const JOB_CAT_LABELS = {
+  industria:   '🏭 Indústria',
+  comercio:    '🛒 Comércio',
+  servicos:    '🔧 Serviços',
+  saude:       '🏥 Saúde',
+  construcao:  '🏗️ Construção',
+  transporte:  '🚛 Transporte',
+  admin:       '👔 Administrativo',
+  alimentacao: '🍕 Alimentação',
+  tecnologia:  '💻 Tecnologia',
+  educacao:    '📚 Educação',
+  outros:      '📦 Outros'
+};
+
+const JOB_TYPE_LABELS = {
+  clt:          'CLT',
+  pj:           'PJ',
+  temporario:   'Temporário',
+  estagio:      'Estágio',
+  meio_periodo: 'Meio Período',
+  freelance:    'Freelance'
+};
+
+function toggleVagas() {
+  const feed      = document.getElementById('feed');
+  const searchBar = document.querySelector('.search-bar');
+  const loadMore  = document.getElementById('loadMoreBtn');
+
+  vagasVisible = !vagasVisible;
+
+  if (vagasVisible) {
+    closeSpecialSections();
+    vagasVisible = true; // restaura após closeSpecialSections zerar
+
+    const btn        = document.getElementById('btnVagas');
+    const section    = document.getElementById('vagasSection');
+    const jobFloatBtn = document.getElementById('publishJobBtn');
+    btn.classList.add('active');
+    section.style.display    = 'block';
+    jobFloatBtn.style.display = 'flex';
+    if (feed)      feed.style.display      = 'none';
+    if (searchBar) searchBar.style.display = 'none';
+    if (loadMore)  loadMore.style.display  = 'none';
+    document.querySelectorAll('.cat-btn:not(#btnVagas)').forEach(b => b.classList.remove('active'));
+    if (!vagasLoaded) loadVagas();
+  } else {
+    closeSpecialSections();
+    if (feed)      feed.style.display      = 'flex';
+    if (searchBar) searchBar.style.display = 'block';
+    document.querySelector('.cat-btn[data-cat=""]')?.classList.add('active');
+    resetAndLoad();
+  }
+}
+
+async function loadVagas(reset = true) {
+  if (reset) {
+    vagasPage = 1;
+    document.getElementById('jobsList').innerHTML = '';
+    document.getElementById('vagasLoadMoreBtn').style.display = 'none';
+    document.getElementById('vagasEmpty').style.display = 'none';
+  }
+  document.getElementById('vagasLoading').style.display = 'block';
+  try {
+    const params = new URLSearchParams({ page: vagasPage, per_page: 10 });
+    if (vagasCat)  params.append('category', vagasCat);
+    if (vagasCity) params.append('city', vagasCity);
+    const data = await fetch('/api/jobs?' + params).then(r => r.json());
+    vagasLoaded  = true;
+    vagasHasMore = !!data.has_more;
+    renderJobs(data.jobs || [], reset);
+    document.getElementById('vagasLoadMoreBtn').style.display = vagasHasMore ? 'block' : 'none';
+    if (reset && (!data.jobs || !data.jobs.length)) {
+      document.getElementById('vagasEmpty').style.display = 'block';
+    }
+  } catch(e) {
+    document.getElementById('jobsList').innerHTML =
+      '<div style="text-align:center;padding:40px;color:var(--text2)">⚠️ Erro ao carregar vagas.</div>';
+  } finally {
+    document.getElementById('vagasLoading').style.display = 'none';
+  }
+}
+
+function renderJobs(list, reset = true) {
+  const container = document.getElementById('jobsList');
+  if (!list || !list.length) return;
+  const html = list.map(job => {
+    const catLabel  = JOB_CAT_LABELS[job.category]  || job.category  || '';
+    const typeLabel = JOB_TYPE_LABELS[job.job_type]  || job.job_type  || '';
+    const waNum  = (job.contact_whatsapp || '').replace(/\D/g, '');
+    const waFull = waNum ? (waNum.startsWith('55') ? waNum : '55' + waNum) : '';
+    const waText = encodeURIComponent('Olá! Vi a vaga de ' + job.title + ' no Rádio SC News e tenho interesse!');
+    const waLink = waFull ? `https://wa.me/${waFull}?text=${waText}` : '#';
+    const featBadge = job.featured
+      ? '<div class="job-featured-badge">⭐ Destaque</div>' : '';
+    const salaryHtml = job.salary
+      ? `<div class="job-salary">💰 ${escHtml(job.salary)}</div>` : '';
+    const descHtml = job.description
+      ? `<div class="job-desc">${escHtml(job.description.substring(0, 120))}${job.description.length > 120 ? '…' : ''}</div>` : '';
+    const catIcon = catLabel.split(' ')[0] || '💼';
+    return `<div class="job-card" onclick="countJobView(${job.id})">
+      <div class="job-top">
+        <div class="job-icon">${catIcon}</div>
+        <div style="flex:1;min-width:0">
+          <div class="job-title">${escHtml(job.title)}</div>
+          <div class="job-company">🏢 ${escHtml(job.company)}</div>
+        </div>
+        ${featBadge}
+      </div>
+      <div class="job-badges">
+        <span class="job-badge">${escHtml(catLabel)}</span>
+        <span class="job-badge" style="background:rgba(245,166,35,.15);color:var(--accent2)">${escHtml(typeLabel)}</span>
+        ${job.city ? `<span class="job-badge" style="background:rgba(39,174,96,.12);color:var(--green)">📍 ${escHtml(job.city)}</span>` : ''}
+      </div>
+      ${salaryHtml}
+      ${descHtml}
+      ${waFull ? `<a class="job-wa-btn" href="${waLink}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+        💬 Candidatar pelo WhatsApp
+      </a>` : ''}
+    </div>`;
+  }).join('');
+  if (reset) {
+    container.innerHTML = html;
+  } else {
+    container.insertAdjacentHTML('beforeend', html);
+  }
+}
+
+async function countJobView(id) {
+  try { await fetch(`/api/jobs/${id}/view`, {method:'POST'}); } catch(e) {}
+}
+
+function filterJobsCity(city) {
+  vagasCity = city;
+  vagasLoaded = false;
+  document.querySelectorAll('.vagas-city-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.city === city));
+  loadVagas(true);
+}
+
+function filterJobsCat(cat) {
+  vagasCat = cat;
+  vagasLoaded = false;
+  document.querySelectorAll('.vagas-filter-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.cat === cat));
+  loadVagas(true);
+}
+
+async function loadMoreVagas() {
+  vagasPage++;
+  await loadVagas(false);
+}
+
+// ── MODAL DE PUBLICAR VAGA ──
+function openJobModal() {
+  document.getElementById('jobModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeJobModal() {
+  document.getElementById('jobModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('jobModal').addEventListener('click', function(e) {
+  if (e.target === this) closeJobModal();
+});
+
+async function submitJob() {
+  const title    = document.getElementById('job-title').value.trim();
+  const company  = document.getElementById('job-company').value.trim();
+  const whatsapp = document.getElementById('job-whatsapp').value.trim();
+
+  if (!title)    { alert('⚠️ Informe o cargo/função da vaga.'); return; }
+  if (!company)  { alert('⚠️ Informe o nome da empresa.'); return; }
+  if (!whatsapp) { alert('⚠️ Informe o WhatsApp para contato com DDD.'); return; }
+
+  const payload = {
+    title,
+    company,
+    category:         document.getElementById('job-category').value,
+    job_type:         document.getElementById('job-type').value,
+    city:             document.getElementById('job-city').value,
+    salary:           document.getElementById('job-salary').value.trim(),
+    description:      document.getElementById('job-description').value.trim(),
+    contact_whatsapp: whatsapp,
+    contact_email:    document.getElementById('job-email').value.trim()
+  };
+
+  const btn = document.getElementById('jobSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Enviando...';
+  try {
+    const r = await fetch('/api/jobs/submit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const d = await r.json();
+    if (d.success) {
+      closeJobModal();
+      alert('✅ Vaga enviada com sucesso!\n\nNossa equipe irá analisar e publicar em breve. Candidatos entrarão em contato pelo WhatsApp informado. Obrigado!');
+      ['job-title','job-company','job-salary','job-description','job-whatsapp','job-email'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      vagasLoaded = false; // força recarregar ao reabrir
+    } else {
+      alert('❌ ' + (d.error || 'Erro ao enviar vaga. Tente novamente.'));
+    }
+  } catch(e) {
+    alert('❌ Erro de conexão. Verifique sua internet e tente novamente.');
+  }
+  btn.disabled = false;
+  btn.textContent = '📤 Enviar Vaga para Análise';
 }
 </script>
 </body>

@@ -177,6 +177,7 @@
     <button class="nav-btn" onclick="showTab('transmissions')">📡 Transmissões</button>
     <button class="nav-btn" onclick="showTab('youtube')">▶️ YouTube</button>
     <button class="nav-btn" onclick="showTab('classifieds')">📢 Anúncios</button>
+    <button class="nav-btn" onclick="showTab('jobs')">💼 Vagas</button>
     <a href="/" target="_blank" class="nav-btn" style="text-decoration:none">🌐 Ver Site</a>
   </nav>
   <a href="/logout" class="logout-btn">🚪 Sair</a>
@@ -201,6 +202,7 @@
     <button class="tab-btn" onclick="showTab('transmissions')">📡 Transmissões</button>
     <button class="tab-btn" onclick="showTab('youtube')">▶️ YouTube</button>
     <button class="tab-btn" onclick="showTab('classifieds')">📢 Anúncios</button>
+    <button class="tab-btn" onclick="showTab('jobs')">💼 Vagas</button>
   </div>
 
   <!-- TAB: NOTÍCIAS -->
@@ -727,6 +729,72 @@
 
   </div>
 
+  <!-- TAB: VAGAS -->
+  <div id="tab-jobs" class="tab-content">
+
+    <!-- Contadores -->
+    <div class="stats-grid" style="margin-bottom:24px">
+      <div class="stat-card orange">
+        <div class="num" id="job-stat-pending">—</div>
+        <div class="lbl">⏳ Pendentes</div>
+      </div>
+      <div class="stat-card green">
+        <div class="num" id="job-stat-approved">—</div>
+        <div class="lbl">✅ Ativas</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="job-stat-rejected" style="color:var(--text2)">—</div>
+        <div class="lbl">❌ Rejeitadas</div>
+      </div>
+    </div>
+
+    <!-- Fila de Pendentes -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3>⏳ Vagas Pendentes</h3>
+      <button class="btn btn-blue btn-sm" onclick="loadJobsAdmin()">🔄 Atualizar</button>
+    </div>
+    <div id="jobPendingList">
+      <div style="color:var(--text2);padding:20px 0">Carregando...</div>
+    </div>
+
+    <!-- Aprovadas -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:32px 0 16px">
+      <h3>✅ Vagas Ativas</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="channels-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Cargo / Empresa</th>
+            <th>Área / Tipo</th>
+            <th>Cidade</th>
+            <th>Contato</th>
+            <th>Expira</th>
+            <th>Views</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="jobApprovedBody">
+          <tr><td colspan="8" style="color:var(--text2);padding:20px 12px">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Rejeitadas -->
+    <div style="margin-top:32px;margin-bottom:16px">
+      <h3>❌ Vagas Rejeitadas</h3>
+    </div>
+    <div id="jobRejectedList" style="color:var(--text2);font-size:14px">
+      Carregando...
+    </div>
+
+    <p style="margin-top:20px;color:var(--text2);font-size:13px">
+      💡 Vagas aprovadas ficam ativas por 30 dias. Candidatos entram em contato direto pelo WhatsApp informado pela empresa.
+    </p>
+
+  </div>
+
 <!-- MODAL: Upload imagem para notícia -->
 <div id="imageModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:440px;width:90%">
@@ -752,7 +820,7 @@
 const TAB_KEYWORDS = {
   news: 'notícia', publish: 'publicar', media: 'mídia',
   ads: 'propagan', transmissions: 'transmiss', youtube: 'youtube',
-  classifieds: 'anúnci'
+  classifieds: 'anúnci', jobs: 'vagas'
 };
 function showTab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -773,6 +841,9 @@ function showTab(name) {
   }
   if (name === 'classifieds') {
     loadClassifiedsAdmin();
+  }
+  if (name === 'jobs') {
+    loadJobsAdmin();
   }
 }
 
@@ -1464,6 +1535,161 @@ async function toggleClFeatured(id) {
   if (d.success) {
     toast(d.featured ? '⭐ Anúncio destacado!' : '☆ Destaque removido.', 'success');
     loadClassifiedsAdmin();
+  }
+}
+
+// ════════════════════════════════════════════
+//  VAGAS DE EMPREGO — ADMIN
+// ════════════════════════════════════════════
+const JOB_CAT_ADM = {
+  industria:'🏭 Indústria', comercio:'🛒 Comércio', servicos:'🔧 Serviços',
+  saude:'🏥 Saúde', construcao:'🏗️ Construção', transporte:'🚛 Transporte',
+  admin:'👔 Administrativo', alimentacao:'🍕 Alimentação',
+  tecnologia:'💻 Tecnologia', educacao:'📚 Educação', outros:'📦 Outros'
+};
+const JOB_TYPE_ADM = {
+  clt:'CLT', pj:'PJ', temporario:'Temporário',
+  estagio:'Estágio', meio_periodo:'Meio Período', freelance:'Freelance'
+};
+
+async function loadJobsAdmin() {
+  const [pendEl, approvedBody, rejectedEl] = [
+    document.getElementById('jobPendingList'),
+    document.getElementById('jobApprovedBody'),
+    document.getElementById('jobRejectedList')
+  ];
+  pendEl.innerHTML     = '<div style="color:var(--text2);padding:20px 0">Carregando...</div>';
+  approvedBody.innerHTML = '<tr><td colspan="8" style="color:var(--text2);padding:16px">Carregando...</td></tr>';
+  rejectedEl.innerHTML = '<div style="color:var(--text2)">Carregando...</div>';
+
+  try {
+    const data = await fetch('/admin/jobs').then(r => r.json());
+    const { pending = [], approved = [], rejected = [] } = data;
+
+    document.getElementById('job-stat-pending').textContent  = pending.length;
+    document.getElementById('job-stat-approved').textContent = approved.length;
+    document.getElementById('job-stat-rejected').textContent = rejected.length;
+
+    // Pendentes
+    pendEl.innerHTML = pending.length
+      ? pending.map(j => renderJobCard(j)).join('')
+      : '<div style="color:var(--text2);padding:20px 0">✅ Nenhuma vaga pendente.</div>';
+
+    // Aprovadas
+    approvedBody.innerHTML = approved.length
+      ? approved.map(j => {
+          const catLabel  = JOB_CAT_ADM[j.category]  || j.category  || '—';
+          const typeLabel = JOB_TYPE_ADM[j.job_type]  || j.job_type  || '—';
+          const expDate   = j.expires_at ? new Date(j.expires_at).toLocaleDateString('pt-BR') : '—';
+          const waNum     = (j.contact_whatsapp || '').replace(/\D/g,'');
+          return `<tr>
+            <td>${j.id}</td>
+            <td>
+              <strong>${escAdm(j.title)}</strong><br>
+              <span style="font-size:12px;color:var(--text2)">${escAdm(j.company)}</span>
+              ${j.featured ? ' <span style="color:gold">⭐</span>' : ''}
+            </td>
+            <td style="font-size:12px">${catLabel}<br><span style="color:var(--text2)">${typeLabel}</span></td>
+            <td style="font-size:12px">${escAdm(j.city || '—')}</td>
+            <td style="font-size:12px">
+              ${waNum ? `<a href="https://wa.me/55${waNum}" target="_blank" style="color:var(--green)">📱 WhatsApp</a>` : '—'}
+              ${j.contact_email ? `<br><span style="color:var(--text2)">${escAdm(j.contact_email)}</span>` : ''}
+            </td>
+            <td style="font-size:12px;color:${new Date(j.expires_at) < new Date() ? 'var(--accent)' : 'var(--text2)'}">${expDate}</td>
+            <td style="font-size:13px">${j.views || 0}</td>
+            <td>
+              <button class="btn btn-ghost btn-sm" onclick="toggleJobFeatured(${j.id})">${j.featured ? '☆ Remover' : '⭐ Destacar'}</button>
+              <button class="btn btn-sm" style="background:rgba(233,69,96,.15);color:var(--accent);border:1px solid rgba(233,69,96,.3)" onclick="deleteJob(${j.id})">🗑️</button>
+            </td>
+          </tr>`;
+        }).join('')
+      : '<tr><td colspan="8" style="color:var(--text2);padding:20px 12px">Nenhuma vaga ativa.</td></tr>';
+
+    // Rejeitadas
+    rejectedEl.innerHTML = rejected.length
+      ? rejected.map(j => `<div style="padding:10px 14px;background:var(--surface);border-radius:10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <strong>${escAdm(j.title)}</strong> — ${escAdm(j.company)}
+            <span style="font-size:12px;color:var(--text2);margin-left:8px">${escAdm(j.city || '')}</span>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-green btn-sm" onclick="approveJob(${j.id})">✅ Aprovar</button>
+            <button class="btn btn-sm" style="background:rgba(233,69,96,.15);color:var(--accent);border:1px solid rgba(233,69,96,.3)" onclick="deleteJob(${j.id})">🗑️ Apagar</button>
+          </div>
+        </div>`).join('')
+      : '<div style="color:var(--text2)">Nenhuma vaga rejeitada.</div>';
+
+  } catch(e) {
+    pendEl.innerHTML = '<div style="color:var(--accent);padding:20px 0">⚠️ Erro ao carregar vagas.</div>';
+  }
+}
+
+function renderJobCard(j) {
+  const catLabel  = JOB_CAT_ADM[j.category]  || j.category  || '';
+  const typeLabel = JOB_TYPE_ADM[j.job_type]  || j.job_type  || '';
+  const waNum     = (j.contact_whatsapp || '').replace(/\D/g,'');
+  const waLink    = waNum ? `https://wa.me/55${waNum}` : '';
+  const dateStr   = j.created_at ? new Date(j.created_at).toLocaleDateString('pt-BR') : '';
+  return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
+      <div>
+        <div style="font-weight:700;font-size:16px;margin-bottom:4px">💼 ${escAdm(j.title)}</div>
+        <div style="font-size:13px;color:var(--text2)">🏢 ${escAdm(j.company)} &nbsp;|&nbsp; 📍 ${escAdm(j.city||'—')} &nbsp;|&nbsp; 📅 ${dateStr}</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);white-space:nowrap">#${j.id}</div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      <span style="background:rgba(255,255,255,.07);border-radius:6px;padding:3px 8px;font-size:12px">${catLabel}</span>
+      <span style="background:rgba(245,166,35,.12);color:var(--accent2);border-radius:6px;padding:3px 8px;font-size:12px">${typeLabel}</span>
+      ${j.salary ? `<span style="background:rgba(39,174,96,.1);color:var(--green);border-radius:6px;padding:3px 8px;font-size:12px">💰 ${escAdm(j.salary)}</span>` : ''}
+    </div>
+    ${j.description ? `<div style="font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.5">${escAdm(j.description)}</div>` : ''}
+    <div style="font-size:13px;margin-bottom:14px">
+      ${waLink ? `📱 <a href="${waLink}" target="_blank" style="color:var(--green)">${escAdm(j.contact_whatsapp)}</a>` : ''}
+      ${j.contact_email ? ` &nbsp;·&nbsp; 📧 ${escAdm(j.contact_email)}` : ''}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="approveJob(${j.id})">✅ Aprovar e Publicar</button>
+      <button class="btn btn-ghost" onclick="rejectJob(${j.id})">❌ Rejeitar</button>
+      <button class="btn btn-sm" style="background:rgba(233,69,96,.15);color:var(--accent);border:1px solid rgba(233,69,96,.3)" onclick="deleteJob(${j.id})">🗑️ Apagar</button>
+    </div>
+  </div>`;
+}
+
+function escAdm(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function approveJob(id) {
+  const r = await fetch(`/admin/jobs/${id}/approve`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) { toast('✅ Vaga aprovada e publicada!'); loadJobsAdmin(); }
+  else toast('❌ ' + (d.error||'Erro'), 'error');
+}
+
+async function rejectJob(id) {
+  if (!confirm('Rejeitar esta vaga?')) return;
+  const r = await fetch(`/admin/jobs/${id}/reject`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) { toast('❌ Vaga rejeitada.', 'error'); loadJobsAdmin(); }
+  else toast('❌ ' + (d.error||'Erro'), 'error');
+}
+
+async function deleteJob(id) {
+  if (!confirm('Apagar esta vaga permanentemente?')) return;
+  const r = await fetch(`/admin/jobs/${id}/delete`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) { toast('🗑️ Vaga apagada.'); loadJobsAdmin(); }
+  else toast('❌ ' + (d.error||'Erro'), 'error');
+}
+
+async function toggleJobFeatured(id) {
+  const r = await fetch(`/admin/jobs/${id}/toggle_featured`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) {
+    toast(d.featured ? '⭐ Vaga em destaque!' : '☆ Destaque removido.', 'success');
+    loadJobsAdmin();
   }
 }
 </script>
