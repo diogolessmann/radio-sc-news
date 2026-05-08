@@ -1122,6 +1122,8 @@ CURATED_YT_CHANNELS = [
     {'name': 'Record News',         'channel_id': 'UCuiLR4p6wQ3xLEm15pEn1Xw', 'category': 'noticias', 'sort_order': 11},
     {'name': 'Brasil Paralelo',     'channel_id': 'UCKDjjeeBmdaiicey2nImISw',  'category': 'noticias', 'sort_order': 12},
     {'name': 'Portal R7',           'channel_id': 'UCIwRd7CNbYcTUp-VCtMqkDw', 'category': 'noticias', 'sort_order': 13},
+    # Regional Norte de SC
+    {'name': 'Jornal Razão',        'channel_id': 'UCLS4wwx81rvrCCVCyr52GCQ', 'category': 'noticias', 'sort_order': 14},
 ]
 
 _yt_videos_cache = {'data': None, 'ts': 0}
@@ -1176,6 +1178,7 @@ def seed_youtube_channels():
             ('Investidor Sardinha', 'UCM3vJxmuJJkk1r0yzFI9eZg', 'economia', 3),
             ('Os Pingos nos Is',    'UCzjtGnD7qqeaHW3nvDVrjQA', 'politica', 8),
             ('CNN Brasil',          'UCvdwhh_fDyWccR42-rReZLw',  'politica', 10),
+            ('Jornal Razão',        'UCLS4wwx81rvrCCVCyr52GCQ', 'noticias', 14),
         ]
         for name, cid, cat, order in to_add:
             exists = conn.execute(
