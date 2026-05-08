@@ -1164,6 +1164,11 @@ def seed_youtube_channels():
                 conn.execute('DELETE FROM youtube_channels WHERE id=?', (row['id'],))
                 changes += 1
 
+        # Remove também por nome (cobre canais adicionados manualmente via admin)
+        to_remove_by_name = ['Flávio Bolsonaro', 'Flavio Bolsonaro']
+        for name in to_remove_by_name:
+            conn.execute('DELETE FROM youtube_channels WHERE LOWER(name)=LOWER(?)', (name,))
+
         # 2. Insere canais novos que não existem ainda
         to_add = [
             ('Primo Rico',          'UCT4nDeU5pv1XIGySbSK-GgA', 'economia', 1),

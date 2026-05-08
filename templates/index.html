@@ -2028,9 +2028,19 @@
       <h3>📢 Publicar Anúncio</h3>
       <button class="cl-modal-close" onclick="closeClModal()">✕</button>
     </div>
-    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">
-      Gratuito · Aparece após aprovação · Válido por 30 dias
-    </p>
+
+    <!-- Aviso de moderação — bem visível -->
+    <div style="background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.4);border-radius:10px;padding:12px 16px;margin-bottom:18px;display:flex;gap:12px;align-items:flex-start">
+      <span style="font-size:20px;flex-shrink:0">⏳</span>
+      <div>
+        <div style="font-weight:700;font-size:13px;color:var(--accent2);margin-bottom:3px">Seu anúncio passará por análise</div>
+        <div style="font-size:12.5px;color:var(--text2);line-height:1.5">
+          Após enviar, nossa equipe avalia o conteúdo antes de publicar.
+          Anúncios aprovados ficam no ar por <strong style="color:var(--text)">30 dias</strong>, completamente <strong style="color:var(--text)">gratuito</strong>.
+          Anúncios com conteúdo inadequado, falso ou enganoso serão recusados.
+        </div>
+      </div>
+    </div>
 
     <div class="cl-form-row">
       <div class="cl-form-group">
@@ -2100,9 +2110,10 @@
     <div class="cl-terms">
       <input type="checkbox" id="cl-terms">
       <label for="cl-terms">
-        Autorizo a exibição do meu <strong>contato e anúncio</strong> no site Rádio SC News.
-        Declaro que as informações são verdadeiras e o item/serviço está disponível.
-        Estou ciente que o anúncio será avaliado antes de ser publicado.
+        Li e aceito: meu anúncio será <strong>analisado pela equipe</strong> do Rádio SC News
+        antes de aparecer no site — podendo ser aprovado ou recusado.
+        Declaro que as informações são <strong>verdadeiras</strong>, o item/serviço está disponível
+        e autorizo a exibição do meu contato publicamente.
       </label>
     </div>
 
