@@ -2512,20 +2512,25 @@ let transmissionsVisible = false;
 function toggleTransmissoes() {
   const btn = document.getElementById('btnTransmissoes');
   const section = document.getElementById('transmissionsSection');
-  const newsContainer = document.getElementById('newsContainer') || document.querySelector('.news-feed, #news-feed, main');
+  const feed = document.getElementById('feed');
+  const searchBar = document.querySelector('.search-bar');
+  const loadMore = document.getElementById('loadMoreBtn');
 
   transmissionsVisible = !transmissionsVisible;
 
   if (transmissionsVisible) {
     btn.classList.add('active');
     section.style.display = 'block';
-    // Esconde o feed de notícias
+    if (feed) feed.style.display = 'none';
+    if (searchBar) searchBar.style.display = 'none';
+    if (loadMore) loadMore.style.display = 'none';
     document.querySelectorAll('.cat-btn:not(#btnTransmissoes)').forEach(b => b.classList.remove('active'));
     if (!transmissionsLoaded) loadTransmissions();
   } else {
     btn.classList.remove('active');
     section.style.display = 'none';
-    // Volta para "Tudo"
+    if (feed) feed.style.display = 'block';
+    if (searchBar) searchBar.style.display = 'block';
     setCat('');
   }
 }
