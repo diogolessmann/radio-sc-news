@@ -96,29 +96,44 @@ def pick_voice(news_id):
     return VOICE_POOL[idx]
 
 
-def clean_text_for_tts(text):
+MAX_TITLE_CHARS   = 200   # título limpo
+MAX_SUMMARY_CHARS = 380   # resumo — principal economia de créditos
+
+def clean_text_for_tts(text, max_chars=None):
     text = re.sub(r'https?://\S+', '', text)
     text = re.sub(r'<[^>]+>', '', text)
     text = re.sub(r'[#@*_\[\]{}|\\^~`]', '', text)
     text = re.sub(r'\s+', ' ', text).strip()
-    if len(text) > 3000:
-        text = text[:3000] + '...'
+    limit = max_chars or MAX_SUMMARY_CHARS * 8   # limite global seguro
+    if len(text) > limit:
+        # corta na última frase completa dentro do limite
+        truncated = text[:limit]
+        last_period = max(truncated.rfind('.'), truncated.rfind('!'), truncated.rfind('?'))
+        text = truncated[:last_period + 1] if last_period > limit // 2 else truncated
     return text
 
 
 def build_news_script(title, summary, source=None, city=None):
+    """Monta script curto para economizar créditos ElevenLabs.
+    Script médio: ~250-450 caracteres (vs 1000-3000 antes).
+    """
     parts = []
     if city and city not in ('Santa Catarina', 'geral'):
         parts.append(f"Notícia de {city}.")
     else:
         parts.append("Notícia de Santa Catarina.")
-    parts.append(clean_text_for_tts(title) + '.')
+
+    clean_title = clean_text_for_tts(title, MAX_TITLE_CHARS)
+    parts.append(clean_title + '.')
+
     if summary:
-        clean_summary = clean_text_for_tts(summary)
-        if clean_summary and clean_summary.lower() != clean_text_for_tts(title).lower():
+        clean_summary = clean_text_for_tts(summary, MAX_SUMMARY_CHARS)
+        if clean_summary and clean_summary.lower() != clean_title.lower():
             parts.append(clean_summary)
+
     if source:
         parts.append(f"Fonte: {source}.")
+
     return ' '.join(parts)
 
 
