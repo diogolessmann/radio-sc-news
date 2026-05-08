@@ -1082,19 +1082,22 @@ def background_startup():
 # ── YouTube Channels ──────────────────────────────────────────
 # Canais pré-configurados semeados na primeira inicialização
 CURATED_YT_CHANNELS = [
-    # Economia
-    {'name': 'Ancapsu',               'channel_id': 'UCLTWPE7XrHEe8m_xAmNbQ-Q', 'category': 'economia', 'sort_order': 1},
-    {'name': 'Empiricus',             'channel_id': 'UCu79AeVqrq42vmSIp1OHyfA',  'category': 'economia', 'sort_order': 2},
-    {'name': 'Instituto Mises Brasil','channel_id': 'UCb9T91q727Ld4c3lqq3w6Xw',  'category': 'economia', 'sort_order': 3},
-    # Política
-    {'name': 'Nikolas Ferreira',      'channel_id': 'UCxI9vN6UbxmBt8VIvUKtJaA',  'category': 'politica', 'sort_order': 4},
-    {'name': 'Eduardo Bolsonaro',     'channel_id': 'UCkR6xPOHhpjq3wnFchVI4sg',  'category': 'politica', 'sort_order': 5},
-    {'name': 'Jovem Pan News',        'channel_id': 'UCP391YRAjSOdM_bwievgaZA',  'category': 'politica', 'sort_order': 6},
-    {'name': 'Romeu Zema',            'channel_id': 'UCBY16QLJLEUEjwzc-V09tKg',  'category': 'politica', 'sort_order': 7},
+    # Economia — os mais vistos do Brasil
+    {'name': 'Primo Rico',          'channel_id': 'UCT4nDeU5pv1XIGySbSK-GgA', 'category': 'economia', 'sort_order': 1},
+    {'name': 'Bruno Perini',        'channel_id': 'UCCE-jo1GvBJqyj1b287h7jA', 'category': 'economia', 'sort_order': 2},
+    {'name': 'Investidor Sardinha', 'channel_id': 'UCM3vJxmuJJkk1r0yzFI9eZg', 'category': 'economia', 'sort_order': 3},
+    {'name': 'Empiricus',           'channel_id': 'UCu79AeVqrq42vmSIp1OHyfA', 'category': 'economia', 'sort_order': 4},
+    {'name': 'Ancapsu',             'channel_id': 'UCLTWPE7XrHEe8m_xAmNbQ-Q', 'category': 'economia', 'sort_order': 5},
+    # Política — direita + neutro, ano eleitoral 2026
+    {'name': 'Nikolas Ferreira',    'channel_id': 'UCxI9vN6UbxmBt8VIvUKtJaA', 'category': 'politica', 'sort_order': 6},
+    {'name': 'Romeu Zema',          'channel_id': 'UCBY16QLJLEUEjwzc-V09tKg', 'category': 'politica', 'sort_order': 7},
+    {'name': 'Os Pingos nos Is',    'channel_id': 'UCzjtGnD7qqeaHW3nvDVrjQA', 'category': 'politica', 'sort_order': 8},
+    {'name': 'Jovem Pan News',      'channel_id': 'UCP391YRAjSOdM_bwievgaZA', 'category': 'politica', 'sort_order': 9},
+    {'name': 'CNN Brasil',          'channel_id': 'UCvdwhh_fDyWccR42-rReZLw', 'category': 'politica', 'sort_order': 10},
     # Notícias
-    {'name': 'Record News',           'channel_id': 'UCuiLR4p6wQ3xLEm15pEn1Xw',  'category': 'noticias', 'sort_order': 7},
-    {'name': 'Brasil Paralelo',       'channel_id': 'UCKDjjeeBmdaiicey2nImISw',   'category': 'noticias', 'sort_order': 8},
-    {'name': 'Portal R7',             'channel_id': 'UCIwRd7CNbYcTUp-VCtMqkDw',  'category': 'noticias', 'sort_order': 9},
+    {'name': 'Record News',         'channel_id': 'UCuiLR4p6wQ3xLEm15pEn1Xw', 'category': 'noticias', 'sort_order': 11},
+    {'name': 'Brasil Paralelo',     'channel_id': 'UCKDjjeeBmdaiicey2nImISw',  'category': 'noticias', 'sort_order': 12},
+    {'name': 'Portal R7',           'channel_id': 'UCIwRd7CNbYcTUp-VCtMqkDw', 'category': 'noticias', 'sort_order': 13},
 ]
 
 _yt_videos_cache = {'data': None, 'ts': 0}
@@ -1119,30 +1122,55 @@ def seed_youtube_channels():
         conn.commit()
         logger.info(f"YouTube: {len(CURATED_YT_CHANNELS)} canais pré-configurados inseridos.")
     else:
-        # Migração 1: Paulo Kogos → Empiricus
-        kogos = conn.execute(
-            "SELECT id FROM youtube_channels WHERE channel_id='UCmArkwjUI8VRHudOjEsVCUw'"
-        ).fetchone()
-        if kogos:
+        # ── Migrações cumulativas ──────────────────────────────────────────
+        changes = 0
+
+        # 1. Remove canais problemáticos/substituídos
+        to_remove = [
+            'UCmArkwjUI8VRHudOjEsVCUw',  # Paulo Kogos → Empiricus
+            'UCkR6xPOHhpjq3wnFchVI4sg',  # Eduardo Bolsonaro (RSS quebrado)
+            'UCb9T91q727Ld4c3lqq3w6Xw',  # Instituto Mises Brasil (83K subs)
+            'UC8hGUtfEgvvnp6IaHSAg1OQ',  # Jair Bolsonaro (inativo desde jul/2025)
+        ]
+        for cid in to_remove:
+            row = conn.execute(
+                'SELECT id FROM youtube_channels WHERE channel_id=?', (cid,)
+            ).fetchone()
+            if row:
+                conn.execute('DELETE FROM youtube_channels WHERE id=?', (row['id'],))
+                changes += 1
+
+        # 2. Insere canais novos que não existem ainda
+        to_add = [
+            ('Primo Rico',          'UCT4nDeU5pv1XIGySbSK-GgA', 'economia', 1),
+            ('Bruno Perini',        'UCCE-jo1GvBJqyj1b287h7jA', 'economia', 2),
+            ('Investidor Sardinha', 'UCM3vJxmuJJkk1r0yzFI9eZg', 'economia', 3),
+            ('Os Pingos nos Is',    'UCzjtGnD7qqeaHW3nvDVrjQA', 'politica', 8),
+            ('CNN Brasil',          'UCvdwhh_fDyWccR42-rReZLw',  'politica', 10),
+        ]
+        for name, cid, cat, order in to_add:
+            exists = conn.execute(
+                'SELECT id FROM youtube_channels WHERE channel_id=?', (cid,)
+            ).fetchone()
+            if not exists:
+                conn.execute('''
+                    INSERT OR IGNORE INTO youtube_channels
+                    (name, channel_id, category, active, sort_order, created_at)
+                    VALUES (?, ?, ?, 1, ?, ?)
+                ''', (name, cid, cat, order, datetime.now().isoformat()))
+                changes += 1
+
+        # 3. Garante sort_orders corretos nos canais existentes
+        order_map = {ch['channel_id']: ch['sort_order'] for ch in CURATED_YT_CHANNELS}
+        for cid, order in order_map.items():
             conn.execute(
-                "UPDATE youtube_channels SET name='Empiricus', channel_id='UCu79AeVqrq42vmSIp1OHyfA' WHERE id=?",
-                (kogos['id'],)
+                'UPDATE youtube_channels SET sort_order=? WHERE channel_id=?',
+                (order, cid)
             )
+
+        if changes:
             conn.commit()
-            logger.info("YouTube: Paulo Kogos → Empiricus (migração aplicada).")
-        # Migração 2: adiciona Romeu Zema se ainda não existe
-        zema = conn.execute(
-            "SELECT id FROM youtube_channels WHERE channel_id='UCBY16QLJLEUEjwzc-V09tKg'"
-        ).fetchone()
-        if not zema:
-            conn.execute('''
-                INSERT OR IGNORE INTO youtube_channels
-                (name, channel_id, category, active, sort_order, created_at)
-                VALUES (?, ?, ?, 1, 7, ?)
-            ''', ('Romeu Zema', 'UCBY16QLJLEUEjwzc-V09tKg', 'politica',
-                  datetime.now().isoformat()))
-            conn.commit()
-            logger.info("YouTube: Romeu Zema adicionado (migração).")
+            logger.info(f"YouTube: {changes} mudança(s) aplicada(s) na migração.")
     conn.close()
 
 
