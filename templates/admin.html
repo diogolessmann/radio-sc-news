@@ -176,6 +176,7 @@
     <button class="nav-btn" onclick="showTab('ads')">📢 Propagandas</button>
     <button class="nav-btn" onclick="showTab('transmissions')">📡 Transmissões</button>
     <button class="nav-btn" onclick="showTab('youtube')">▶️ YouTube</button>
+    <button class="nav-btn" onclick="showTab('classifieds')">📢 Anúncios</button>
     <a href="/" target="_blank" class="nav-btn" style="text-decoration:none">🌐 Ver Site</a>
   </nav>
   <a href="/logout" class="logout-btn">🚪 Sair</a>
@@ -199,6 +200,7 @@
     <button class="tab-btn" onclick="showTab('ads')">📢 Propagandas</button>
     <button class="tab-btn" onclick="showTab('transmissions')">📡 Transmissões</button>
     <button class="tab-btn" onclick="showTab('youtube')">▶️ YouTube</button>
+    <button class="tab-btn" onclick="showTab('classifieds')">📢 Anúncios</button>
   </div>
 
   <!-- TAB: NOTÍCIAS -->
@@ -660,6 +662,71 @@
 
 </div>
 
+  <!-- TAB: ANÚNCIOS / CLASSIFICADOS -->
+  <div id="tab-classifieds" class="tab-content">
+
+    <!-- Contadores -->
+    <div class="stats-grid" style="margin-bottom:24px">
+      <div class="stat-card orange">
+        <div class="num" id="cl-stat-pending">—</div>
+        <div class="lbl">⏳ Pendentes</div>
+      </div>
+      <div class="stat-card green">
+        <div class="num" id="cl-stat-approved">—</div>
+        <div class="lbl">✅ Aprovados</div>
+      </div>
+      <div class="stat-card">
+        <div class="num" id="cl-stat-rejected" style="color:var(--text2)">—</div>
+        <div class="lbl">❌ Rejeitados</div>
+      </div>
+    </div>
+
+    <!-- Fila de Pendentes -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <h3>⏳ Anúncios Pendentes</h3>
+      <button class="btn btn-blue btn-sm" onclick="loadClassifiedsAdmin()">🔄 Atualizar</button>
+    </div>
+    <div id="clPendingList">
+      <div style="color:var(--text2);padding:20px 0">Carregando...</div>
+    </div>
+
+    <!-- Aprovados -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:32px 0 16px">
+      <h3>✅ Anúncios Aprovados</h3>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="channels-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Título</th>
+            <th>Categoria / Cidade</th>
+            <th>Contato</th>
+            <th>Publicado</th>
+            <th>Views</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="clApprovedBody">
+          <tr><td colspan="7" style="color:var(--text2);padding:20px 12px">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Rejeitados -->
+    <div style="margin-top:32px;margin-bottom:16px">
+      <h3>❌ Anúncios Rejeitados</h3>
+    </div>
+    <div id="clRejectedList" style="color:var(--text2);font-size:14px">
+      Carregando...
+    </div>
+
+    <p style="margin-top:20px;color:var(--text2);font-size:13px">
+      💡 Anúncios aprovados ficam visíveis por 30 dias. Anúncios em destaque aparecem primeiro na listagem pública.
+    </p>
+
+  </div>
+
 <!-- MODAL: Upload imagem para notícia -->
 <div id="imageModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border-radius:var(--radius);padding:28px;max-width:440px;width:90%">
@@ -684,7 +751,8 @@
 // ── TABS ──────────────────────────────────────
 const TAB_KEYWORDS = {
   news: 'notícia', publish: 'publicar', media: 'mídia',
-  ads: 'propagan', transmissions: 'transmiss', youtube: 'youtube'
+  ads: 'propagan', transmissions: 'transmiss', youtube: 'youtube',
+  classifieds: 'anúnci'
 };
 function showTab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -702,6 +770,9 @@ function showTab(name) {
   }
   if (name === 'youtube') {
     loadYtChannelsAdmin();
+  }
+  if (name === 'classifieds') {
+    loadClassifiedsAdmin();
   }
 }
 
@@ -1229,6 +1300,171 @@ async function refreshYtCache() {
     toast('❌ Erro ao atualizar cache.', 'error');
   }
   btn.disabled = false; btn.textContent = '🔄 Atualizar Cache de Vídeos';
+}
+
+// ── CLASSIFICADOS / ANÚNCIOS ──────────────────────────────────────────────
+const CL_CAT_ADMIN = {
+  veiculos:'🚗 Veículos', imoveis:'🏠 Imóveis', moveis:'🛋️ Móveis',
+  empregos:'💼 Empregos', servicos:'🔧 Serviços', pets:'🐾 Pets', outros:'📦 Outros'
+};
+
+async function loadClassifiedsAdmin() {
+  try {
+    const data = await fetch('/admin/classifieds').then(r => r.json());
+    const all      = data.classifieds || [];
+    const pending  = all.filter(c => c.status === 'pending');
+    const approved = all.filter(c => c.status === 'approved');
+    const rejected = all.filter(c => c.status === 'rejected');
+
+    // Contadores
+    const counts = data.counts || {};
+    document.getElementById('cl-stat-pending').textContent  = counts.pending  ?? pending.length;
+    document.getElementById('cl-stat-approved').textContent = counts.approved ?? approved.length;
+    document.getElementById('cl-stat-rejected').textContent = counts.rejected ?? rejected.length;
+
+    // ── Pendentes ──
+    const pendEl = document.getElementById('clPendingList');
+    if (!pending.length) {
+      pendEl.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;color:var(--green)">✅ Nenhum anúncio pendente — tudo em dia!</div>';
+    } else {
+      pendEl.innerHTML = pending.map(cl => renderClCard(cl)).join('');
+    }
+
+    // ── Aprovados ──
+    const appBody = document.getElementById('clApprovedBody');
+    if (!approved.length) {
+      appBody.innerHTML = '<tr><td colspan="7" style="color:var(--text2);padding:20px 12px">Nenhum anúncio aprovado ainda.</td></tr>';
+    } else {
+      appBody.innerHTML = approved.map(cl => {
+        const waNum = (cl.contact_whatsapp || '').replace(/\D/g,'');
+        const waFull = waNum ? (waNum.startsWith('55') ? waNum : '55'+waNum) : '';
+        return `<tr id="cl-row-${cl.id}">
+          <td style="color:var(--text2)">${cl.id}</td>
+          <td style="font-weight:600;max-width:200px">${(cl.title||'').substring(0,50)}${(cl.title||'').length>50?'…':''}</td>
+          <td>
+            <span class="badge badge-cat">${CL_CAT_ADMIN[cl.category]||cl.category}</span>
+            <span style="color:var(--text2);font-size:12px;display:block;margin-top:4px">📍 ${cl.city||'—'}</span>
+          </td>
+          <td style="font-size:13px">
+            <div>${cl.contact_name||'—'}</div>
+            ${waFull ? `<a href="https://wa.me/${waFull}?text=${encodeURIComponent('Rádio SC News: '+cl.title)}" target="_blank" style="color:var(--green);font-size:12px">💬 ${cl.contact_whatsapp}</a>` : ''}
+          </td>
+          <td style="color:var(--text2);font-size:12px">${fmtDate(cl.approved_at||cl.created_at)}</td>
+          <td style="color:var(--text2)">${cl.views||0}</td>
+          <td>
+            <div class="table-actions">
+              <button class="btn btn-ghost btn-sm" title="${cl.featured?'Remover destaque':'Destacar'}" onclick="toggleClFeatured(${cl.id})">${cl.featured?'⭐':'☆ Destacar'}</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteClassified(${cl.id})">🗑️</button>
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── Rejeitados ──
+    const rejEl = document.getElementById('clRejectedList');
+    if (!rejected.length) {
+      rejEl.innerHTML = '<div>Nenhum anúncio rejeitado.</div>';
+    } else {
+      rejEl.innerHTML = rejected.map(cl => `
+        <div id="cl-rej-${cl.id}" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap">
+          <span style="color:var(--text2);font-size:12px">#${cl.id}</span>
+          <span style="flex:1;font-weight:600;font-size:14px;min-width:120px">${(cl.title||'').substring(0,60)}${(cl.title||'').length>60?'…':''}</span>
+          <span class="badge badge-type">${cl.city||'—'}</span>
+          <button class="btn btn-green btn-sm" onclick="approveClassified(${cl.id})">✅ Aprovar</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteClassified(${cl.id})">🗑️</button>
+        </div>`).join('');
+    }
+  } catch(e) {
+    toast('❌ Erro ao carregar anúncios.', 'error');
+  }
+}
+
+function renderClCard(cl) {
+  const cat      = CL_CAT_ADMIN[cl.category] || cl.category || '📦';
+  const catEmoji = cat.split(' ')[0];
+  const priceStr = cl.price > 0
+    ? `R$ ${Number(cl.price).toLocaleString('pt-BR')}${cl.price_negotiable?' (neg.)':''}`
+    : (cl.price_negotiable ? 'A combinar' : '—');
+  const waNum  = (cl.contact_whatsapp||'').replace(/\D/g,'');
+  const waFull = waNum ? (waNum.startsWith('55') ? waNum : '55'+waNum) : '';
+  const waHref = waFull ? `https://wa.me/${waFull}?text=${encodeURIComponent('Rádio SC News: '+cl.title)}` : '#';
+  const photoHtml = cl.photo
+    ? `<img src="/uploads/${cl.photo}" style="width:80px;height:60px;object-fit:cover;border-radius:8px;flex-shrink:0" alt="">`
+    : `<div style="width:80px;height:60px;background:var(--surface2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">${catEmoji}</div>`;
+
+  return `<div id="cl-card-${cl.id}" style="background:var(--surface);border:1px solid rgba(245,166,35,.25);border-radius:var(--radius);padding:16px;margin-bottom:12px">
+    <div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+      ${photoHtml}
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+          <span class="badge badge-cat">${cat}</span>
+          ${cl.city ? `<span class="badge badge-city">${cl.city}</span>` : ''}
+          <span style="color:var(--text2);font-size:11px">#${cl.id} · ${fmtDate(cl.created_at)}</span>
+        </div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px">${(cl.title||'').substring(0,80)}</div>
+        ${cl.description ? `<div style="font-size:13px;color:var(--text2);margin-bottom:8px">${(cl.description||'').substring(0,150)}${(cl.description||'').length>150?'…':''}</div>` : ''}
+        <div style="font-size:13px;display:flex;gap:16px;flex-wrap:wrap">
+          <span>💰 ${priceStr}</span>
+          <span>👤 ${cl.contact_name||'—'}</span>
+          ${waFull ? `<a href="${waHref}" target="_blank" style="color:var(--green)">💬 ${cl.contact_whatsapp}</a>` : ''}
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="approveClassified(${cl.id})">✅ Aprovar e Publicar</button>
+      <button class="btn btn-danger" onclick="rejectClassified(${cl.id})">❌ Rejeitar</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteClassified(${cl.id})">🗑️ Excluir</button>
+    </div>
+  </div>`;
+}
+
+async function approveClassified(id) {
+  const r = await fetch(`/admin/classifieds/${id}/approve`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) {
+    toast('✅ Anúncio aprovado e publicado!', 'success');
+    loadClassifiedsAdmin();
+  } else {
+    toast('❌ ' + (d.error || 'Erro ao aprovar.'), 'error');
+  }
+}
+
+async function rejectClassified(id) {
+  if (!confirm('Rejeitar este anúncio? O anunciante não será notificado.')) return;
+  const r = await fetch(`/admin/classifieds/${id}/reject`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) {
+    toast('❌ Anúncio rejeitado.', 'success');
+    loadClassifiedsAdmin();
+  } else {
+    toast('❌ ' + (d.error || 'Erro ao rejeitar.'), 'error');
+  }
+}
+
+async function deleteClassified(id) {
+  if (!confirm('Excluir permanentemente este anúncio? A foto também será removida.')) return;
+  const r = await fetch(`/admin/classifieds/${id}/delete`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) {
+    ['cl-card-','cl-row-','cl-rej-'].forEach(prefix => {
+      const el = document.getElementById(prefix + id);
+      if (el) el.remove();
+    });
+    toast('🗑️ Anúncio excluído.', 'success');
+    loadClassifiedsAdmin();
+  } else {
+    toast('❌ ' + (d.error || 'Erro ao excluir.'), 'error');
+  }
+}
+
+async function toggleClFeatured(id) {
+  const r = await fetch(`/admin/classifieds/${id}/toggle_featured`, {method:'POST'});
+  const d = await r.json();
+  if (d.success) {
+    toast(d.featured ? '⭐ Anúncio destacado!' : '☆ Destaque removido.', 'success');
+    loadClassifiedsAdmin();
+  }
 }
 </script>
 </body>

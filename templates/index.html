@@ -12,6 +12,16 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Rádio SC News">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
+<!-- Service Worker (PWA) -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(r => console.log('[SW] Registrado em', r.scope))
+        .catch(e => console.warn('[SW] Falhou:', e));
+    });
+  }
+</script>
 <!-- Open Graph para WhatsApp/redes -->
 <meta property="og:title" content="📻 Rádio SC News">
 <meta property="og:description" content="Notícias em áudio do Norte de Santa Catarina">
@@ -1164,6 +1174,171 @@
   }
   .yt-modal-yt-link:hover { background: rgba(255,0,0,0.1); border-color: rgba(255,0,0,0.5); }
 
+  /* ══════════════════════════════════════
+     ANÚNCIOS / CLASSIFICADOS
+  ══════════════════════════════════════ */
+  .cat-btn[data-cat="anuncios"].active { background:#f39c12;border-color:#f39c12;color:#000; }
+  .cats-bar.theme-anuncios { border-color:#f39c12; }
+
+  .anuncios-section { padding-bottom:80px; }
+
+  /* Barra de filtros */
+  .anuncios-filter-bar {
+    display:flex; gap:8px; padding:12px 16px 6px;
+    overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none;
+  }
+  .anuncios-filter-bar::-webkit-scrollbar { display:none; }
+  .anuncios-filter-btn {
+    white-space:nowrap; background:var(--surface2);
+    border:1px solid var(--border); border-radius:20px;
+    padding:6px 14px; color:var(--text2); font-size:12px; font-weight:600;
+    cursor:pointer; transition:all .2s; flex-shrink:0;
+  }
+  .anuncios-filter-btn.active { background:#f39c12;border-color:#f39c12;color:#000; }
+  .anuncios-filter-btn:hover:not(.active) { border-color:rgba(255,255,255,.2);color:var(--text); }
+
+  /* Grid de cards */
+  .classifieds-grid {
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px; padding:10px 12px;
+    max-width:680px; margin:0 auto;
+  }
+  @media(min-width:540px){ .classifieds-grid{grid-template-columns:repeat(3,1fr);} }
+
+  .classified-card {
+    background:var(--surface2); border-radius:12px;
+    overflow:hidden; border:1px solid var(--border);
+    transition:transform .18s,box-shadow .18s; cursor:default;
+  }
+  .classified-card:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(0,0,0,.35); }
+
+  /* Foto */
+  .cl-photo {
+    width:100%; aspect-ratio:4/3; overflow:hidden;
+    background:var(--surface); display:flex;
+    align-items:center; justify-content:center; position:relative;
+  }
+  .cl-photo img { width:100%;height:100%;object-fit:cover;transition:transform .3s; }
+  .classified-card:hover .cl-photo img { transform:scale(1.06); }
+  .cl-photo-placeholder { font-size:40px; }
+  .cl-featured-badge {
+    position:absolute; top:6px; right:6px;
+    background:#f39c12; color:#000; font-size:9px;
+    font-weight:900; padding:2px 6px; border-radius:4px;
+    letter-spacing:.5px; text-transform:uppercase;
+  }
+
+  /* Corpo do card */
+  .cl-body { padding:9px; }
+  .cl-cat {
+    font-size:10px; color:var(--text2); font-weight:600;
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px;
+  }
+  .cl-title {
+    font-size:13px; font-weight:800; color:var(--text);
+    line-height:1.3; margin-bottom:5px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .cl-price {
+    font-size:15px; font-weight:900; color:#27ae60; margin-bottom:3px;
+  }
+  .cl-price.negotiable { font-size:12px; color:var(--text2); font-weight:600; }
+  .cl-meta {
+    font-size:11px; color:var(--text2); margin-bottom:8px; line-height:1.5;
+  }
+  .cl-wa-btn {
+    display:flex; align-items:center; justify-content:center; gap:5px;
+    background:#25d366; color:#fff; border:none; border-radius:8px;
+    padding:8px; font-size:12px; font-weight:800;
+    text-decoration:none; cursor:pointer; transition:background .2s;
+    width:100%;
+  }
+  .cl-wa-btn:hover { background:#20b857; }
+
+  /* Botão flutuante publicar */
+  .publish-classified-btn {
+    position:fixed; bottom:80px; right:16px;
+    background:linear-gradient(135deg,#f39c12,#e67e22);
+    color:#fff; border:none; border-radius:28px;
+    padding:13px 20px; font-size:14px; font-weight:800;
+    box-shadow:0 4px 20px rgba(243,156,18,.5);
+    cursor:pointer; z-index:50; display:none;
+    align-items:center; gap:8px;
+    transition:transform .2s,box-shadow .2s;
+  }
+  .publish-classified-btn:hover { transform:scale(1.05); box-shadow:0 6px 28px rgba(243,156,18,.6); }
+
+  /* Modal de publicar anúncio */
+  .cl-modal {
+    display:none; position:fixed; inset:0;
+    background:rgba(0,0,0,.88); z-index:998;
+    align-items:flex-end; justify-content:center;
+    padding:0;
+  }
+  .cl-modal.open { display:flex; }
+  .cl-modal-box {
+    background:var(--surface); border-radius:20px 20px 0 0;
+    width:100%; max-width:680px;
+    max-height:92vh; overflow-y:auto;
+    padding:24px 20px 40px; animation:slideUp .3s ease;
+  }
+  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  .cl-modal-header {
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:20px;
+  }
+  .cl-modal-header h3 { font-size:18px; font-weight:900; color:var(--text); }
+  .cl-modal-close {
+    background:rgba(255,255,255,.1); border:none; color:var(--text);
+    font-size:18px; cursor:pointer; padding:6px 12px; border-radius:8px;
+  }
+  .cl-form-group { margin-bottom:14px; }
+  .cl-form-group label {
+    display:block; font-size:12px; font-weight:700; color:var(--text2);
+    text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;
+  }
+  .cl-form-group input,
+  .cl-form-group textarea,
+  .cl-form-group select {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:11px 14px; color:var(--text);
+    font-size:14px; outline:none; font-family:inherit;
+    transition:border-color .2s;
+  }
+  .cl-form-group input:focus,
+  .cl-form-group textarea:focus,
+  .cl-form-group select:focus { border-color:rgba(243,156,18,.6); }
+  .cl-form-group textarea { min-height:90px; resize:vertical; }
+  .cl-form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .cl-terms {
+    background:rgba(243,156,18,.08); border:1px solid rgba(243,156,18,.2);
+    border-radius:12px; padding:14px; margin:16px 0;
+    display:flex; gap:12px; align-items:flex-start;
+  }
+  .cl-terms input[type=checkbox] {
+    width:18px;height:18px;flex-shrink:0;margin-top:2px;
+    accent-color:#f39c12; cursor:pointer;
+  }
+  .cl-terms label {
+    font-size:13px; color:var(--text2); line-height:1.5;
+    cursor:pointer;
+  }
+  .cl-terms label strong { color:var(--text); }
+  .cl-submit-btn {
+    width:100%; background:linear-gradient(135deg,#f39c12,#e67e22);
+    color:#fff; border:none; border-radius:12px;
+    padding:15px; font-size:15px; font-weight:800;
+    cursor:pointer; transition:opacity .2s;
+  }
+  .cl-submit-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .cl-photo-preview {
+    width:100%; max-height:180px; object-fit:cover;
+    border-radius:10px; margin-top:8px; display:none;
+  }
+  .anuncios-empty { text-align:center; padding:56px 16px; color:var(--text2); }
+  .anuncios-empty-icon { font-size:48px; margin-bottom:14px; }
+
   /* ── TV VIEW ── */
   .tv-view {
     max-width: 680px;
@@ -1721,6 +1896,7 @@
     <button class="cat-btn" data-cat="tv" onclick="setCat('tv')">📺 TV</button>
     <button class="cat-btn" id="btnTransmissoes" data-cat="transmissoes" onclick="toggleTransmissoes()">📡 Transmissões</button>
     <button class="cat-btn" id="btnYoutube" data-cat="youtube" onclick="toggleYoutube()">▶️ YouTube</button>
+    <button class="cat-btn" id="btnAnuncios" data-cat="anuncios" onclick="toggleAnuncios()">📢 Anúncios</button>
   </div>
 </div>
 
@@ -1795,6 +1971,144 @@
         ▶ Abrir no YouTube
       </a>
     </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     ANÚNCIOS / CLASSIFICADOS
+══════════════════════════════════════ -->
+<div class="anuncios-section" id="anunciosSection" style="display:none">
+
+  <!-- Filtro de categorias -->
+  <div class="anuncios-filter-bar" id="anunciosCatBar">
+    <button class="anuncios-filter-btn active" data-cat="" onclick="filterAnunciosCat('')">📋 Todos</button>
+    <button class="anuncios-filter-btn" data-cat="veiculos"  onclick="filterAnunciosCat('veiculos')">🚗 Veículos</button>
+    <button class="anuncios-filter-btn" data-cat="imoveis"   onclick="filterAnunciosCat('imoveis')">🏠 Imóveis</button>
+    <button class="anuncios-filter-btn" data-cat="moveis"    onclick="filterAnunciosCat('moveis')">🛋️ Móveis</button>
+    <button class="anuncios-filter-btn" data-cat="empregos"  onclick="filterAnunciosCat('empregos')">💼 Empregos</button>
+    <button class="anuncios-filter-btn" data-cat="servicos"  onclick="filterAnunciosCat('servicos')">🔧 Serviços</button>
+    <button class="anuncios-filter-btn" data-cat="pets"      onclick="filterAnunciosCat('pets')">🐾 Pets</button>
+    <button class="anuncios-filter-btn" data-cat="outros"    onclick="filterAnunciosCat('outros')">📦 Outros</button>
+  </div>
+
+  <!-- Filtro de cidade -->
+  <div style="padding:0 16px 8px">
+    <select id="anunciosCityFilter" onchange="filterAnunciosCity(this.value)"
+      style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+             padding:7px 14px;color:var(--text2);font-size:13px;outline:none;cursor:pointer">
+      <option value="">📍 Todas as cidades</option>
+      <option value="Schroeder">Schroeder</option>
+      <option value="Jaraguá do Sul">Jaraguá do Sul</option>
+      <option value="Guaramirim">Guaramirim</option>
+      <option value="Joinville">Joinville</option>
+      <option value="Corupá">Corupá</option>
+    </select>
+  </div>
+
+  <!-- Grid de classificados -->
+  <div id="anunciosLoading" style="text-align:center;padding:40px 0;display:none">
+    <div class="spinner" style="margin:0 auto 12px"></div>
+    <p style="color:var(--text2)">Carregando anúncios...</p>
+  </div>
+  <div class="classifieds-grid" id="classifiedsGrid"></div>
+
+  <button id="anunciosLoadMoreBtn" style="display:none;margin:0 auto 20px;max-width:300px"
+    class="load-more-btn" onclick="loadMoreAnuncios()">↓ Ver mais anúncios</button>
+</div>
+
+<!-- Botão flutuante: Publicar Anúncio -->
+<button class="publish-classified-btn" id="publishClassifiedBtn" onclick="openClModal()" style="display:none">
+  ✚ Publicar Anúncio
+</button>
+
+<!-- Modal: Formulário de anúncio -->
+<div class="cl-modal" id="clModal">
+  <div class="cl-modal-box">
+    <div class="cl-modal-header">
+      <h3>📢 Publicar Anúncio</h3>
+      <button class="cl-modal-close" onclick="closeClModal()">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:18px">
+      Gratuito · Aparece após aprovação · Válido por 30 dias
+    </p>
+
+    <div class="cl-form-row">
+      <div class="cl-form-group">
+        <label>Categoria *</label>
+        <select id="cl-category">
+          <option value="veiculos">🚗 Veículos</option>
+          <option value="imoveis">🏠 Imóveis</option>
+          <option value="moveis">🛋️ Móveis & Eletros</option>
+          <option value="empregos">💼 Empregos</option>
+          <option value="servicos">🔧 Serviços</option>
+          <option value="pets">🐾 Pets</option>
+          <option value="outros">📦 Outros</option>
+        </select>
+      </div>
+      <div class="cl-form-group">
+        <label>Cidade *</label>
+        <select id="cl-city">
+          <option value="Schroeder">Schroeder</option>
+          <option value="Jaraguá do Sul">Jaraguá do Sul</option>
+          <option value="Guaramirim">Guaramirim</option>
+          <option value="Joinville">Joinville</option>
+          <option value="Corupá">Corupá</option>
+          <option value="Outra cidade">Outra cidade</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="cl-form-group">
+      <label>Título do anúncio *</label>
+      <input id="cl-title" type="text" placeholder="Ex: Vendo Honda CG 160 2021 — 12.000 km">
+    </div>
+
+    <div class="cl-form-group">
+      <label>Descrição</label>
+      <textarea id="cl-description" placeholder="Detalhes do produto/serviço, estado de conservação, etc."></textarea>
+    </div>
+
+    <div class="cl-form-row">
+      <div class="cl-form-group">
+        <label>Preço (R$)</label>
+        <input id="cl-price" type="number" min="0" placeholder="0,00">
+      </div>
+      <div class="cl-form-group" style="display:flex;align-items:center;gap:8px;padding-top:24px">
+        <input type="checkbox" id="cl-negotiable" style="width:16px;height:16px;accent-color:#f39c12">
+        <label for="cl-negotiable" style="text-transform:none;font-size:13px;margin:0;color:var(--text2)">Negociável</label>
+      </div>
+    </div>
+
+    <div class="cl-form-group">
+      <label>Foto do anúncio (opcional)</label>
+      <input id="cl-photo" type="file" accept="image/*" onchange="previewClPhoto(this)"
+        style="padding:8px;cursor:pointer">
+      <img id="cl-photo-preview" class="cl-photo-preview" alt="Preview">
+    </div>
+
+    <div class="cl-form-row">
+      <div class="cl-form-group">
+        <label>Seu nome *</label>
+        <input id="cl-name" type="text" placeholder="Nome completo">
+      </div>
+      <div class="cl-form-group">
+        <label>WhatsApp (com DDD) *</label>
+        <input id="cl-whatsapp" type="tel" placeholder="(47) 99999-9999">
+      </div>
+    </div>
+
+    <div class="cl-terms">
+      <input type="checkbox" id="cl-terms">
+      <label for="cl-terms">
+        Autorizo a exibição do meu <strong>contato e anúncio</strong> no site Rádio SC News.
+        Declaro que as informações são verdadeiras e o item/serviço está disponível.
+        Estou ciente que o anúncio será avaliado antes de ser publicado.
+      </label>
+    </div>
+
+    <button class="cl-submit-btn" id="clSubmitBtn" onclick="submitClassified()">
+      📤 Enviar para análise
+    </button>
   </div>
 </div>
 
@@ -3014,6 +3328,223 @@ function closeYtModal() {
 document.getElementById('ytModal').addEventListener('click', function(e) {
   if (e.target === this) closeYtModal();
 });
+
+// ── ANÚNCIOS / CLASSIFICADOS ─────────────────────────────────────────────
+let anunciosVisible = false;
+let anunciosLoaded  = false;
+let anunciosCat  = '';
+let anunciosCity = '';
+let anunciosPage = 1;
+let anunciosHasMore = false;
+
+function toggleAnuncios() {
+  const btn       = document.getElementById('btnAnuncios');
+  const section   = document.getElementById('anunciosSection');
+  const feed      = document.getElementById('feed');
+  const searchBar = document.querySelector('.search-bar');
+  const loadMore  = document.getElementById('loadMoreBtn');
+  const floatBtn  = document.getElementById('publishClassifiedBtn');
+
+  anunciosVisible = !anunciosVisible;
+
+  if (anunciosVisible) {
+    btn.classList.add('active');
+    section.style.display = 'block';
+    floatBtn.style.display = 'flex';
+    if (feed)      feed.style.display = 'none';
+    if (searchBar) searchBar.style.display = 'none';
+    if (loadMore)  loadMore.style.display = 'none';
+    document.querySelectorAll('.cat-btn:not(#btnAnuncios)').forEach(b => b.classList.remove('active'));
+    // Fecha YouTube se aberto
+    const ytSec = document.getElementById('youtubeSection');
+    if (ytSec) ytSec.style.display = 'none';
+    youtubeVisible = false;
+    document.getElementById('btnYoutube')?.classList.remove('active');
+    // Fecha Transmissões se aberta
+    const txSection = document.getElementById('transmissionsSection');
+    if (txSection) txSection.style.display = 'none';
+    transmissionsVisible = false;
+    document.getElementById('btnTransmissoes')?.classList.remove('active');
+
+    if (!anunciosLoaded) loadAnuncios();
+  } else {
+    btn.classList.remove('active');
+    section.style.display = 'none';
+    floatBtn.style.display = 'none';
+    if (feed)      feed.style.display = 'block';
+    if (searchBar) searchBar.style.display = 'block';
+    setCat('');
+  }
+}
+
+async function loadAnuncios(reset = true) {
+  if (reset) {
+    anunciosPage = 1;
+    document.getElementById('classifiedsGrid').innerHTML = '';
+    document.getElementById('anunciosLoadMoreBtn').style.display = 'none';
+  }
+  document.getElementById('anunciosLoading').style.display = 'block';
+  try {
+    const params = new URLSearchParams({ page: anunciosPage, per_page: 12 });
+    if (anunciosCat)  params.append('category', anunciosCat);
+    if (anunciosCity) params.append('city', anunciosCity);
+    const data = await fetch('/api/classifieds?' + params).then(r => r.json());
+    anunciosLoaded  = true;
+    anunciosHasMore = !!data.has_more;
+    renderClassifieds(data.classifieds || [], reset);
+    document.getElementById('anunciosLoadMoreBtn').style.display = anunciosHasMore ? 'block' : 'none';
+  } catch(e) {
+    document.getElementById('classifiedsGrid').innerHTML =
+      '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">⚠️ Erro ao carregar anúncios.</div>';
+  } finally {
+    document.getElementById('anunciosLoading').style.display = 'none';
+  }
+}
+
+const CL_CAT_LABELS_PUB = {
+  veiculos:'🚗 Veículos', imoveis:'🏠 Imóveis', moveis:'🛋️ Móveis & Eletros',
+  empregos:'💼 Empregos', servicos:'🔧 Serviços', pets:'🐾 Pets', outros:'📦 Outros'
+};
+
+function renderClassifieds(list, reset = true) {
+  const grid = document.getElementById('classifiedsGrid');
+  if (!list || !list.length) {
+    if (reset) grid.innerHTML =
+      '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">📋 Nenhum anúncio encontrado nesta categoria.</div>';
+    return;
+  }
+  const html = list.map(cl => {
+    const catLabel = CL_CAT_LABELS_PUB[cl.category] || cl.category || '';
+    const priceHtml = cl.price > 0
+      ? `<div class="cl-price">R$ ${Number(cl.price).toLocaleString('pt-BR',{minimumFractionDigits:2})}${cl.price_negotiable ? ' <span style="font-size:11px;color:var(--text2)">· neg.</span>' : ''}</div>`
+      : (cl.price_negotiable ? '<div class="cl-price" style="font-size:14px;color:var(--text2)">A combinar</div>' : '');
+    const photoHtml = cl.photo
+      ? `<div class="cl-photo"><img src="/uploads/${escHtml(cl.photo)}" alt="${escHtml(cl.title)}" loading="lazy"></div>`
+      : `<div class="cl-photo cl-photo-placeholder">${catLabel.split(' ')[0]}</div>`;
+    const waNum  = (cl.contact_whatsapp || '').replace(/\D/g, '');
+    const waFull = waNum ? (waNum.startsWith('55') ? waNum : '55' + waNum) : '';
+    const waLink = waFull
+      ? `https://wa.me/${waFull}?text=${encodeURIComponent('Olá! Vi seu anúncio no Rádio SC News: ' + cl.title)}`
+      : '#';
+    const featBadge = cl.featured ? '<div class="cl-featured-badge">⭐ Destaque</div>' : '';
+    const dateStr   = cl.created_at ? new Date(cl.created_at).toLocaleDateString('pt-BR') : '';
+    return `<div class="classified-card" onclick="countClView(${cl.id})">
+      <div style="position:relative">
+        ${photoHtml}
+        ${featBadge}
+      </div>
+      <div class="cl-body">
+        <div class="cl-cat">${escHtml(catLabel)}</div>
+        <div class="cl-title">${escHtml(cl.title)}</div>
+        ${priceHtml}
+        <div class="cl-meta">
+          ${cl.city ? '📍 ' + escHtml(cl.city) : ''}${dateStr ? ' · ' + dateStr : ''}
+        </div>
+        ${waFull ? `<a class="cl-wa-btn" href="${waLink}" target="_blank" rel="noopener" onclick="event.stopPropagation()">
+          💬 Contato via WhatsApp
+        </a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  if (reset) {
+    grid.innerHTML = html;
+  } else {
+    grid.insertAdjacentHTML('beforeend', html);
+  }
+}
+
+async function countClView(id) {
+  try { await fetch(`/api/classifieds/${id}/view`, {method:'POST'}); } catch(e) {}
+}
+
+function filterAnunciosCat(cat) {
+  anunciosCat = cat;
+  document.querySelectorAll('.anuncios-filter-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.cat === cat));
+  loadAnuncios(true);
+}
+
+function filterAnunciosCity(city) {
+  anunciosCity = city;
+  loadAnuncios(true);
+}
+
+async function loadMoreAnuncios() {
+  anunciosPage++;
+  await loadAnuncios(false);
+}
+
+// ── MODAL DE PUBLICAR ANÚNCIO ──
+function openClModal() {
+  document.getElementById('clModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeClModal() {
+  document.getElementById('clModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('clModal').addEventListener('click', function(e) {
+  if (e.target === this) closeClModal();
+});
+
+function previewClPhoto(input) {
+  const preview = document.getElementById('cl-photo-preview');
+  if (input.files && input.files[0]) {
+    preview.src = URL.createObjectURL(input.files[0]);
+    preview.style.display = 'block';
+  }
+}
+
+async function submitClassified() {
+  const title    = document.getElementById('cl-title').value.trim();
+  const name     = document.getElementById('cl-name').value.trim();
+  const whatsapp = document.getElementById('cl-whatsapp').value.trim();
+  const terms    = document.getElementById('cl-terms').checked;
+
+  if (!title)    { alert('⚠️ Informe o título do anúncio.'); return; }
+  if (!name)     { alert('⚠️ Informe seu nome.'); return; }
+  if (!whatsapp) { alert('⚠️ Informe seu WhatsApp com DDD.'); return; }
+  if (!terms)    { alert('⚠️ Você precisa aceitar os termos para publicar.'); return; }
+
+  const fd = new FormData();
+  fd.append('title',            title);
+  fd.append('description',      document.getElementById('cl-description').value);
+  fd.append('category',         document.getElementById('cl-category').value);
+  fd.append('city',             document.getElementById('cl-city').value);
+  fd.append('price',            document.getElementById('cl-price').value || '0');
+  fd.append('price_negotiable', document.getElementById('cl-negotiable').checked ? '1' : '0');
+  fd.append('contact_name',     name);
+  fd.append('contact_whatsapp', whatsapp);
+  fd.append('terms_accepted',   '1');
+  const photo = document.getElementById('cl-photo').files[0];
+  if (photo) fd.append('photo', photo);
+
+  const btn = document.getElementById('clSubmitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Enviando...';
+  try {
+    const r = await fetch('/api/classifieds/submit', {method:'POST', body:fd});
+    const d = await r.json();
+    if (d.success) {
+      closeClModal();
+      alert('✅ Anúncio enviado com sucesso!\n\nEle será avaliado e publicado em breve. Obrigado!');
+      ['cl-title','cl-description','cl-price','cl-name','cl-whatsapp'].forEach(id => {
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      document.getElementById('cl-negotiable').checked = false;
+      document.getElementById('cl-terms').checked = false;
+      document.getElementById('cl-photo').value = '';
+      const prev = document.getElementById('cl-photo-preview');
+      if (prev) prev.style.display = 'none';
+    } else {
+      alert('❌ ' + (d.error || 'Erro ao enviar anúncio. Tente novamente.'));
+    }
+  } catch(e) {
+    alert('❌ Erro de conexão. Verifique sua internet e tente novamente.');
+  }
+  btn.disabled = false;
+  btn.textContent = '📤 Enviar para análise';
+}
 </script>
 </body>
 </html>

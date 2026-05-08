@@ -124,6 +124,30 @@ def init_db():
             created_at TEXT
         );
 
+        CREATE TABLE IF NOT EXISTS classifieds (
+            id               INTEGER PRIMARY KEY AUTOINCREMENT,
+            title            TEXT NOT NULL,
+            description      TEXT,
+            category         TEXT NOT NULL DEFAULT 'outros',
+            price            REAL,
+            price_negotiable INTEGER DEFAULT 0,
+            city             TEXT DEFAULT 'Schroeder',
+            contact_name     TEXT NOT NULL,
+            contact_whatsapp TEXT NOT NULL,
+            photo            TEXT,
+            status           TEXT DEFAULT 'pending',
+            terms_accepted   INTEGER DEFAULT 0,
+            views            INTEGER DEFAULT 0,
+            featured         INTEGER DEFAULT 0,
+            created_at       TEXT,
+            approved_at      TEXT,
+            expires_at       TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_classifieds_status   ON classifieds(status);
+        CREATE INDEX IF NOT EXISTS idx_classifieds_category ON classifieds(category);
+        CREATE INDEX IF NOT EXISTS idx_classifieds_city     ON classifieds(city);
+
         CREATE TABLE IF NOT EXISTS youtube_channels (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -1245,6 +1269,215 @@ def api_youtube_videos():
     _yt_videos_cache = {'data': result, 'ts': now}
     filtered = [ch for ch in result if ch['category'] == category] if category else result
     return jsonify({'channels': filtered, 'cached': False})
+
+
+# ── Serve Service Worker na raiz (escopo total do site) ──
+@app.route('/sw.js')
+def service_worker():
+    return send_from_directory('static', 'sw.js',
+                               mimetype='application/javascript')
+
+
+# ══════════════════════════════════════════════════════════════
+# CLASSIFICADOS (Anúncios do público)
+# ══════════════════════════════════════════════════════════════
+CLASSIFIED_CATEGORIES = {
+    'veiculos': {'label': 'Veículos',         'emoji': '🚗'},
+    'imoveis':  {'label': 'Imóveis',          'emoji': '🏠'},
+    'moveis':   {'label': 'Móveis & Eletros', 'emoji': '🛋️'},
+    'empregos': {'label': 'Empregos',         'emoji': '💼'},
+    'servicos': {'label': 'Serviços',         'emoji': '🔧'},
+    'pets':     {'label': 'Pets',             'emoji': '🐾'},
+    'outros':   {'label': 'Outros',           'emoji': '📦'},
+}
+
+CLASSIFIED_CITIES = ['Schroeder', 'Jaraguá do Sul', 'Guaramirim',
+                     'Joinville', 'Corupá', 'Outra cidade']
+
+
+def fmt_whatsapp(raw):
+    """Limpa número e garante formato 55DDDNNNNNNNNN."""
+    digits = ''.join(c for c in (raw or '') if c.isdigit())
+    if not digits.startswith('55'):
+        digits = '55' + digits
+    return digits
+
+
+@app.route('/api/classifieds')
+def api_classifieds():
+    """Lista classificados aprovados e não expirados."""
+    category = request.args.get('category', '')
+    city     = request.args.get('city', '')
+    page     = max(1, int(request.args.get('page', 1)))
+    per_page = 20
+    offset   = (page - 1) * per_page
+    now      = datetime.now().isoformat()
+
+    conn   = get_db()
+    where  = ["status='approved'", "(expires_at IS NULL OR expires_at > ?)"]
+    params = [now]
+
+    if category:
+        where.append('category=?'); params.append(category)
+    if city:
+        where.append('city=?'); params.append(city)
+
+    sql = f'''SELECT * FROM classifieds WHERE {" AND ".join(where)}
+              ORDER BY featured DESC, approved_at DESC
+              LIMIT ? OFFSET ?'''
+    rows  = conn.execute(sql, params + [per_page, offset]).fetchall()
+    total = conn.execute(
+        f'SELECT COUNT(*) FROM classifieds WHERE {" AND ".join(where)}', params
+    ).fetchone()[0]
+    conn.close()
+
+    return jsonify({
+        'classifieds': [dict(r) for r in rows],
+        'total': total,
+        'has_more': (offset + per_page) < total,
+        'categories': CLASSIFIED_CATEGORIES,
+    })
+
+
+@app.route('/api/classifieds/submit', methods=['POST'])
+def api_submit_classified():
+    """Submissão pública de classificado."""
+    title    = request.form.get('title', '').strip()
+    desc     = request.form.get('description', '').strip()
+    category = request.form.get('category', 'outros').strip()
+    city     = request.form.get('city', 'Schroeder').strip()
+    price_s  = request.form.get('price', '').strip()
+    negotiab = 1 if request.form.get('price_negotiable') else 0
+    name     = request.form.get('contact_name', '').strip()
+    phone    = request.form.get('contact_whatsapp', '').strip()
+    terms    = 1 if request.form.get('terms_accepted') else 0
+
+    if not title or not name or not phone:
+        return jsonify({'success': False, 'message': 'Título, nome e WhatsApp são obrigatórios.'}), 400
+    if not terms:
+        return jsonify({'success': False, 'message': 'Você precisa aceitar os termos.'}), 400
+    if category not in CLASSIFIED_CATEGORIES:
+        category = 'outros'
+    if city not in CLASSIFIED_CITIES:
+        city = 'Outra cidade'
+
+    price = None
+    if price_s:
+        try:
+            price = float(price_s.replace('R$', '').replace('.', '').replace(',', '.').strip())
+        except Exception:
+            price = None
+
+    # Upload de foto (opcional)
+    photo = None
+    if 'photo' in request.files:
+        f = request.files['photo']
+        if f and f.filename and allowed_file(f.filename):
+            fname = secure_filename(f.filename)
+            ts    = datetime.now().strftime('%Y%m%d_%H%M%S_classified_')
+            fname = ts + fname
+            f.save(os.path.join(UPLOAD_DIR, fname))
+            photo = fname
+
+    wa = fmt_whatsapp(phone)
+    conn = get_db()
+    cur  = conn.execute('''
+        INSERT INTO classifieds
+        (title, description, category, price, price_negotiable, city,
+         contact_name, contact_whatsapp, photo, status, terms_accepted, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+    ''', (title, desc or None, category, price, negotiab, city,
+          name, wa, photo, terms, datetime.now().isoformat()))
+    conn.commit()
+    conn.close()
+    logger.info(f"Classificado #{cur.lastrowid} enviado para moderação: {title}")
+    return jsonify({'success': True, 'message': 'Anúncio enviado! Aparecerá após aprovação.'})
+
+
+@app.route('/api/classifieds/<int:ad_id>/view', methods=['POST'])
+def api_classified_view(ad_id):
+    """Incrementa contador de visualizações."""
+    conn = get_db()
+    conn.execute('UPDATE classifieds SET views=views+1 WHERE id=?', (ad_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+# ── Admin — Classificados ──────────────────────────────────────
+@app.route('/admin/classifieds')
+@login_required
+def admin_list_classifieds():
+    status = request.args.get('status', 'pending')
+    conn   = get_db()
+    rows   = conn.execute(
+        'SELECT * FROM classifieds WHERE status=? ORDER BY created_at DESC LIMIT 200',
+        (status,)
+    ).fetchall()
+    counts = {
+        'pending':  conn.execute("SELECT COUNT(*) FROM classifieds WHERE status='pending'").fetchone()[0],
+        'approved': conn.execute("SELECT COUNT(*) FROM classifieds WHERE status='approved'").fetchone()[0],
+        'rejected': conn.execute("SELECT COUNT(*) FROM classifieds WHERE status='rejected'").fetchone()[0],
+    }
+    conn.close()
+    return jsonify({'classifieds': [dict(r) for r in rows], 'counts': counts})
+
+
+@app.route('/admin/classifieds/<int:ad_id>/approve', methods=['POST'])
+@login_required
+def admin_approve_classified(ad_id):
+    from datetime import timedelta
+    now     = datetime.now()
+    expires = (now + timedelta(days=30)).isoformat()
+    conn    = get_db()
+    conn.execute(
+        "UPDATE classifieds SET status='approved', approved_at=?, expires_at=? WHERE id=?",
+        (now.isoformat(), expires, ad_id)
+    )
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'message': 'Anúncio aprovado por 30 dias.'})
+
+
+@app.route('/admin/classifieds/<int:ad_id>/reject', methods=['POST'])
+@login_required
+def admin_reject_classified(ad_id):
+    conn = get_db()
+    conn.execute("UPDATE classifieds SET status='rejected' WHERE id=?", (ad_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/classifieds/<int:ad_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_classified(ad_id):
+    conn = get_db()
+    row  = conn.execute('SELECT photo FROM classifieds WHERE id=?', (ad_id,)).fetchone()
+    if row and row['photo']:
+        try:
+            os.remove(os.path.join(UPLOAD_DIR, row['photo']))
+        except Exception:
+            pass
+    conn.execute('DELETE FROM classifieds WHERE id=?', (ad_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/classifieds/<int:ad_id>/toggle_featured', methods=['POST'])
+@login_required
+def admin_toggle_featured_classified(ad_id):
+    conn = get_db()
+    row  = conn.execute('SELECT featured FROM classifieds WHERE id=?', (ad_id,)).fetchone()
+    if not row:
+        conn.close()
+        return jsonify({'success': False}), 404
+    new_val = 0 if row['featured'] else 1
+    conn.execute('UPDATE classifieds SET featured=? WHERE id=?', (new_val, ad_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'featured': new_val})
 
 
 @app.route('/admin/youtube-channels', methods=['GET', 'POST'])
