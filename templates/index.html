@@ -2661,11 +2661,44 @@ async function loadCounts() {
 // ── FILTROS: CIDADE ──
 function setCity(city) {
   activeCity = city;
+  // Fecha YouTube / Transmissões / Anúncios se estiverem abertos
+  closeSpecialSections();
+  const feed      = document.getElementById('feed');
+  const searchBar = document.querySelector('.search-bar');
+  const loadMoreBtn = document.getElementById('loadMoreBtn');
+  if (feed)      feed.style.display = 'flex';
+  if (searchBar) searchBar.style.display = 'block';
+  document.querySelectorAll('.cat-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.cat === (activeCat || ''))
+  );
   document.querySelectorAll('.city-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.city === city)
   );
   setTimeout(scrollActiveIntoView, 50);
   resetAndLoad();
+}
+
+// ── FECHA SEÇÕES ESPECIAIS (YouTube / Transmissões / Anúncios) ──
+function closeSpecialSections() {
+  // YouTube
+  const ytSec = document.getElementById('youtubeSection');
+  if (ytSec) ytSec.style.display = 'none';
+  youtubeVisible = false;
+  document.getElementById('btnYoutube')?.classList.remove('active');
+
+  // Transmissões
+  const txSec = document.getElementById('transmissionsSection');
+  if (txSec) txSec.style.display = 'none';
+  transmissionsVisible = false;
+  document.getElementById('btnTransmissoes')?.classList.remove('active');
+
+  // Anúncios
+  const anSec = document.getElementById('anunciosSection');
+  if (anSec) anSec.style.display = 'none';
+  anunciosVisible = false;
+  document.getElementById('btnAnuncios')?.classList.remove('active');
+  const floatBtn = document.getElementById('publishClassifiedBtn');
+  if (floatBtn) floatBtn.style.display = 'none';
 }
 
 // ── FILTROS: CATEGORIA ──
@@ -2676,6 +2709,9 @@ function setCat(cat) {
   const tvView     = document.getElementById('tvView');
   const searchBar  = document.querySelector('.search-bar');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
+
+  // Fecha YouTube / Transmissões / Anúncios se estiverem abertos
+  closeSpecialSections();
 
   document.querySelectorAll('.cat-btn').forEach(b =>
     b.classList.toggle('active', b.dataset.cat === cat)
@@ -3048,24 +3084,23 @@ function toggleTransmissoes() {
   transmissionsVisible = !transmissionsVisible;
 
   if (transmissionsVisible) {
+    // Fecha outras seções especiais
+    closeSpecialSections();
+    transmissionsVisible = true; // restaura após o closeSpecialSections zerar
+
     btn.classList.add('active');
     section.style.display = 'block';
     if (feed) feed.style.display = 'none';
     if (searchBar) searchBar.style.display = 'none';
     if (loadMore) loadMore.style.display = 'none';
     document.querySelectorAll('.cat-btn:not(#btnTransmissoes)').forEach(b => b.classList.remove('active'));
-    // Esconde YouTube se estiver aberto
-    const ytSec = document.getElementById('youtubeSection');
-    if (ytSec) ytSec.style.display = 'none';
-    youtubeVisible = false;
-    document.getElementById('btnYoutube')?.classList.remove('active');
     if (!transmissionsLoaded) loadTransmissions();
   } else {
-    btn.classList.remove('active');
-    section.style.display = 'none';
-    if (feed) feed.style.display = 'block';
+    closeSpecialSections();
+    if (feed)      feed.style.display = 'flex';
     if (searchBar) searchBar.style.display = 'block';
-    setCat('');
+    document.querySelector('.cat-btn[data-cat=""]')?.classList.add('active');
+    resetAndLoad();
   }
 }
 
@@ -3204,24 +3239,23 @@ function toggleYoutube() {
   youtubeVisible = !youtubeVisible;
 
   if (youtubeVisible) {
+    // Fecha outras seções especiais
+    closeSpecialSections();
+    youtubeVisible = true; // restaura após o closeSpecialSections zerar
+
     btn.classList.add('active');
     section.style.display = 'block';
     if (feed)      feed.style.display = 'none';
     if (searchBar) searchBar.style.display = 'none';
     if (loadMore)  loadMore.style.display = 'none';
     document.querySelectorAll('.cat-btn:not(#btnYoutube)').forEach(b => b.classList.remove('active'));
-    // Fecha Transmissões se aberta
-    const txSection = document.getElementById('transmissionsSection');
-    if (txSection) txSection.style.display = 'none';
-    transmissionsVisible = false;
-    document.getElementById('btnTransmissoes')?.classList.remove('active');
     if (!youtubeLoaded) loadYoutubeChannels();
   } else {
-    btn.classList.remove('active');
-    section.style.display = 'none';
-    if (feed)      feed.style.display = 'block';
+    closeSpecialSections();
+    if (feed)      feed.style.display = 'flex';
     if (searchBar) searchBar.style.display = 'block';
-    setCat('');
+    document.querySelector('.cat-btn[data-cat=""]')?.classList.add('active');
+    resetAndLoad();
   }
 }
 
@@ -3338,16 +3372,20 @@ let anunciosPage = 1;
 let anunciosHasMore = false;
 
 function toggleAnuncios() {
-  const btn       = document.getElementById('btnAnuncios');
-  const section   = document.getElementById('anunciosSection');
   const feed      = document.getElementById('feed');
   const searchBar = document.querySelector('.search-bar');
   const loadMore  = document.getElementById('loadMoreBtn');
-  const floatBtn  = document.getElementById('publishClassifiedBtn');
 
   anunciosVisible = !anunciosVisible;
 
   if (anunciosVisible) {
+    // Fecha outras seções especiais
+    closeSpecialSections();
+    anunciosVisible = true; // restaura após o closeSpecialSections zerar
+
+    const btn     = document.getElementById('btnAnuncios');
+    const section = document.getElementById('anunciosSection');
+    const floatBtn = document.getElementById('publishClassifiedBtn');
     btn.classList.add('active');
     section.style.display = 'block';
     floatBtn.style.display = 'flex';
@@ -3355,25 +3393,13 @@ function toggleAnuncios() {
     if (searchBar) searchBar.style.display = 'none';
     if (loadMore)  loadMore.style.display = 'none';
     document.querySelectorAll('.cat-btn:not(#btnAnuncios)').forEach(b => b.classList.remove('active'));
-    // Fecha YouTube se aberto
-    const ytSec = document.getElementById('youtubeSection');
-    if (ytSec) ytSec.style.display = 'none';
-    youtubeVisible = false;
-    document.getElementById('btnYoutube')?.classList.remove('active');
-    // Fecha Transmissões se aberta
-    const txSection = document.getElementById('transmissionsSection');
-    if (txSection) txSection.style.display = 'none';
-    transmissionsVisible = false;
-    document.getElementById('btnTransmissoes')?.classList.remove('active');
-
     if (!anunciosLoaded) loadAnuncios();
   } else {
-    btn.classList.remove('active');
-    section.style.display = 'none';
-    floatBtn.style.display = 'none';
-    if (feed)      feed.style.display = 'block';
+    closeSpecialSections();
+    if (feed)      feed.style.display = 'flex';
     if (searchBar) searchBar.style.display = 'block';
-    setCat('');
+    document.querySelector('.cat-btn[data-cat=""]')?.classList.add('active');
+    resetAndLoad();
   }
 }
 
