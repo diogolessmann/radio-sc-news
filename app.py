@@ -91,6 +91,38 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_news_published ON news(published_at DESC);
         CREATE INDEX IF NOT EXISTS idx_news_city      ON news(city);
         CREATE INDEX IF NOT EXISTS idx_news_category  ON news(category);
+
+        CREATE TABLE IF NOT EXISTS transmissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            type TEXT DEFAULT 'geral',
+            description TEXT,
+            stream_url TEXT,
+            youtube_channel_id TEXT,
+            youtube_video_id TEXT,
+            scheduled_at TEXT,
+            duration_minutes INTEGER DEFAULT 90,
+            is_live INTEGER DEFAULT 0,
+            is_recurring INTEGER DEFAULT 0,
+            recurrence_days TEXT,
+            thumbnail_url TEXT,
+            city TEXT DEFAULT 'Região',
+            active INTEGER DEFAULT 1,
+            created_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS monitored_channels (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            youtube_channel_id TEXT,
+            youtube_handle TEXT,
+            type TEXT DEFAULT 'geral',
+            city TEXT,
+            auto_publish INTEGER DEFAULT 1,
+            active INTEGER DEFAULT 1,
+            last_checked TEXT,
+            created_at TEXT
+        );
     ''')
     conn.commit()
     conn.close()
@@ -166,6 +198,180 @@ def api_live_channels():
             _live_cache[key] = {'vid': vid, 'ts': now}
             result[key] = vid
     return jsonify(result)
+
+@app.route('/api/transmissions')
+def api_transmissions():
+    """Retorna transmissões ao vivo agora + agenda dos próximos 10 dias."""
+    from datetime import timedelta
+    conn = get_db()
+    now = datetime.now()
+    ten_days = (now + timedelta(days=10)).isoformat()
+
+    live = conn.execute(
+        'SELECT * FROM transmissions WHERE active=1 AND is_live=1 ORDER BY created_at DESC'
+    ).fetchall()
+
+    scheduled = conn.execute(
+        '''SELECT * FROM transmissions
+           WHERE active=1 AND is_live=0
+             AND scheduled_at IS NOT NULL
+             AND scheduled_at >= ?
+             AND scheduled_at <= ?
+           ORDER BY scheduled_at ASC''',
+        (now.isoformat(), ten_days)
+    ).fetchall()
+
+    conn.close()
+    return jsonify({
+        'live': [dict(r) for r in live],
+        'scheduled': [dict(r) for r in scheduled],
+    })
+
+
+@app.route('/api/transmissions/live')
+def api_transmissions_live():
+    """Retorna apenas as transmissões ao vivo agora."""
+    conn = get_db()
+    live = conn.execute(
+        'SELECT * FROM transmissions WHERE active=1 AND is_live=1 ORDER BY created_at DESC'
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in live])
+
+
+# ──────────────────────────────────────────────
+# Rotas Admin — Transmissões
+# ──────────────────────────────────────────────
+TYPE_EMOJIS = {
+    'esporte': '⚽', 'missa': '🕯️', 'camara': '🏛️',
+    'show': '🎵', 'tv': '📺', 'geral': '📡',
+}
+
+@app.route('/admin/transmissions', methods=['GET', 'POST'])
+@login_required
+def admin_transmissions():
+    if request.method == 'POST':
+        data = request.form
+        title = data.get('title', '').strip()
+        if not title:
+            return jsonify({'success': False, 'message': 'Título obrigatório.'}), 400
+
+        t_type       = data.get('type', 'geral').strip()
+        description  = data.get('description', '').strip()
+        stream_url   = data.get('stream_url', '').strip()
+        yt_channel   = data.get('youtube_channel_id', '').strip()
+        yt_video     = data.get('youtube_video_id', '').strip()
+        scheduled_at = data.get('scheduled_at', '').strip()
+        duration     = int(data.get('duration_minutes', 90) or 90)
+        is_recurring = 1 if data.get('is_recurring') else 0
+        recur_days   = data.get('recurrence_days', '').strip()
+        city         = data.get('city', 'Região').strip()
+        thumbnail    = data.get('thumbnail_url', '').strip()
+
+        conn = get_db()
+        cur = conn.execute('''
+            INSERT INTO transmissions
+            (title, type, description, stream_url, youtube_channel_id, youtube_video_id,
+             scheduled_at, duration_minutes, is_recurring, recurrence_days,
+             thumbnail_url, city, active, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+        ''', (title, t_type, description or None, stream_url or None,
+              yt_channel or None, yt_video or None, scheduled_at or None,
+              duration, is_recurring, recur_days or None,
+              thumbnail or None, city, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'id': cur.lastrowid})
+
+    conn = get_db()
+    transmissions = conn.execute(
+        'SELECT * FROM transmissions ORDER BY created_at DESC LIMIT 100'
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(t) for t in transmissions])
+
+
+@app.route('/admin/transmissions/<int:t_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_transmission(t_id):
+    conn = get_db()
+    conn.execute('DELETE FROM transmissions WHERE id=?', (t_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/transmissions/<int:t_id>/toggle_live', methods=['POST'])
+@login_required
+def admin_toggle_live(t_id):
+    conn = get_db()
+    t = conn.execute('SELECT is_live FROM transmissions WHERE id=?', (t_id,)).fetchone()
+    if not t:
+        conn.close()
+        return jsonify({'success': False, 'message': 'Não encontrado.'}), 404
+    new_state = 0 if t['is_live'] else 1
+    conn.execute('UPDATE transmissions SET is_live=? WHERE id=?', (new_state, t_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'is_live': new_state})
+
+
+@app.route('/admin/channels', methods=['GET', 'POST'])
+@login_required
+def admin_channels():
+    if request.method == 'POST':
+        data = request.form
+        name = data.get('name', '').strip()
+        if not name:
+            return jsonify({'success': False, 'message': 'Nome obrigatório.'}), 400
+
+        yt_channel = data.get('youtube_channel_id', '').strip()
+        yt_handle  = data.get('youtube_handle', '').strip()
+        c_type     = data.get('type', 'geral').strip()
+        city       = data.get('city', '').strip()
+        auto_pub   = 1 if data.get('auto_publish') else 0
+
+        conn = get_db()
+        cur = conn.execute('''
+            INSERT INTO monitored_channels
+            (name, youtube_channel_id, youtube_handle, type, city, auto_publish, active, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+        ''', (name, yt_channel or None, yt_handle or None, c_type,
+              city or None, auto_pub, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'id': cur.lastrowid})
+
+    conn = get_db()
+    channels = conn.execute(
+        'SELECT * FROM monitored_channels ORDER BY created_at DESC'
+    ).fetchall()
+    conn.close()
+    return jsonify([dict(c) for c in channels])
+
+
+@app.route('/admin/channels/<int:c_id>/delete', methods=['POST'])
+@login_required
+def admin_delete_channel(c_id):
+    conn = get_db()
+    conn.execute('DELETE FROM monitored_channels WHERE id=?', (c_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+@app.route('/admin/channels/check_live', methods=['POST'])
+@login_required
+def admin_check_live():
+    """Força verificação imediata de ao vivo para todos os canais monitorados."""
+    try:
+        from stream_checker import update_live_status
+        update_live_status(DB_PATH)
+        return jsonify({'success': True, 'message': 'Verificação concluída.'})
+    except Exception as e:
+        logger.error(f'Erro em check_live manual: {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/')
 def index():
@@ -845,6 +1051,21 @@ def background_startup():
             collect_all()
     except Exception as e:
         logger.warning(f"Coleta inicial falhou: {e}")
+
+    # Thread de verificação de transmissões ao vivo (a cada 10 minutos)
+    def live_check_loop():
+        import time as _t
+        while True:
+            try:
+                from stream_checker import update_live_status
+                update_live_status(DB_PATH)
+            except Exception as e:
+                logger.warning(f"Live check falhou: {e}")
+            _t.sleep(600)  # 10 minutos
+
+    live_thread = _threading.Thread(target=live_check_loop, daemon=True)
+    live_thread.start()
+    logger.info("Thread de verificação de transmissões ao vivo iniciada.")
 
 
 # ── Inicialização que roda sempre (dev e produção/gunicorn) ──

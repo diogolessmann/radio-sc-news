@@ -1206,6 +1206,270 @@
     .footer-grid { grid-template-columns: 1fr; }
   }
 
+  /* ── TRANSMISSÕES ESPECIAIS ── */
+  .transmissions-section {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 14px 16px 4px;
+  }
+
+  /* Banner ao vivo */
+  .live-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(233,69,96,0.12), rgba(233,69,96,0.04));
+    border: 1px solid rgba(233,69,96,0.3);
+    border-radius: 12px;
+    padding: 10px 16px;
+    margin-bottom: 12px;
+  }
+  .live-banner-dot {
+    width: 9px; height: 9px;
+    background: #e94560;
+    border-radius: 50%;
+    animation: pulse-red 1.2s infinite;
+    flex-shrink: 0;
+  }
+  @keyframes pulse-red {
+    0%,100% { opacity:1; box-shadow: 0 0 0 0 rgba(233,69,96,0.5); }
+    50%      { opacity:0.7; box-shadow: 0 0 0 5px rgba(233,69,96,0); }
+  }
+  .live-banner-text {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .live-banner-count {
+    font-size: 11px;
+    color: var(--text2);
+    margin-left: auto;
+  }
+
+  /* Cards de transmissão ao vivo */
+  .live-cards {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+    margin-bottom: 16px;
+  }
+  .live-cards::-webkit-scrollbar { display: none; }
+  .live-card {
+    background: var(--surface);
+    border: 1px solid rgba(233,69,96,0.4);
+    border-radius: 14px;
+    overflow: hidden;
+    min-width: 200px;
+    max-width: 220px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: live-pulse-border 2s ease-in-out infinite;
+  }
+  @keyframes live-pulse-border {
+    0%,100% { border-color: rgba(233,69,96,0.4); box-shadow: 0 0 0 0 rgba(233,69,96,0); }
+    50%      { border-color: rgba(233,69,96,0.8); box-shadow: 0 0 14px rgba(233,69,96,0.2); }
+  }
+  .live-card:hover { transform: translateY(-2px); }
+  .live-card-thumb {
+    width: 100%;
+    height: 110px;
+    object-fit: cover;
+    background: #111;
+    display: block;
+  }
+  .live-card-thumb-placeholder {
+    width: 100%;
+    height: 110px;
+    background: linear-gradient(135deg, #1a1a24, #22222f);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+  }
+  .live-card-body { padding: 10px 12px 12px; }
+  .live-card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+  .live-card-badge-dot {
+    width: 5px; height: 5px;
+    background: #fff;
+    border-radius: 50%;
+    animation: pulse 1s infinite;
+  }
+  .live-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 6px;
+  }
+  .live-card-type {
+    font-size: 11px;
+    color: var(--text2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .live-card-city {
+    font-size: 11px;
+    color: var(--text2);
+  }
+
+  /* Agenda de transmissões */
+  .agenda-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .agenda-day {
+    margin-bottom: 12px;
+  }
+  .agenda-day-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 0 8px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .agenda-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    cursor: default;
+    transition: border-color 0.2s;
+  }
+  .agenda-item.clickable { cursor: pointer; }
+  .agenda-item.clickable:hover { border-color: rgba(233,69,96,0.3); }
+  .agenda-item-time {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text);
+    min-width: 44px;
+    flex-shrink: 0;
+  }
+  .agenda-item-emoji {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .agenda-item-info { flex: 1; min-width: 0; }
+  .agenda-item-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .agenda-item-meta {
+    font-size: 11px;
+    color: var(--text2);
+    margin-top: 2px;
+  }
+  .agenda-item-dur {
+    font-size: 11px;
+    color: var(--text2);
+    flex-shrink: 0;
+  }
+
+  /* Modal de player YouTube */
+  .stream-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    backdrop-filter: blur(6px);
+  }
+  .stream-modal.open { display: flex; }
+  .stream-modal-box {
+    background: #000;
+    border-radius: 16px;
+    overflow: hidden;
+    width: 100%;
+    max-width: 640px;
+    position: relative;
+  }
+  .stream-modal-header {
+    background: var(--surface);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .stream-modal-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .stream-modal-close {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: var(--text);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .stream-modal-close:hover { background: var(--accent); }
+  .stream-modal-player {
+    position: relative;
+    width: 100%;
+    padding-top: 56.25%;
+  }
+  .stream-modal-player iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
   /* ── DESKTOP (>700px): alinha sombra-fade com o conteúdo centrado ── */
   @media (min-width: 700px) {
     /* A sombra de fade fica na borda direita do container de 680px */
@@ -1278,6 +1542,43 @@
     <button class="cat-btn" data-cat="promos" onclick="setCat('promos')">💰 Promoções</button>
     <button class="cat-btn" data-cat="radio" onclick="setCat('radio')">📻 Rádio</button>
     <button class="cat-btn" data-cat="tv" onclick="setCat('tv')">📺 TV</button>
+  </div>
+</div>
+
+<!-- ── TRANSMISSÕES ESPECIAIS ── -->
+<div class="transmissions-section" id="transmissionsSection" style="display:none">
+
+  <!-- Ao Vivo -->
+  <div id="liveSection" style="display:none">
+    <div class="live-banner">
+      <div class="live-banner-dot"></div>
+      <div class="live-banner-text">🔴 Ao Vivo Agora</div>
+      <div class="live-banner-count" id="liveCount"></div>
+    </div>
+    <div class="live-cards" id="liveCards"></div>
+  </div>
+
+  <!-- Agenda -->
+  <div id="agendaSection" style="display:none">
+    <div class="agenda-title">📅 Agenda de Transmissões</div>
+    <div id="agendaList"></div>
+  </div>
+
+</div>
+
+<!-- Modal de Player YouTube -->
+<div class="stream-modal" id="streamModal">
+  <div class="stream-modal-box">
+    <div class="stream-modal-header">
+      <div class="live-badge" style="flex-shrink:0">
+        <div class="live-dot"></div> AO VIVO
+      </div>
+      <div class="stream-modal-title" id="streamModalTitle">Transmissão</div>
+      <button class="stream-modal-close" onclick="closeStreamModal()">✕</button>
+    </div>
+    <div class="stream-modal-player">
+      <iframe id="streamModalIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
   </div>
 </div>
 
@@ -1737,6 +2038,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadWeather();
   loadDeals();
   loadCounts();
+  loadTransmissions();
   await loadNews(1);
   checkTutorial();
   initWhatsApp();
@@ -2195,6 +2497,105 @@ function escHtml(s) {
 
 window.addEventListener('scroll', () => {
   if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 300 && hasMore && !isLoading) loadMore();
+});
+
+// ── TRANSMISSÕES ESPECIAIS ──
+const TYPE_EMOJIS = {
+  esporte: '⚽', missa: '🕯️', camara: '🏛️',
+  show: '🎵', tv: '📺', geral: '📡'
+};
+
+async function loadTransmissions() {
+  try {
+    const data = await fetch('/api/transmissions').then(r => r.json());
+    const hasLive = data.live && data.live.length > 0;
+    const hasScheduled = data.scheduled && data.scheduled.length > 0;
+
+    if (!hasLive && !hasScheduled) return;
+
+    document.getElementById('transmissionsSection').style.display = 'block';
+
+    // Ao Vivo
+    if (hasLive) {
+      document.getElementById('liveSection').style.display = 'block';
+      document.getElementById('liveCount').textContent = data.live.length + ' transmiss' + (data.live.length === 1 ? 'ão' : 'ões');
+      const liveCards = document.getElementById('liveCards');
+      liveCards.innerHTML = data.live.map(t => {
+        const emoji = TYPE_EMOJIS[t.type] || '📡';
+        const thumbHtml = t.thumbnail_url
+          ? `<img class="live-card-thumb" src="${escHtml(t.thumbnail_url)}" alt="" loading="lazy" onerror="this.style.display='none'">`
+          : `<div class="live-card-thumb-placeholder">${emoji}</div>`;
+        const hasEmbed = t.youtube_video_id;
+        const clickAttr = hasEmbed ? `onclick="openStreamModal('${escHtml(t.youtube_video_id)}','${escHtml(t.title)}')"` : '';
+        return `<div class="live-card" ${clickAttr}>
+          ${thumbHtml}
+          <div class="live-card-body">
+            <div class="live-card-badge"><div class="live-card-badge-dot"></div> Ao Vivo</div>
+            <div class="live-card-title">${escHtml(t.title)}</div>
+            <div class="live-card-type">${emoji} ${escHtml(t.type || 'geral')}</div>
+            ${t.city ? `<div class="live-card-city">📍 ${escHtml(t.city)}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Agenda
+    if (hasScheduled) {
+      document.getElementById('agendaSection').style.display = 'block';
+      const grouped = {};
+      data.scheduled.forEach(t => {
+        const d = new Date(t.scheduled_at);
+        const key = d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'long' });
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push(t);
+      });
+
+      const agendaList = document.getElementById('agendaList');
+      agendaList.innerHTML = Object.entries(grouped).map(([day, items]) => {
+        return `<div class="agenda-day">
+          <div class="agenda-day-header">${day}</div>
+          ${items.map(t => {
+            const d = new Date(t.scheduled_at);
+            const timeStr = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const emoji = TYPE_EMOJIS[t.type] || '📡';
+            const hasEmbed = t.youtube_video_id;
+            const clickClass = hasEmbed ? ' clickable' : '';
+            const clickAttr = hasEmbed ? `onclick="openStreamModal('${escHtml(t.youtube_video_id)}','${escHtml(t.title)}')"` : '';
+            return `<div class="agenda-item${clickClass}" ${clickAttr}>
+              <div class="agenda-item-time">${timeStr}</div>
+              <div class="agenda-item-emoji">${emoji}</div>
+              <div class="agenda-item-info">
+                <div class="agenda-item-title">${escHtml(t.title)}</div>
+                <div class="agenda-item-meta">${escHtml(t.city || 'Região')}${t.description ? ' · ' + escHtml(t.description.substring(0, 40)) : ''}</div>
+              </div>
+              ${t.duration_minutes ? `<div class="agenda-item-dur">${t.duration_minutes}min</div>` : ''}
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('');
+    }
+  } catch(e) {
+    // Se falhar, simplesmente não mostra a seção
+  }
+}
+
+function openStreamModal(videoId, title) {
+  document.getElementById('streamModalTitle').textContent = title || 'Transmissão';
+  document.getElementById('streamModalIframe').src =
+    `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+  document.getElementById('streamModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeStreamModal() {
+  document.getElementById('streamModalIframe').src = '';
+  document.getElementById('streamModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Fecha modal ao clicar fora
+document.getElementById('streamModal').addEventListener('click', function(e) {
+  if (e.target === this) closeStreamModal();
 });
 </script>
 </body>
