@@ -1084,7 +1084,7 @@ def background_startup():
 CURATED_YT_CHANNELS = [
     # Economia
     {'name': 'Ancapsu',               'channel_id': 'UCLTWPE7XrHEe8m_xAmNbQ-Q', 'category': 'economia', 'sort_order': 1},
-    {'name': 'Paulo Kogos',           'channel_id': 'UCmArkwjUI8VRHudOjEsVCUw',  'category': 'economia', 'sort_order': 2},
+    {'name': 'Empiricus',             'channel_id': 'UCu79AeVqrq42vmSIp1OHyfA',  'category': 'economia', 'sort_order': 2},
     {'name': 'Instituto Mises Brasil','channel_id': 'UCb9T91q727Ld4c3lqq3w6Xw',  'category': 'economia', 'sort_order': 3},
     # Política
     {'name': 'Nikolas Ferreira',      'channel_id': 'UCxI9vN6UbxmBt8VIvUKtJaA',  'category': 'politica', 'sort_order': 4},
@@ -1101,7 +1101,7 @@ YT_CACHE_TTL = 900  # 15 minutos
 
 
 def seed_youtube_channels():
-    """Semeia canais curados se a tabela estiver vazia."""
+    """Semeia canais curados se a tabela estiver vazia; aplica migrações se já existe."""
     conn = get_db()
     count = conn.execute('SELECT COUNT(*) FROM youtube_channels').fetchone()[0]
     if count == 0:
@@ -1117,6 +1117,18 @@ def seed_youtube_channels():
                 pass
         conn.commit()
         logger.info(f"YouTube: {len(CURATED_YT_CHANNELS)} canais pré-configurados inseridos.")
+    else:
+        # Migração: substitui Paulo Kogos (posta 1x/semana) por Empiricus (diário)
+        kogos = conn.execute(
+            "SELECT id FROM youtube_channels WHERE channel_id='UCmArkwjUI8VRHudOjEsVCUw'"
+        ).fetchone()
+        if kogos:
+            conn.execute(
+                "UPDATE youtube_channels SET name='Empiricus', channel_id='UCu79AeVqrq42vmSIp1OHyfA' WHERE id=?",
+                (kogos['id'],)
+            )
+            conn.commit()
+            logger.info("YouTube: Paulo Kogos → Empiricus (migração aplicada).")
     conn.close()
 
 
