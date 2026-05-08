@@ -1803,18 +1803,22 @@ def admin_toggle_youtube_channel(ch_id):
 # ══════════════════════════════════════════════════════════════
 
 BUSINESS_TYPES = {
-    'barbearia':  '💈 Barbearia',
-    'salao':      '💇 Salão de Beleza',
-    'clinica':    '🏥 Clínica / Saúde',
-    'dentista':   '🦷 Dentista',
-    'estetica':   '💅 Estética',
-    'mecanica':   '🔧 Mecânica',
-    'despachante':'📋 Despachante',
-    'advocacia':  '⚖️ Advocacia / Contabilidade',
-    'pet':        '🐾 Pet Shop / Veterinário',
-    'academia':   '💪 Academia / Personal',
-    'restaurante':'🍕 Restaurante / Delivery',
-    'outros':     '🏢 Outro',
+    'barbearia':   '💈 Barbearia',
+    'salao':       '💇 Salão de Beleza',
+    'estetica':    '💅 Estética / Spa',
+    'clinica':     '🏥 Clínica Médica',
+    'dentista':    '🦷 Dentista / Ortodontia',
+    'psicologia':  '🧠 Psicologia / Terapia',
+    'nutricao':    '🥗 Nutricionista',
+    'fisioterapia':'🦵 Fisioterapia',
+    'pet':         '🐾 Pet Shop / Veterinário',
+    'academia':    '💪 Academia / Personal Trainer',
+    'mecanica':    '🔧 Mecânica / Oficina',
+    'advocacia':   '⚖️ Advocacia / Contabilidade',
+    'consultoria': '📊 Consultoria / Coaching',
+    'fotografia':  '📷 Fotografia / Estúdio',
+    'tatuagem':    '🖊️ Tatuagem / Piercing',
+    'outros':      '🏢 Outro',
 }
 
 WEEKDAY_NAMES = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo']
