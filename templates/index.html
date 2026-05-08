@@ -3217,6 +3217,10 @@ async function loadNews(page=1, reset=false) {
         if (allAds.length > 0 && adIndex > 0 && adIndex % adInsertEvery === 0) {
           feed.appendChild(buildAdCard(allAds[Math.floor(adIndex/adInsertEvery-1) % allAds.length]));
         }
+        // Injeta banner Agenda SC após a 5ª notícia (apenas 1x por carregamento inicial)
+        if (adIndex === 5 && page === 1) {
+          feed.appendChild(buildAgendaBanner());
+        }
         feed.appendChild(buildNewsCard(n));
         adIndex++;
       });
@@ -3232,6 +3236,38 @@ async function loadNews(page=1, reset=false) {
 }
 
 function loadMore() { if (hasMore && !isLoading) loadNews(currentPage + 1); }
+
+function buildAgendaBanner() {
+  const el = document.createElement('a');
+  el.href = '/agenda';
+  el.style.cssText = 'text-decoration:none;display:block;width:100%;margin-bottom:4px';
+  el.innerHTML = `
+    <div style="
+      background:linear-gradient(135deg,#0d2b1a 0%,#1a3d26 60%,#0d2b1a 100%);
+      border:1px solid rgba(39,174,96,.45);
+      border-radius:16px;
+      padding:18px 18px 18px 16px;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      position:relative;
+      overflow:hidden;
+      box-shadow:0 4px 18px rgba(39,174,96,.13);
+      transition:transform .2s,box-shadow .2s;
+    "
+    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 26px rgba(39,174,96,.25)'"
+    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(39,174,96,.13)'">
+      <div style="position:absolute;right:-15px;top:-15px;width:90px;height:90px;background:radial-gradient(circle,rgba(39,174,96,.18),transparent 70%);pointer-events:none"></div>
+      <div style="font-size:34px;flex-shrink:0">📅</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;color:rgba(39,174,96,.85);letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px">✦ Agenda SC · Novo</div>
+        <div style="font-size:15px;font-weight:900;color:#fff;line-height:1.25;margin-bottom:3px">Chega de WhatsApp travado.<br>Seus clientes agendam sozinhos.</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5)">Sistema gratuito por 30 dias · Para negócios do Norte de SC</div>
+      </div>
+      <div style="flex-shrink:0;background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;font-size:11px;font-weight:800;padding:9px 12px;border-radius:10px;text-align:center;line-height:1.35;box-shadow:0 3px 10px rgba(39,174,96,.4);white-space:nowrap">Criar agenda<br>grátis →</div>
+    </div>`;
+  return el;
+}
 
 // ── CARD BUILDERS ──
 function formatTime(iso) {
