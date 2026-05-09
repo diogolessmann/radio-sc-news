@@ -1981,47 +1981,80 @@
 <!-- ── TRANSMISSÕES ESPECIAIS ── -->
 <div class="transmissions-section" id="transmissionsSection" style="display:none">
 
-  <!-- Banner explicativo -->
-  <div style="background:linear-gradient(135deg,rgba(233,69,96,.08),rgba(52,152,219,.08));border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:20px;margin-bottom:20px">
-    <div style="font-size:17px;font-weight:800;margin-bottom:12px">📡 O que são as Transmissões?</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px">
-        <div style="font-size:20px;margin-bottom:6px">⚽</div>
-        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Jogos ao vivo</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.5">Acompanhe partidas do seu time regional transmitidas ao vivo direto aqui no portal.</div>
+  <!-- ── Explicação SEMPRE VISÍVEL ── -->
+  <div style="margin-bottom:20px">
+    <div style="font-size:16px;font-weight:800;margin-bottom:14px;color:var(--text)">📡 O que são as Transmissões?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">⚽</div>
+        <div>
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px">Futebol e futsal</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.5">Times regionais e campeonatos catarinenses transmitidos ao vivo.</div>
+        </div>
       </div>
-      <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px">
-        <div style="font-size:20px;margin-bottom:6px">🕯️</div>
-        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Missas e cultos</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.5">Transmissões de celebrações religiosas das igrejas da região com horário marcado.</div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">🏎️</div>
+        <div>
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px">Corridas e automobilismo</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.5">Stock Car, Fórmula 4, corridas de rua e triathlon ao vivo.</div>
+        </div>
       </div>
-      <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px">
-        <div style="font-size:20px;margin-bottom:6px">🏛️</div>
-        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Câmara e eventos</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.5">Sessões da câmara municipal, formaturas, shows e eventos culturais da cidade.</div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">🕯️</div>
+        <div>
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px">Missas e cultos</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.5">Celebrações religiosas das igrejas da região com horário marcado.</div>
+        </div>
       </div>
-      <div style="background:rgba(255,255,255,.04);border-radius:12px;padding:14px">
-        <div style="font-size:20px;margin-bottom:6px">📺</div>
-        <div style="font-weight:700;font-size:13px;margin-bottom:4px">Quer transmitir?</div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.5">Entre em contato pelo <strong style="color:#25d366">WhatsApp</strong> e agende sua transmissão aqui no portal.</div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">🎵</div>
+        <div>
+          <div style="font-weight:700;font-size:13px;margin-bottom:3px">Shows e eventos</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.5">Festivais, formaturas, eventos culturais e feiras da região.</div>
+        </div>
       </div>
+
+    </div>
+
+    <!-- CTA pago -->
+    <div style="background:linear-gradient(135deg,rgba(245,166,35,.08),rgba(233,69,96,.05));border:1px solid rgba(245,166,35,.25);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="font-size:24px;flex-shrink:0">💰</div>
+      <div style="flex:1;min-width:180px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:2px">Quer aparecer aqui?</div>
+        <div style="font-size:12px;color:var(--text2)">Clubes, igrejas e eventos podem agendar uma transmissão em destaque no portal. Entre em contato pelo WhatsApp.</div>
+      </div>
+      <a href="{{ wa_channel or 'https://wa.me/5547999999999' }}" target="_blank" style="background:#25d366;color:#fff;font-size:12px;font-weight:800;padding:9px 18px;border-radius:10px;text-decoration:none;white-space:nowrap;flex-shrink:0">💬 Falar no WhatsApp</a>
     </div>
   </div>
 
-  <!-- Ao Vivo -->
-  <div id="liveSection" style="display:none">
-    <div class="live-banner">
-      <div class="live-banner-dot"></div>
-      <div class="live-banner-text">🔴 Ao Vivo Agora</div>
-      <div class="live-banner-count" id="liveCount"></div>
+  <!-- ── Conteúdo dinâmico (controlado pelo JS) ── -->
+  <div id="txLiveContent">
+    <!-- Ao Vivo -->
+    <div id="liveSection" style="display:none">
+      <div class="live-banner">
+        <div class="live-banner-dot"></div>
+        <div class="live-banner-text">🔴 Ao Vivo Agora</div>
+        <div class="live-banner-count" id="liveCount"></div>
+      </div>
+      <div class="live-cards" id="liveCards"></div>
     </div>
-    <div class="live-cards" id="liveCards"></div>
-  </div>
 
-  <!-- Agenda -->
-  <div id="agendaSection" style="display:none">
-    <div class="agenda-title">📅 Agenda de Transmissões</div>
-    <div id="agendaList"></div>
+    <!-- Agenda -->
+    <div id="agendaSection" style="display:none">
+      <div class="agenda-title">📅 Agenda de Transmissões</div>
+      <div id="agendaList"></div>
+    </div>
+
+    <!-- Estado vazio -->
+    <div id="txEmptyState" style="text-align:center;padding:32px 16px;color:var(--text2)">
+      <div style="font-size:36px;margin-bottom:12px">📡</div>
+      <div style="font-weight:700;margin-bottom:6px">Nenhuma transmissão ao vivo agora</div>
+      <div style="font-size:13px">O sistema monitora automaticamente canais da região.<br>Quando algum entrar ao vivo, aparece aqui em tempo real.</div>
+    </div>
   </div>
 
 </div>
@@ -3603,10 +3636,16 @@ async function loadTransmissions() {
     const hasScheduled = data.scheduled && data.scheduled.length > 0;
     transmissionsLoaded = true;
 
+    const emptyState = document.getElementById('txEmptyState');
     if (!hasLive && !hasScheduled) {
-      document.getElementById('transmissionsSection').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text2)">📡 Nenhuma transmissão agendada no momento.</div>';
+      if (emptyState) emptyState.style.display = 'block';
+      document.getElementById('liveSection').style.display = 'none';
+      document.getElementById('agendaSection').style.display = 'none';
       return;
     }
+
+    // Tem conteúdo — esconde empty state
+    if (emptyState) emptyState.style.display = 'none';
 
     // Ao Vivo
     if (hasLive) {

@@ -2377,15 +2377,26 @@ def admin_alerta_delete(sub_id):
 # ── Canais regionais Norte SC para monitorar ao vivo ──────────
 MONITORED_CHANNELS_SEED = [
     # ── Futebol / Esportes regionais ──
-    {'name': 'JEC Joinville',        'channel_id': 'UCNjIQGJD57ZfC6bEYN_gMvg', 'type': 'esporte', 'city': 'Joinville'},
-    {'name': 'Esporte Interativo SC', 'channel_id': 'UCXtFoKkd-5cFSfSPRzL1FHA', 'type': 'esporte', 'city': 'Santa Catarina'},
+    {'name': 'JEC Joinville',              'channel_id': 'UCNjIQGJD57ZfC6bEYN_gMvg', 'type': 'esporte', 'city': 'Joinville'},
+    {'name': 'Figueirense FC',             'channel_id': 'UCjm7jQS7qD-lH8BV1rNdBSw', 'type': 'esporte', 'city': 'Florianópolis'},
+    {'name': 'Chapecoense',                'channel_id': 'UCQGFTlg1bZyV0DQTKE3gFXg', 'type': 'esporte', 'city': 'Chapecó'},
     # ── Missas / Igrejas ──
-    {'name': 'Diocese de Joinville',  'channel_id': 'UCeHvIpJLDmTr_kzM3hBFhNg', 'type': 'missa',   'city': 'Joinville'},
+    {'name': 'Diocese de Joinville',       'channel_id': 'UCeHvIpJLDmTr_kzM3hBFhNg', 'type': 'missa',   'city': 'Joinville'},
+    {'name': 'TV Canção Nova',             'channel_id': 'UCCHRwg4F6cjSuhcHAM7GQVA', 'type': 'missa',   'city': 'Nacional'},
+    {'name': 'Padre Reginaldo Manzotti',   'channel_id': 'UCaA05__0bOa7EM74VTx3Oew', 'type': 'missa',   'city': 'Nacional'},
     # ── TV / Notícias regionais ──
-    {'name': 'NSC Total',             'channel_id': 'UCMioY9xHh_88u8iMIzJvCUQ', 'type': 'geral',   'city': 'Santa Catarina'},
-    {'name': 'SCC SBT Santa Catarina','channel_id': 'UCT_J5HN1oCDj3fJd0_iRSUw', 'type': 'geral',   'city': 'Norte de SC'},
-    # ── Esportes / Corridas ──
-    {'name': 'Corrida de Rua SC',     'channel_id': 'UCjZBMiUWLe_jGKzxLQME5gQ', 'type': 'esporte', 'city': 'Santa Catarina'},
+    {'name': 'NSC Total',                  'channel_id': 'UCMioY9xHh_88u8iMIzJvCUQ', 'type': 'geral',   'city': 'Santa Catarina'},
+    {'name': 'SCC SBT Santa Catarina',     'channel_id': 'UCT_J5HN1oCDj3fJd0_iRSUw', 'type': 'geral',   'city': 'Norte de SC'},
+    # ── Corridas / Automobilismo (nacionais) ──
+    {'name': 'Stock Car Brasil',           'channel_id': 'UCMioY9xHh_88u8iMIzJvCUQ', 'type': 'esporte', 'city': 'Nacional'},
+    {'name': 'Bandsports (F1/Moto)',        'channel_id': 'UCp3sMXsRchHGIF5QTtIxuKw', 'type': 'esporte', 'city': 'Nacional'},
+    {'name': 'Fórmula 4 Brasil',           'channel_id': 'UCH63gpxq4MifoNRuQQpRcOA', 'type': 'esporte', 'city': 'Nacional'},
+    # ── Corridas de Rua / Triathlon ──
+    {'name': 'World Athletics',            'channel_id': 'UCIHBiAlO32tvPGXMzIR9SFg', 'type': 'esporte', 'city': 'Internacional'},
+    {'name': 'Ironman Brasil',             'channel_id': 'UCbbYpDh5rjL_UqkMpfnwuXQ', 'type': 'esporte', 'city': 'Nacional'},
+    {'name': 'Run2Play Corridas',          'channel_id': 'UC6o7pqCuN_LFtL4F3k3rxNQ', 'type': 'esporte', 'city': 'Nacional'},
+    # ── Eventos / Shows ──
+    {'name': 'TV Cultura (shows/eventos)', 'channel_id': 'UCFiGIbHNmkLCBhCABO4JDGA', 'type': 'show',    'city': 'Nacional'},
 ]
 
 
