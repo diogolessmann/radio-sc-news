@@ -2632,6 +2632,22 @@
       </div>
     </a>
 
+    <!-- ── BANNER ALERTA SC ── -->
+    <a href="/alerta" style="text-decoration:none;display:block;margin-bottom:20px">
+      <div style="background:linear-gradient(135deg,#1a0e12,#1c1218);border:1px solid rgba(233,69,96,.4);border-radius:16px;padding:18px 20px;box-shadow:0 4px 18px rgba(233,69,96,.12);transition:transform .2s,box-shadow .2s"
+      onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 26px rgba(233,69,96,.25)'"
+      onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(233,69,96,.12)'">
+        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+          <div style="font-size:32px">🚨</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:3px">Alerta SC — Monitore sua CNH e veículo</div>
+            <div style="font-size:12px;color:rgba(255,255,255,.6)">Relatório mensal no WhatsApp · CNH, IPVA, multas e licenciamento · A partir de R$ 19,90/mês</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#e94560,#f5a623);color:#fff;font-size:11px;font-weight:800;padding:7px 14px;border-radius:9px;white-space:nowrap;flex-shrink:0">Saiba mais →</div>
+        </div>
+      </div>
+    </a>
+
     <div class="footer-bottom">
       © 2026 Rádio SC News · Norte de Santa Catarina · Todos os direitos reservados
     </div>
@@ -3207,6 +3223,10 @@ async function loadNews(page=1, reset=false) {
         if (adIndex === 5 && page === 1) {
           feed.appendChild(buildAgendaBanner());
         }
+        // Injeta banner Alerta SC após a 10ª notícia (apenas 1x por carregamento inicial)
+        if (adIndex === 10 && page === 1) {
+          feed.appendChild(buildAlertaBanner());
+        }
         feed.appendChild(buildNewsCard(n));
         adIndex++;
       });
@@ -3243,6 +3263,34 @@ function buildAgendaBanner() {
       <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.55));padding:10px 14px;display:flex;align-items:flex-end;justify-content:space-between">
         <div style="font-size:11px;color:rgba(255,255,255,.75)">✦ Grátis por 30 dias · Norte de SC</div>
         <div style="background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff;font-size:11px;font-weight:800;padding:6px 12px;border-radius:8px;white-space:nowrap;box-shadow:0 2px 8px rgba(39,174,96,.4)">Criar agenda grátis →</div>
+      </div>
+    </div>`;
+  return el;
+}
+
+function buildAlertaBanner() {
+  const el = document.createElement('a');
+  el.href = '/alerta';
+  el.style.cssText = 'text-decoration:none;display:block;width:100%;margin-bottom:4px';
+  el.innerHTML = `
+    <div style="
+      background:linear-gradient(135deg,#1a0e12,#1c1218);
+      border:1px solid rgba(233,69,96,.4);
+      border-radius:16px;
+      overflow:hidden;
+      padding:20px 20px;
+      box-shadow:0 4px 18px rgba(233,69,96,.12);
+      transition:transform .2s,box-shadow .2s;
+    "
+    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 26px rgba(233,69,96,.25)'"
+    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(233,69,96,.12)'">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div style="font-size:36px;flex-shrink:0">🚨</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px">Alerta SC — Monitore sua CNH e veículo</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.5">Receba 1x por mês no WhatsApp: pontuação da CNH, IPVA, licenciamento e multas em aberto. <strong style="color:rgba(255,255,255,.9)">A partir de R$ 19,90/mês.</strong></div>
+        </div>
+        <div style="background:linear-gradient(135deg,#e94560,#f5a623);color:#fff;font-size:12px;font-weight:800;padding:8px 16px;border-radius:10px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 8px rgba(233,69,96,.4)">Saiba mais →</div>
       </div>
     </div>`;
   return el;

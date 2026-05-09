@@ -236,6 +236,33 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_agenda_appt_biz  ON agenda_appointments(business_id);
         CREATE INDEX IF NOT EXISTS idx_agenda_appt_date ON agenda_appointments(appointment_date);
         CREATE INDEX IF NOT EXISTS idx_agenda_appt_status ON agenda_appointments(status);
+
+        CREATE TABLE IF NOT EXISTS alerta_subscribers (
+            id             INTEGER PRIMARY KEY AUTOINCREMENT,
+            name           TEXT NOT NULL,
+            cpf            TEXT,
+            plates_json    TEXT,
+            phone          TEXT NOT NULL,
+            email          TEXT,
+            plano          TEXT DEFAULT 'basico',
+            status         TEXT DEFAULT 'pending',
+            payment_status TEXT DEFAULT 'pending',
+            paid_at        TEXT,
+            notes          TEXT,
+            created_at     TEXT,
+            last_report_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS alerta_reports (
+            id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+            subscriber_id        INTEGER NOT NULL,
+            message              TEXT,
+            sent_at              TEXT,
+            created_at           TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_alerta_sub_status ON alerta_subscribers(status);
+        CREATE INDEX IF NOT EXISTS idx_alerta_rep_sub    ON alerta_reports(subscriber_id);
     ''')
     conn.commit()
     conn.close()
@@ -2163,6 +2190,256 @@ def api_agenda_book(slug):
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'business_name': biz['name'], 'business_phone': biz['phone']})
+
+
+# ══════════════════════════════════════════════════════════════
+#  ALERTA SC — SaaS de Monitoramento CNH & Veículo
+# ══════════════════════════════════════════════════════════════
+
+ALERTA_PLANS = {
+    'basico':  {'label': '🚗 Básico',   'price': 'R$ 19,90', 'vehicles': 1},
+    'familia': {'label': '👨‍👩‍👧 Família', 'price': 'R$ 34,90', 'vehicles': 3},
+    'frota':   {'label': '🚛 Frota',    'price': 'R$ 89,90', 'vehicles': 10},
+}
+
+ALERTA_REPORT_TEMPLATE = """📋 *ALERTA SC — Relatório Mensal*
+━━━━━━━━━━━━━━━━━━━━
+👤 {name}
+🚗 Placa: {plate}
+📅 Referência: {month}
+━━━━━━━━━━━━━━━━━━━━
+
+🪪 *CNH*
+{cnh_validade_icon} Validade: {cnh_validade}
+{cnh_pontos_icon} Pontuação: {cnh_pontos} pontos
+{cnh_cat_icon} Categoria: {cnh_categoria}
+
+🚘 *VEÍCULO ({plate})*
+{ipva_icon} IPVA: {ipva_status}{ipva_valor}
+{lic_icon} Licenciamento: {licenciamento_status}
+{multa_icon} Multas pendentes: {multas_count}{multas_valor}
+{multas_detail}
+━━━━━━━━━━━━━━━━━━━━
+{observacoes}
+📅 Próxima consulta: {next_month}
+
+_Alerta SC · radioscnews.com.br/alerta_
+_Dúvidas? Responda esta mensagem_ 😊"""
+
+
+def _build_report_message(sub, report):
+    from datetime import datetime
+    now = datetime.now()
+    months_pt = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
+    month     = f"{months_pt[now.month-1]}/{now.year}"
+    next_m    = months_pt[now.month % 12] + '/' + str(now.year + (1 if now.month == 12 else 0))
+
+    def icon(status): return '✅' if status in ('ok','quitado','em dia') else '⚠️'
+
+    cnh_pontos = report.get('cnh_pontos','—')
+    try:
+        pts = int(cnh_pontos)
+        cnh_pontos_icon = '✅' if pts < 20 else ('⚠️' if pts < 35 else '🚨')
+    except: cnh_pontos_icon = '✅'
+
+    multas_count = report.get('multas_count', 0)
+    multas_detail = ''
+    if report.get('multas_detail','').strip():
+        multas_detail = '\n   └ ' + report['multas_detail']
+
+    multas_valor = ''
+    if report.get('multas_valor','0,00') not in ('0,00','0',''):
+        multas_valor = f" — R$ {report['multas_valor']}"
+
+    ipva_valor = ''
+    if report.get('ipva_valor','').strip():
+        ipva_valor = f" — R$ {report['ipva_valor']}"
+
+    obs = report.get('observacoes','').strip()
+    obs_line = f"📝 Obs: {obs}" if obs else "✅ Tudo em ordem! Qualquer dúvida, estamos à disposição."
+
+    return ALERTA_REPORT_TEMPLATE.format(
+        name=sub['name'],
+        plate=(report.get('plate') or sub['plate'] or '—').upper(),
+        month=month, next_month=next_m,
+        cnh_validade=report.get('cnh_validade','—'),
+        cnh_validade_icon='✅' if report.get('cnh_validade','') else '⚠️',
+        cnh_pontos=cnh_pontos,
+        cnh_pontos_icon=cnh_pontos_icon,
+        cnh_categoria=report.get('cnh_categoria','—'),
+        cnh_cat_icon='✅',
+        ipva_icon=icon(report.get('ipva_status','ok')),
+        ipva_status=report.get('ipva_status','—').capitalize(),
+        ipva_valor=ipva_valor,
+        lic_icon=icon(report.get('licenciamento_status','ok')),
+        licenciamento_status=report.get('licenciamento_status','—').capitalize(),
+        multa_icon='✅' if multas_count == 0 else '🚨',
+        multas_count=multas_count,
+        multas_valor=multas_valor,
+        multas_detail=multas_detail,
+        observacoes=obs_line,
+    )
+
+
+# ── Landing Page ──────────────────────────────────────────────
+@app.route('/alerta')
+def alerta_landing():
+    return render_template('alerta_landing.html', plans=ALERTA_PLANS)
+
+
+# ── Cadastro público ──────────────────────────────────────────
+@app.route('/alerta/cadastro', methods=['GET', 'POST'])
+def alerta_cadastro():
+    import json as _json
+    error   = None
+    success = False
+    phone   = ''
+    plano   = request.args.get('plano', request.form.get('plano', 'familia'))
+    if request.method == 'POST':
+        name  = request.form.get('name','').strip()
+        cpf   = request.form.get('cpf','').strip()
+        phone = request.form.get('phone','').strip()
+        email = request.form.get('email','').strip()
+        plano = request.form.get('plano','familia')
+
+        # Collect plates
+        max_veh = {'basico':1,'familia':3,'frota':10}.get(plano, 1)
+        plates = []
+        for i in range(1, max_veh + 1):
+            p = request.form.get(f'plate_{i}','').strip().upper()
+            d = request.form.get(f'desc_{i}','').strip()
+            if p:
+                plates.append({'plate': p, 'desc': d})
+
+        if not all([name, phone]):
+            error = 'Nome e WhatsApp são obrigatórios.'
+        elif not plates:
+            error = 'Informe ao menos uma placa de veículo.'
+        else:
+            conn = get_db()
+            conn.execute('''
+                INSERT INTO alerta_subscribers
+                (name, cpf, plates_json, phone, email, plano, status, payment_status, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, 'pending', 'pending', ?)
+            ''', (name, cpf, _json.dumps(plates), phone, email, plano, datetime.now().isoformat()))
+            conn.commit()
+            conn.close()
+            success = True
+
+    return render_template('alerta_cadastro.html', error=error, success=success,
+                           plano=plano, phone=phone)
+
+
+# ── Admin: listar assinantes ──────────────────────────────────
+@app.route('/admin/alerta')
+@login_required
+def admin_alerta():
+    import json as _json
+    conn = get_db()
+    rows = [dict(r) for r in conn.execute(
+        'SELECT * FROM alerta_subscribers ORDER BY created_at DESC'
+    ).fetchall()]
+    for s in rows:
+        # Expand plates_json → plate_1, plate_2, ... + desc_1, ...
+        try:
+            plates = _json.loads(s.get('plates_json') or '[]')
+        except Exception:
+            plates = []
+        for i, pv in enumerate(plates, 1):
+            s[f'plate_{i}'] = pv.get('plate','') if isinstance(pv, dict) else str(pv)
+            s[f'desc_{i}']  = pv.get('desc','')  if isinstance(pv, dict) else ''
+        # Count reports
+        s['reports_count'] = conn.execute(
+            'SELECT COUNT(*) FROM alerta_reports WHERE subscriber_id=?', (s['id'],)
+        ).fetchone()[0]
+    conn.close()
+    return jsonify({'subscribers': rows})
+
+
+# ── Admin: ativar/suspender ───────────────────────────────────
+@app.route('/admin/alerta/<int:sub_id>/status', methods=['POST'])
+@login_required
+def admin_alerta_status(sub_id):
+    data = request.get_json() or {}
+    new_status = data.get('status') or request.form.get('status', 'active')
+    conn = get_db()
+    conn.execute('UPDATE alerta_subscribers SET status=? WHERE id=?', (new_status, sub_id))
+    conn.commit(); conn.close()
+    return jsonify({'success': True})
+
+
+# ── Admin: marcar pagamento ───────────────────────────────────
+@app.route('/admin/alerta/<int:sub_id>/payment', methods=['POST'])
+@login_required
+def admin_alerta_payment(sub_id):
+    now = datetime.now().isoformat()
+    conn = get_db()
+    conn.execute(
+        'UPDATE alerta_subscribers SET payment_status=?, status=?, paid_at=? WHERE id=?',
+        ('paid', 'active', now, sub_id)
+    )
+    conn.commit(); conn.close()
+    return jsonify({'success': True})
+
+
+# ── Admin: salvar notas ───────────────────────────────────────
+@app.route('/admin/alerta/<int:sub_id>/notes', methods=['POST'])
+@login_required
+def admin_alerta_notes(sub_id):
+    data = request.get_json() or {}
+    notes = data.get('notes') or request.form.get('notes', '')
+    conn = get_db()
+    conn.execute('UPDATE alerta_subscribers SET notes=? WHERE id=?', (notes, sub_id))
+    conn.commit(); conn.close()
+    return jsonify({'success': True})
+
+
+# ── Admin: criar relatório e gerar link WA ────────────────────
+@app.route('/admin/alerta/<int:sub_id>/report', methods=['POST'])
+@login_required
+def admin_alerta_report(sub_id):
+    now = datetime.now().isoformat()
+    data = request.get_json() or {}
+    message = data.get('message') or request.form.get('message', '')
+    conn = get_db()
+    sub = conn.execute('SELECT * FROM alerta_subscribers WHERE id=?', (sub_id,)).fetchone()
+    if not sub:
+        conn.close()
+        return jsonify({'success': False, 'error': 'Assinante não encontrado'}), 404
+
+    conn.execute(
+        'INSERT INTO alerta_reports (subscriber_id, message, sent_at, created_at) VALUES (?,?,?,?)',
+        (sub_id, message, now, now)
+    )
+    conn.execute('UPDATE alerta_subscribers SET last_report_at=? WHERE id=?', (now, sub_id))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True})
+
+
+# ── Admin: histórico de relatórios ────────────────────────────
+@app.route('/admin/alerta/<int:sub_id>/reports')
+@login_required
+def admin_alerta_reports(sub_id):
+    conn = get_db()
+    reports = [dict(r) for r in conn.execute(
+        'SELECT * FROM alerta_reports WHERE subscriber_id=? ORDER BY created_at DESC',
+        (sub_id,)
+    ).fetchall()]
+    conn.close()
+    return jsonify(reports)
+
+
+# ── Admin: apagar assinante ───────────────────────────────────
+@app.route('/admin/alerta/<int:sub_id>/delete', methods=['POST'])
+@login_required
+def admin_alerta_delete(sub_id):
+    conn = get_db()
+    conn.execute('DELETE FROM alerta_reports WHERE subscriber_id=?', (sub_id,))
+    conn.execute('DELETE FROM alerta_subscribers WHERE id=?', (sub_id,))
+    conn.commit(); conn.close()
+    return jsonify({'success': True})
 
 
 # ── Inicialização que roda sempre (dev e produção/gunicorn) ──

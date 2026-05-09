@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alerta SC — Monitoramento de CNH e Veículo</title>
+<style>
+  :root{--bg:#0f0f13;--surface:#1a1a24;--surface2:#22222f;--accent:#e94560;--orange:#f5a623;--text:#e8e8f0;--text2:#9090a8;--border:rgba(255,255,255,0.08);--radius:16px}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+
+  /* NAV */
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+  .nav-logo{font-size:20px;font-weight:900;background:linear-gradient(135deg,#e94560,#f5a623);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .nav-links{display:flex;gap:12px;align-items:center}
+  .nav-links a{color:var(--text2);text-decoration:none;font-size:13px;transition:.2s}
+  .nav-links a:hover{color:var(--text)}
+  .btn-nav{background:linear-gradient(135deg,#e94560,#f5a623);color:#fff!important;padding:8px 18px;border-radius:10px;font-weight:700;font-size:13px!important}
+
+  /* HERO */
+  .hero{text-align:center;padding:80px 24px 60px;max-width:800px;margin:0 auto}
+  .hero-badge{display:inline-block;background:rgba(233,69,96,.15);border:1px solid rgba(233,69,96,.3);color:var(--accent);padding:6px 18px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:24px}
+  .hero h1{font-size:clamp(32px,6vw,58px);font-weight:900;line-height:1.1;margin-bottom:20px}
+  .hero h1 span{background:linear-gradient(135deg,#e94560,#f5a623);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+  .hero p{font-size:18px;color:var(--text2);line-height:1.7;margin-bottom:32px;max-width:600px;margin-left:auto;margin-right:auto}
+  .hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn-primary{background:linear-gradient(135deg,#e94560,#f5a623);color:#fff;padding:16px 36px;border-radius:14px;font-size:16px;font-weight:800;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:.2s;border:none;cursor:pointer}
+  .btn-primary:hover{opacity:.9;transform:translateY(-2px)}
+  .btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);padding:16px 28px;border-radius:14px;font-size:15px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:8px;transition:.2s}
+  .btn-ghost:hover{border-color:var(--text2);color:var(--text)}
+
+  /* SECTION */
+  .section{padding:60px 24px;max-width:1100px;margin:0 auto}
+  .section-title{text-align:center;font-size:30px;font-weight:800;margin-bottom:8px}
+  .section-sub{text-align:center;color:var(--text2);font-size:16px;margin-bottom:48px}
+
+  /* PROBLEM BAR */
+  .problem-bar{background:rgba(233,69,96,.08);border-top:1px solid rgba(233,69,96,.2);border-bottom:1px solid rgba(233,69,96,.2);padding:28px 24px;text-align:center}
+  .problem-bar p{font-size:18px;color:var(--text2);max-width:750px;margin:0 auto;line-height:1.7}
+  .problem-bar strong{color:var(--accent)}
+
+  /* HOW IT WORKS */
+  .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px}
+  .step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 24px;text-align:center;position:relative}
+  .step-num{width:40px;height:40px;background:linear-gradient(135deg,#e94560,#f5a623);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;margin:0 auto 16px}
+  .step h3{font-size:17px;font-weight:700;margin-bottom:8px}
+  .step p{font-size:14px;color:var(--text2);line-height:1.6}
+  .step-arrow{position:absolute;right:-20px;top:50%;transform:translateY(-50%);color:var(--text2);font-size:22px;display:none}
+  @media(min-width:768px){.step-arrow{display:block}}
+
+  /* WHAT'S INCLUDED */
+  .included-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:600px){.included-grid{grid-template-columns:1fr}}
+  .included-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+  .included-card h3{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+  .check-item{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:14px;color:var(--text2)}
+  .check-item span{color:#27ae60;font-size:16px;flex-shrink:0;margin-top:1px}
+  .check-item strong{color:var(--text)}
+
+  /* REPORT PREVIEW */
+  .report-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:28px;max-width:520px;margin:0 auto;font-family:monospace;font-size:14px;line-height:1.8}
+  .report-preview .rp-header{color:var(--orange);font-weight:700;margin-bottom:12px;font-size:15px}
+  .report-preview .rp-ok{color:#27ae60}
+  .report-preview .rp-warn{color:var(--accent)}
+  .report-preview .rp-label{color:var(--text2)}
+  .report-badge{display:inline-block;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.3);color:#27ae60;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:20px}
+
+  /* PLANS */
+  .plans-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+  .plan-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px;text-align:center;position:relative;transition:.2s}
+  .plan-card.featured{border-color:#e94560;background:linear-gradient(160deg,#1f1a24,#1a1a24)}
+  .plan-card.featured::before{content:'MAIS POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#e94560,#f5a623);color:#fff;font-size:11px;font-weight:800;padding:4px 14px;border-radius:20px;white-space:nowrap}
+  .plan-name{font-size:14px;color:var(--text2);font-weight:600;margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase}
+  .plan-price{font-size:42px;font-weight:900;margin-bottom:4px}
+  .plan-price sup{font-size:20px;vertical-align:super}
+  .plan-price sub{font-size:16px;color:var(--text2)}
+  .plan-vehicles{font-size:13px;color:var(--text2);margin-bottom:20px;padding:8px;background:var(--surface2);border-radius:8px}
+  .plan-features{text-align:left;margin-bottom:24px}
+  .plan-feat{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);margin-bottom:10px}
+  .plan-feat::before{content:'✅';flex-shrink:0}
+  .btn-plan{width:100%;padding:13px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;text-decoration:none;display:block;transition:.2s}
+  .btn-plan-primary{background:linear-gradient(135deg,#e94560,#f5a623);color:#fff}
+  .btn-plan-primary:hover{opacity:.9;transform:translateY(-1px)}
+  .btn-plan-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+  .btn-plan-ghost:hover{border-color:var(--text2)}
+
+  /* FAQ */
+  .faq-list{max-width:700px;margin:0 auto}
+  .faq-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:12px}
+  .faq-q{font-weight:700;font-size:15px;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+  .faq-a{font-size:14px;color:var(--text2);line-height:1.7}
+
+  /* CTA BOTTOM */
+  .cta-bottom{background:linear-gradient(135deg,rgba(233,69,96,.12),rgba(245,166,35,.08));border-top:1px solid rgba(233,69,96,.2);border-bottom:1px solid rgba(233,69,96,.2);padding:60px 24px;text-align:center}
+  .cta-bottom h2{font-size:32px;font-weight:900;margin-bottom:12px}
+  .cta-bottom p{color:var(--text2);font-size:16px;margin-bottom:32px}
+
+  /* FOOTER */
+  footer{background:var(--surface);border-top:1px solid var(--border);padding:20px 24px;text-align:center;font-size:13px;color:var(--text2)}
+  footer a{color:var(--text2);text-decoration:none}
+  footer a:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">🚨 Alerta SC</div>
+  <div class="nav-links">
+    <a href="/">📻 Rádio SC</a>
+    <a href="/agenda">📅 Agenda SC</a>
+    <a href="/alerta/cadastro" class="btn-nav">Assinar Agora</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">🛡️ Serviço exclusivo para Santa Catarina</div>
+  <h1>Sua CNH e seu carro<br><span>sob monitoramento constante</span></h1>
+  <p>Receba <strong style="color:var(--text)">1x por mês</strong> um relatório completo sobre sua CNH — pontos, vencimento, categoria — e seu veículo — IPVA, licenciamento e multas em aberto. Diretamente no seu WhatsApp.</p>
+  <div class="hero-cta">
+    <a href="/alerta/cadastro" class="btn-primary">🚀 Começar por R$ 19,90/mês</a>
+    <a href="#como-funciona" class="btn-ghost">📖 Como funciona</a>
+  </div>
+</div>
+
+<!-- PROBLEM BAR -->
+<div class="problem-bar">
+  <p>Você sabia que multas não pagas acumulam juros e podem <strong>suspender sua CNH</strong>? E que o IPVA atrasado gera <strong>apreensão do veículo</strong>? A maioria das pessoas só descobre quando é tarde demais.</p>
+</div>
+
+<!-- HOW IT WORKS -->
+<div class="section" id="como-funciona">
+  <div class="section-title">Como funciona</div>
+  <div class="section-sub">Simples, sem burocracia — você recebe tudo no WhatsApp</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>📝 Cadastre-se</h3>
+      <p>Informe seu nome, CPF, placa do veículo e WhatsApp. Escolha o plano ideal para você.</p>
+      <div class="step-arrow">→</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>💳 Confirme o pagamento</h3>
+      <p>Receba o Pix para pagar. Após a confirmação, seu monitoramento fica ativo no mesmo dia.</p>
+      <div class="step-arrow">→</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>🔍 Consulta mensal</h3>
+      <p>Nossa equipe consulta manualmente o DETRANET todo mês com seus dados — CNH, multas, IPVA e licenciamento.</p>
+      <div class="step-arrow">→</div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h3>📲 Receba o relatório</h3>
+      <p>Todo mês você recebe no WhatsApp um relatório detalhado e claro, com alertas sobre qualquer pendência encontrada.</p>
+    </div>
+  </div>
+</div>
+
+<!-- WHAT'S INCLUDED -->
+<div class="section" style="padding-top:0">
+  <div class="section-title">O que está no relatório</div>
+  <div class="section-sub">Tudo que você precisa saber, resumido em uma mensagem clara</div>
+  <div class="included-grid">
+    <div class="included-card">
+      <h3>🪪 Situação da CNH</h3>
+      <div class="check-item"><span>✅</span><div><strong>Validade da habilitação</strong> — alertamos quando estiver próxima do vencimento</div></div>
+      <div class="check-item"><span>✅</span><div><strong>Pontuação atual</strong> — saiba quantos pontos você tem na carteira</div></div>
+      <div class="check-item"><span>✅</span><div><strong>Categoria</strong> — confirmação da categoria habilitada (A, B, AB, etc.)</div></div>
+      <div class="check-item"><span>✅</span><div><strong>Status geral</strong> — ativa, suspensa, cassada ou vencida</div></div>
+    </div>
+    <div class="included-card">
+      <h3>🚘 Situação do Veículo</h3>
+      <div class="check-item"><span>✅</span><div><strong>IPVA</strong> — valor, situação de pagamento e parcelamento</div></div>
+      <div class="check-item"><span>✅</span><div><strong>Licenciamento</strong> — situação do CRLV e data de vencimento</div></div>
+      <div class="check-item"><span>✅</span><div><strong>Multas em aberto</strong> — infração, valor e prazo para recurso</div></div>
+      <div class="check-item"><span>✅</span><div><strong>Débitos</strong> — qualquer pendência que possa gerar restrição</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- REPORT PREVIEW -->
+<div class="section" style="padding-top:0">
+  <div style="text-align:center;margin-bottom:24px">
+    <span class="report-badge">📲 Exemplo real de relatório no WhatsApp</span>
+  </div>
+  <div class="report-preview">
+    <div class="rp-header">📋 ALERTA SC — Relatório Mensal</div>
+    <div class="rp-label">👤 João da Silva &nbsp;·&nbsp; 🚗 ABC-1234 &nbsp;·&nbsp; Maio/2026</div>
+    <br>
+    <div><strong>🪪 SUA CNH</strong></div>
+    <div class="rp-ok">✅ Validade: 15/03/2028 — em dia</div>
+    <div class="rp-warn">⚠️ Pontuação: 14 pontos — atenção!</div>
+    <div class="rp-ok">✅ Categoria: B — ativa</div>
+    <br>
+    <div><strong>🚘 SEU VEÍCULO</strong></div>
+    <div class="rp-ok">✅ IPVA 2026: Pago</div>
+    <div class="rp-ok">✅ Licenciamento: Regular (vence 09/2026)</div>
+    <div class="rp-warn">⚠️ 1 multa em aberto — R$ 195,23</div>
+    <div style="font-size:12px;color:var(--text2)">   📌 Prazo para recurso: 20/06/2026</div>
+    <br>
+    <div class="rp-label">📅 Próxima consulta: Junho/2026</div>
+    <div class="rp-label">📱 Dúvidas? Responda esta mensagem.</div>
+  </div>
+</div>
+
+<!-- PLANS -->
+<div class="section" id="planos">
+  <div class="section-title">Escolha seu plano</div>
+  <div class="section-sub">Sem taxa de adesão · Cancele quando quiser · Pagamento via Pix</div>
+  <div class="plans-grid">
+
+    <div class="plan-card">
+      <div class="plan-name">Básico</div>
+      <div class="plan-price"><sup>R$</sup>19<sub>,90/mês</sub></div>
+      <div class="plan-vehicles">🚗 1 veículo · 1 CPF</div>
+      <div class="plan-features">
+        <div class="plan-feat">Relatório mensal completo</div>
+        <div class="plan-feat">Situação da CNH</div>
+        <div class="plan-feat">IPVA, licenciamento e multas</div>
+        <div class="plan-feat">Entrega via WhatsApp</div>
+        <div class="plan-feat">Alertas de vencimento</div>
+      </div>
+      <a href="/alerta/cadastro?plano=basico" class="btn-plan btn-plan-ghost">Escolher Básico</a>
+    </div>
+
+    <div class="plan-card featured">
+      <div class="plan-name">Família</div>
+      <div class="plan-price"><sup>R$</sup>34<sub>,90/mês</sub></div>
+      <div class="plan-vehicles">🚗🚙🛻 Até 3 veículos · 1 CPF</div>
+      <div class="plan-features">
+        <div class="plan-feat">Tudo do plano Básico</div>
+        <div class="plan-feat">Monitora até 3 veículos</div>
+        <div class="plan-feat">Ideal para casais e famílias</div>
+        <div class="plan-feat">Relatório unificado no WhatsApp</div>
+        <div class="plan-feat">Economia de R$ 25 vs. 3 básicos</div>
+      </div>
+      <a href="/alerta/cadastro?plano=familia" class="btn-plan btn-plan-primary">Escolher Família</a>
+    </div>
+
+    <div class="plan-card">
+      <div class="plan-name">Frota</div>
+      <div class="plan-price"><sup>R$</sup>89<sub>,90/mês</sub></div>
+      <div class="plan-vehicles">🚛🚐🚌 Até 10 veículos</div>
+      <div class="plan-features">
+        <div class="plan-feat">Tudo do plano Família</div>
+        <div class="plan-feat">Monitora até 10 veículos</div>
+        <div class="plan-feat">Ideal para pequenas frotas</div>
+        <div class="plan-feat">Relatório por veículo + resumo</div>
+        <div class="plan-feat">Suporte prioritário via WhatsApp</div>
+      </div>
+      <a href="/alerta/cadastro?plano=frota" class="btn-plan btn-plan-ghost">Escolher Frota</a>
+    </div>
+
+  </div>
+</div>
+
+<!-- FAQ -->
+<div class="section" style="padding-top:0" id="faq">
+  <div class="section-title">Perguntas frequentes</div>
+  <div class="section-sub">Tire suas dúvidas antes de assinar</div>
+  <div class="faq-list">
+
+    <div class="faq-item">
+      <div class="faq-q">📅 Com que frequência recebo o relatório?</div>
+      <div class="faq-a">Uma vez por mês. Nossa equipe faz a consulta manual no DETRANET e envia o relatório completo diretamente no seu WhatsApp dentro dos primeiros 5 dias úteis de cada mês.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">🔒 Meus dados ficam seguros?</div>
+      <div class="faq-a">Sim. Seus dados (CPF, placa) são usados exclusivamente para a consulta no DETRANET e não são compartilhados com terceiros. Os dados ficam armazenados em nosso servidor seguro.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">💳 Como é feito o pagamento?</div>
+      <div class="faq-a">Pagamento via Pix, mensalmente. Após o cadastro, você recebe a chave Pix. Ao confirmar o pagamento, seu monitoramento é ativado. No mês seguinte, um lembrete é enviado pelo WhatsApp.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">❌ Posso cancelar quando quiser?</div>
+      <div class="faq-a">Sim, sem fidelidade. É só avisar via WhatsApp e o serviço é cancelado imediatamente, sem cobranças futuras. O relatório do mês já pago será entregue normalmente.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">🚗 Posso adicionar mais veículos depois?</div>
+      <div class="faq-a">Sim! Basta entrar em contato pelo WhatsApp para atualizar seu plano. A diferença de valor é calculada proporcionalmente ao mês em curso.</div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q">🏍️ Funciona para motos e caminhões também?</div>
+      <div class="faq-a">Sim. O monitoramento é feito pela placa do veículo, então funciona para carros, motos, caminhões, vans e qualquer veículo registrado no DETRAN de SC.</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- CTA BOTTOM -->
+<div class="cta-bottom">
+  <h2>Comece agora — 1º mês com garantia</h2>
+  <p>Se não ficar satisfeito com o primeiro relatório, devolvemos seu dinheiro. Sem perguntas.</p>
+  <a href="/alerta/cadastro" class="btn-primary" style="font-size:18px;padding:18px 48px">
+    🚨 Assinar Alerta SC
+  </a>
+  <p style="margin-top:16px;font-size:13px;color:var(--text2)">A partir de R$ 19,90/mês · Pagamento via Pix · Cancele quando quiser</p>
+</div>
+
+<footer>
+  <p>🚨 Alerta SC · Serviço de monitoramento de CNH e veículos &nbsp;·&nbsp; <a href="/">📻 Rádio SC News</a> &nbsp;·&nbsp; <a href="/agenda">📅 Agenda SC</a></p>
+  <p style="margin-top:6px">© 2026 Rádio SC. Todos os direitos reservados.</p>
+</footer>
+
+</body>
+</html>
