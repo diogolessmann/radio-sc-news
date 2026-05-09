@@ -2202,84 +2202,7 @@ ALERTA_PLANS = {
     'frota':   {'label': '🚛 Frota',    'price': 'R$ 89,90', 'vehicles': 10},
 }
 
-ALERTA_REPORT_TEMPLATE = """📋 *ALERTA SC — Relatório Mensal*
-━━━━━━━━━━━━━━━━━━━━
-👤 {name}
-🚗 Placa: {plate}
-📅 Referência: {month}
-━━━━━━━━━━━━━━━━━━━━
-
-🪪 *CNH*
-{cnh_validade_icon} Validade: {cnh_validade}
-{cnh_pontos_icon} Pontuação: {cnh_pontos} pontos
-{cnh_cat_icon} Categoria: {cnh_categoria}
-
-🚘 *VEÍCULO ({plate})*
-{ipva_icon} IPVA: {ipva_status}{ipva_valor}
-{lic_icon} Licenciamento: {licenciamento_status}
-{multa_icon} Multas pendentes: {multas_count}{multas_valor}
-{multas_detail}
-━━━━━━━━━━━━━━━━━━━━
-{observacoes}
-📅 Próxima consulta: {next_month}
-
-_Alerta SC · radioscnews.com.br/alerta_
-_Dúvidas? Responda esta mensagem_ 😊"""
-
-
-def _build_report_message(sub, report):
-    from datetime import datetime
-    now = datetime.now()
-    months_pt = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-                 'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
-    month     = f"{months_pt[now.month-1]}/{now.year}"
-    next_m    = months_pt[now.month % 12] + '/' + str(now.year + (1 if now.month == 12 else 0))
-
-    def icon(status): return '✅' if status in ('ok','quitado','em dia') else '⚠️'
-
-    cnh_pontos = report.get('cnh_pontos','—')
-    try:
-        pts = int(cnh_pontos)
-        cnh_pontos_icon = '✅' if pts < 20 else ('⚠️' if pts < 35 else '🚨')
-    except: cnh_pontos_icon = '✅'
-
-    multas_count = report.get('multas_count', 0)
-    multas_detail = ''
-    if report.get('multas_detail','').strip():
-        multas_detail = '\n   └ ' + report['multas_detail']
-
-    multas_valor = ''
-    if report.get('multas_valor','0,00') not in ('0,00','0',''):
-        multas_valor = f" — R$ {report['multas_valor']}"
-
-    ipva_valor = ''
-    if report.get('ipva_valor','').strip():
-        ipva_valor = f" — R$ {report['ipva_valor']}"
-
-    obs = report.get('observacoes','').strip()
-    obs_line = f"📝 Obs: {obs}" if obs else "✅ Tudo em ordem! Qualquer dúvida, estamos à disposição."
-
-    return ALERTA_REPORT_TEMPLATE.format(
-        name=sub['name'],
-        plate=(report.get('plate') or sub['plate'] or '—').upper(),
-        month=month, next_month=next_m,
-        cnh_validade=report.get('cnh_validade','—'),
-        cnh_validade_icon='✅' if report.get('cnh_validade','') else '⚠️',
-        cnh_pontos=cnh_pontos,
-        cnh_pontos_icon=cnh_pontos_icon,
-        cnh_categoria=report.get('cnh_categoria','—'),
-        cnh_cat_icon='✅',
-        ipva_icon=icon(report.get('ipva_status','ok')),
-        ipva_status=report.get('ipva_status','—').capitalize(),
-        ipva_valor=ipva_valor,
-        lic_icon=icon(report.get('licenciamento_status','ok')),
-        licenciamento_status=report.get('licenciamento_status','—').capitalize(),
-        multa_icon='✅' if multas_count == 0 else '🚨',
-        multas_count=multas_count,
-        multas_valor=multas_valor,
-        multas_detail=multas_detail,
-        observacoes=obs_line,
-    )
+# (Geração do relatório é feita pelo JavaScript no admin — mensagem enviada via WhatsApp)
 
 
 # ── Landing Page ──────────────────────────────────────────────
@@ -2328,7 +2251,16 @@ def alerta_cadastro():
             success = True
 
     return render_template('alerta_cadastro.html', error=error, success=success,
-                           plano=plano, phone=phone)
+                           plano=plano, phone=phone,
+                           req_name=request.form.get('name',''),
+                           req_cpf=request.form.get('cpf',''),
+                           req_phone=request.form.get('phone',''),
+                           req_email=request.form.get('email',''),
+                           req_plate_1=request.form.get('plate_1',''),
+                           req_desc_1=request.form.get('desc_1',''),
+                           req_plate_2=request.form.get('plate_2',''),
+                           req_desc_2=request.form.get('desc_2',''),
+                           req_plate_3=request.form.get('plate_3',''))
 
 
 # ── Admin: listar assinantes ──────────────────────────────────
