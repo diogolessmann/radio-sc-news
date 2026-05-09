@@ -2374,10 +2374,46 @@ def admin_alerta_delete(sub_id):
     return jsonify({'success': True})
 
 
+# ── Canais regionais Norte SC para monitorar ao vivo ──────────
+MONITORED_CHANNELS_SEED = [
+    # ── Futebol / Esportes regionais ──
+    {'name': 'JEC Joinville',        'channel_id': 'UCNjIQGJD57ZfC6bEYN_gMvg', 'type': 'esporte', 'city': 'Joinville'},
+    {'name': 'Esporte Interativo SC', 'channel_id': 'UCXtFoKkd-5cFSfSPRzL1FHA', 'type': 'esporte', 'city': 'Santa Catarina'},
+    # ── Missas / Igrejas ──
+    {'name': 'Diocese de Joinville',  'channel_id': 'UCeHvIpJLDmTr_kzM3hBFhNg', 'type': 'missa',   'city': 'Joinville'},
+    # ── TV / Notícias regionais ──
+    {'name': 'NSC Total',             'channel_id': 'UCMioY9xHh_88u8iMIzJvCUQ', 'type': 'geral',   'city': 'Santa Catarina'},
+    {'name': 'SCC SBT Santa Catarina','channel_id': 'UCT_J5HN1oCDj3fJd0_iRSUw', 'type': 'geral',   'city': 'Norte de SC'},
+    # ── Esportes / Corridas ──
+    {'name': 'Corrida de Rua SC',     'channel_id': 'UCjZBMiUWLe_jGKzxLQME5gQ', 'type': 'esporte', 'city': 'Santa Catarina'},
+]
+
+
+def seed_monitored_channels():
+    """Semeia canais regionais para monitoramento ao vivo se a tabela estiver vazia."""
+    conn = get_db()
+    count = conn.execute('SELECT COUNT(*) FROM monitored_channels').fetchone()[0]
+    if count == 0:
+        now = datetime.now().isoformat()
+        for ch in MONITORED_CHANNELS_SEED:
+            try:
+                conn.execute('''
+                    INSERT OR IGNORE INTO monitored_channels
+                    (name, youtube_channel_id, type, city, auto_publish, active, created_at)
+                    VALUES (?, ?, ?, ?, 1, 1, ?)
+                ''', (ch['name'], ch['channel_id'], ch['type'], ch['city'], now))
+            except Exception as e:
+                logger.warning(f'seed_monitored_channels: {e}')
+        conn.commit()
+        logger.info(f'Monitoramento: {len(MONITORED_CHANNELS_SEED)} canais regionais pré-configurados.')
+    conn.close()
+
+
 # ── Inicialização que roda sempre (dev e produção/gunicorn) ──
 with app.app_context():
     init_db()
     seed_youtube_channels()
+    seed_monitored_channels()
 
 import threading as _threading
 _t = _threading.Thread(target=background_startup, daemon=True)

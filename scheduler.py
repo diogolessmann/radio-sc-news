@@ -23,6 +23,19 @@ def collect_job():
         logger.error(f"❌ Erro na coleta automática: {e}")
 
 
+def check_live_job():
+    """Verifica canais monitorados e atualiza transmissões ao vivo automaticamente."""
+    try:
+        import os
+        from stream_checker import update_live_status
+        db_path = os.environ.get('DB_PATH', 'radio_sc.db')
+        logger.info("📡 Verificando canais ao vivo...")
+        update_live_status(db_path)
+        logger.info("✅ Verificação de ao vivo concluída.")
+    except Exception as e:
+        logger.error(f"❌ Erro na verificação de ao vivo: {e}")
+
+
 def cleanup_job():
     """Remove notícias com mais de 48h para manter o banco limpo."""
     try:
@@ -90,8 +103,17 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
+    # Verificação de canais ao vivo a cada 10 minutos
+    _scheduler.add_job(
+        func=check_live_job,
+        trigger=IntervalTrigger(minutes=10),
+        id='check_live',
+        name='Verificação automática de transmissões ao vivo',
+        replace_existing=True
+    )
+
     _scheduler.start()
-    logger.info(f"✅ Scheduler iniciado — coleta a cada {interval_minutes} min, limpeza diária às 3h.")
+    logger.info(f"✅ Scheduler iniciado — notícias a cada {interval_minutes} min · ao vivo a cada 10 min · limpeza às 3h.")
     return _scheduler
 
 

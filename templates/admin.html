@@ -434,9 +434,21 @@
   <!-- TAB: TRANSMISSÕES -->
   <div id="tab-transmissions" class="tab-content">
 
-    <!-- Formulário: Nova Transmissão -->
-    <div class="form-card">
-      <h3>📡 Adicionar Transmissão</h3>
+    <!-- Explicação das duas modalidades -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
+      <div style="background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.25);border-radius:14px;padding:18px">
+        <div style="font-size:20px;margin-bottom:8px">🤖 Auto-detectado <span style="font-size:11px;background:rgba(39,174,96,.2);color:#27ae60;padding:2px 8px;border-radius:6px;font-weight:700">GRATUITO</span></div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6">Canais da região monitorados automaticamente a cada 10 min. Quando entram ao vivo (jogo, missa, show), aparecem no portal sozinhos — sem você fazer nada.</div>
+      </div>
+      <div style="background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.25);border-radius:14px;padding:18px">
+        <div style="font-size:20px;margin-bottom:8px">💰 Agendado manualmente <span style="font-size:11px;background:rgba(245,166,35,.2);color:var(--accent2);padding:2px 8px;border-radius:6px;font-weight:700">PAGO</span></div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.6">Clubes, igrejas, empresas ou eventos que querem aparecer em destaque no portal. Você agenda manualmente após combinar o valor com o cliente.</div>
+      </div>
+    </div>
+
+    <!-- Formulário: Nova Transmissão PAGA -->
+    <div class="form-card" style="border-color:rgba(245,166,35,.3)">
+      <h3>💰 Cadastrar Transmissão Paga / Agendada</h3>
       <div class="form-row">
         <div class="form-group" style="grid-column:1/-1">
           <label>Título *</label>
@@ -447,12 +459,11 @@
         <div class="form-group">
           <label>Tipo</label>
           <select class="form-control" id="tx-type">
+            <option value="esporte">⚽ Esporte / Futebol</option>
+            <option value="missa">🕯️ Missa / Culto</option>
+            <option value="show">🎵 Show / Evento</option>
             <option value="geral">📡 Geral</option>
-            <option value="esporte">⚽ Esporte</option>
-            <option value="missa">🕯️ Missa</option>
-            <option value="camara">🏛️ Câmara</option>
-            <option value="show">🎵 Show</option>
-            <option value="tv">📺 TV</option>
+            <option value="tv">📺 TV Regional</option>
           </select>
         </div>
         <div class="form-group">
@@ -504,12 +515,12 @@
           <input class="form-control" id="tx-recurrence-days" placeholder="seg,ter,qua,qui,sex,sab,dom" type="text">
         </div>
       </div>
-      <button class="btn btn-primary" onclick="createTransmission()">📤 Adicionar Transmissão</button>
+      <button class="btn btn-primary" onclick="createTransmission()">📤 Cadastrar Transmissão</button>
     </div>
 
     <!-- Lista de Transmissões -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3>📋 Transmissões Cadastradas</h3>
+      <h3>📋 Transmissões Ativas</h3>
       <button class="btn btn-blue btn-sm" onclick="loadTransmissionsAdmin()">🔄 Atualizar</button>
     </div>
     <div style="overflow-x:auto">
@@ -533,8 +544,9 @@
 
     <!-- Canais Monitorados -->
     <div style="margin-top:40px">
-      <div class="form-card">
-        <h3>📺 Adicionar Canal Monitorado</h3>
+      <div class="form-card" style="border-color:rgba(39,174,96,.3)">
+        <h3>🤖 Adicionar Canal para Monitoramento Automático</h3>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Cole o Channel ID do YouTube (começa com UC...). O sistema verifica automaticamente a cada 10 minutos se o canal está ao vivo. Quando entra ao vivo → aparece no portal sozinho.</p>
         <div class="form-row">
           <div class="form-group">
             <label>Nome do Canal *</label>
@@ -543,22 +555,22 @@
           <div class="form-group">
             <label>Tipo</label>
             <select class="form-control" id="ch-type">
+              <option value="esporte">⚽ Esporte / Futebol</option>
+              <option value="missa">🕯️ Missa / Culto</option>
+              <option value="show">🎵 Show / Evento</option>
               <option value="geral">📡 Geral</option>
-              <option value="esporte">⚽ Esporte</option>
-              <option value="missa">🕯️ Missa</option>
-              <option value="camara">🏛️ Câmara</option>
-              <option value="show">🎵 Show</option>
-              <option value="tv">📺 TV</option>
+              <option value="tv">📺 TV Regional</option>
             </select>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label>ID do Canal YouTube</label>
+            <label>Channel ID do YouTube <span style="color:var(--accent2)">*</span></label>
             <input class="form-control" id="ch-channel-id" placeholder="UCxxxxxxxxxxxxxxxxxxxxxx" type="text">
+            <div style="font-size:11px;color:var(--text2);margin-top:4px">💡 Entre no canal → URL do YouTube → copie o ID após /channel/</div>
           </div>
           <div class="form-group">
-            <label>Handle YouTube (@canal)</label>
+            <label>Handle YouTube (opcional)</label>
             <input class="form-control" id="ch-handle" placeholder="@nomecanal" type="text">
           </div>
         </div>
