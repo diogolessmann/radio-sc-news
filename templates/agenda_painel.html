@@ -65,6 +65,7 @@
 
   /* HORARIOS */
   .day-row{display:grid;grid-template-columns:100px 1fr 1fr auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+  @media(max-width:600px){ .day-row{ grid-template-columns:auto 1fr 1fr; } }
   .day-row:last-child{border:none}
   .day-label{font-size:13px;font-weight:500}
   .toggle-day{position:relative;width:44px;height:24px;flex-shrink:0}

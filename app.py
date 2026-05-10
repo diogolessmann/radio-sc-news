@@ -30,7 +30,12 @@ app.secret_key = os.environ.get('SECRET_KEY', 'radio-sc-secret-2024-xk91')
 DB_PATH       = os.environ.get('DB_PATH', 'radio_sc.db')
 AUDIO_DIR     = os.environ.get('AUDIO_DIR', 'audio')
 UPLOAD_DIR    = os.environ.get('UPLOAD_DIR', 'uploads')
-ADMIN_PASSWORD_PLAIN = os.environ.get('ADMIN_PASSWORD', 'julia181014')
+_admin_pw_env = os.environ.get('ADMIN_PASSWORD', 'julia181014')
+# Aceita hash bcrypt na env var (recomendado) ou plain text com hash gerado em runtime
+if _admin_pw_env.startswith('$2b$') or _admin_pw_env.startswith('$2a$'):
+    ADMIN_PASSWORD_HASH = _admin_pw_env
+else:
+    ADMIN_PASSWORD_HASH = generate_password_hash(_admin_pw_env)
 
 ALLOWED_IMAGE = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_UPLOAD_MB = 10
@@ -172,6 +177,7 @@ def init_db():
         CREATE INDEX IF NOT EXISTS idx_jobs_status   ON jobs(status);
         CREATE INDEX IF NOT EXISTS idx_jobs_city     ON jobs(city);
         CREATE INDEX IF NOT EXISTS idx_jobs_category ON jobs(category);
+        CREATE INDEX IF NOT EXISTS idx_jobs_expires  ON jobs(expires_at);
 
         CREATE TABLE IF NOT EXISTS youtube_channels (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -522,7 +528,6 @@ def index():
 
 @app.route('/manifest.json')
 def manifest():
-    from flask import send_from_directory
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
 
 
@@ -536,8 +541,6 @@ def api_news():
     region   = request.args.get('region', '')
     search   = request.args.get('q', '')
     offset   = (page - 1) * per_page
-
-    NORTE_SC_CITIES = ('Schroeder', 'Joinville', 'Jaraguá do Sul', 'Guaramirim', 'Corupá', 'Norte de SC')
 
     conn = get_db()
     where = ['n.active = 1', "n.link IS NOT NULL", "n.link != ''", "n.link LIKE 'http%'"]
@@ -797,7 +800,7 @@ def login():
     error = None
     if request.method == 'POST':
         pwd = request.form.get('password', '')
-        if pwd == ADMIN_PASSWORD_PLAIN:
+        if check_password_hash(ADMIN_PASSWORD_HASH, pwd):
             session['admin_logged_in'] = True
             session.permanent = True
             return redirect(url_for('admin'))
@@ -1192,20 +1195,7 @@ def background_startup():
     except Exception as e:
         logger.warning(f"Coleta inicial falhou: {e}")
 
-    # Thread de verificação de transmissões ao vivo (a cada 10 minutos)
-    def live_check_loop():
-        import time as _t
-        while True:
-            try:
-                from stream_checker import update_live_status
-                update_live_status(DB_PATH)
-            except Exception as e:
-                logger.warning(f"Live check falhou: {e}")
-            _t.sleep(600)  # 10 minutos
-
-    live_thread = _threading.Thread(target=live_check_loop, daemon=True)
-    live_thread.start()
-    logger.info("Thread de verificação de transmissões ao vivo iniciada.")
+    # Live-check is handled by the APScheduler job in scheduler.py (every 10 minutes)
 
 
 # ── YouTube Channels ──────────────────────────────────────────
@@ -1629,7 +1619,7 @@ def api_jobs():
     offset   = (page - 1) * per_page
 
     conn = get_db()
-    where  = ["status='approved'", "datetime('now') < expires_at"]
+    where  = ["status='approved'", "(expires_at IS NULL OR expires_at > datetime('now'))"]
     params = []
     if city:
         where.append('city=?'); params.append(city)
@@ -1703,7 +1693,7 @@ def api_job_view(job_id):
 @login_required
 def admin_list_jobs():
     conn  = get_db()
-    rows  = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC').fetchall()
+    rows  = conn.execute('SELECT * FROM jobs ORDER BY created_at DESC LIMIT 500').fetchall()
     counts = {
         'pending':  conn.execute("SELECT COUNT(*) FROM jobs WHERE status='pending'").fetchone()[0],
         'approved': conn.execute("SELECT COUNT(*) FROM jobs WHERE status='approved'").fetchone()[0],
@@ -2260,7 +2250,8 @@ def alerta_cadastro():
                            req_desc_1=request.form.get('desc_1',''),
                            req_plate_2=request.form.get('plate_2',''),
                            req_desc_2=request.form.get('desc_2',''),
-                           req_plate_3=request.form.get('plate_3',''))
+                           req_plate_3=request.form.get('plate_3',''),
+                           req_desc_3=request.form.get('desc_3',''))
 
 
 # ── Admin: listar assinantes ──────────────────────────────────
@@ -2269,9 +2260,13 @@ def alerta_cadastro():
 def admin_alerta():
     import json as _json
     conn = get_db()
-    rows = [dict(r) for r in conn.execute(
-        'SELECT * FROM alerta_subscribers ORDER BY created_at DESC'
-    ).fetchall()]
+    rows = [dict(r) for r in conn.execute('''
+        SELECT s.*, COUNT(r.id) as reports_count
+        FROM alerta_subscribers s
+        LEFT JOIN alerta_reports r ON r.subscriber_id = s.id
+        GROUP BY s.id
+        ORDER BY s.created_at DESC
+    ''').fetchall()]
     for s in rows:
         # Expand plates_json → plate_1, plate_2, ... + desc_1, ...
         try:
@@ -2281,10 +2276,6 @@ def admin_alerta():
         for i, pv in enumerate(plates, 1):
             s[f'plate_{i}'] = pv.get('plate','') if isinstance(pv, dict) else str(pv)
             s[f'desc_{i}']  = pv.get('desc','')  if isinstance(pv, dict) else ''
-        # Count reports
-        s['reports_count'] = conn.execute(
-            'SELECT COUNT(*) FROM alerta_reports WHERE subscriber_id=?', (s['id'],)
-        ).fetchone()[0]
     conn.close()
     return jsonify({'subscribers': rows})
 
