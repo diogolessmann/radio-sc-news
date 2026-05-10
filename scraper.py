@@ -109,6 +109,13 @@ RSS_FEEDS = [
         'category': 'local',
         'priority': True
     },
+    {
+        'url': 'https://ndmais.com.br/tag/schroeder/feed/',
+        'source': 'ND Mais – Schroeder',
+        'city': 'Schroeder',
+        'category': 'geral',
+        'priority': True
+    },
     # ── Norte de SC — OCP News (regional) ───────
     {
         'url': 'https://ocp.news/feed/',
