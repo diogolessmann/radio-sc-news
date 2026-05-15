@@ -707,19 +707,20 @@
   /* ── LOADING ── */
   .spinner {
     text-align: center;
-    padding: 50px 20px;
-    color: var(--text2);
-    font-size: 14px;
+    padding: 12px 20px;
+    color: transparent;
+    font-size: 0;
+    opacity: 0.4;
   }
   .spinner::before {
     content: '';
     display: block;
-    width: 32px; height: 32px;
-    border: 3px solid var(--border);
+    width: 18px; height: 18px;
+    border: 2px solid var(--border);
     border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
-    margin: 0 auto 14px;
+    margin: 0 auto;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
