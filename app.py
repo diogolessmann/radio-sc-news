@@ -5,9 +5,7 @@ Rádio SC News — Portal de notícias com áudio e painel admin
 import os
 import re as _re
 import sqlite3
-import hashlib
 import logging
-import unicodedata
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -459,7 +457,6 @@ def api_news():
     per_page = min(20, int(request.args.get('per_page', 10)))
     city     = request.args.get('city', '')
     category = request.args.get('category', '')
-    region   = request.args.get('region', '')
     search   = request.args.get('q', '')
     offset   = (page - 1) * per_page
 
@@ -1751,7 +1748,7 @@ MONITORED_CHANNELS_SEED = [
     {'name': 'NSC Total',                  'channel_id': 'UCMioY9xHh_88u8iMIzJvCUQ', 'type': 'geral',   'city': 'Santa Catarina'},
     {'name': 'SCC SBT Santa Catarina',     'channel_id': 'UCT_J5HN1oCDj3fJd0_iRSUw', 'type': 'geral',   'city': 'Norte de SC'},
     # ── Corridas / Automobilismo (nacionais) ──
-    {'name': 'Stock Car Brasil',           'channel_id': 'UCMioY9xHh_88u8iMIzJvCUQ', 'type': 'esporte', 'city': 'Nacional'},
+    {'name': 'Stock Car Brasil',           'channel_id': 'UCqA-s9GE3aeU5Gv-MBhyp4A', 'type': 'esporte', 'city': 'Nacional'},
     {'name': 'Bandsports (F1/Moto)',        'channel_id': 'UCp3sMXsRchHGIF5QTtIxuKw', 'type': 'esporte', 'city': 'Nacional'},
     {'name': 'Fórmula 4 Brasil',           'channel_id': 'UCH63gpxq4MifoNRuQQpRcOA', 'type': 'esporte', 'city': 'Nacional'},
     # ── Corridas de Rua / Triathlon ──

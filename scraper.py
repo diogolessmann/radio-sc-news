@@ -320,11 +320,12 @@ def save_articles(articles):
                 art['published_at'], art.get('image_url'), int(art.get('priority', False)),
                 datetime.now().isoformat()
             ))
-            conn.commit()
             saved += 1
         except Exception as e:
             logger.error(f"Erro ao salvar notícia: {e}")
 
+    if saved:
+        conn.commit()
     conn.close()
     logger.info(f"Salvas {saved} novas notícias.")
     return saved
