@@ -2656,7 +2656,7 @@
 <section style="background:linear-gradient(135deg,#0f0f13 0%,#1a0a0e 100%);padding:60px 20px;border-top:1px solid rgba(233,69,96,0.2);border-bottom:1px solid rgba(233,69,96,0.2);position:relative;overflow:hidden">
   <!-- glow de fundo -->
   <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:600px;height:300px;background:radial-gradient(ellipse,rgba(233,69,96,0.08) 0%,transparent 70%);pointer-events:none"></div>
-  <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center">
+  <div style="max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:48px;align-items:center">
     <!-- TEXTO -->
     <div>
       <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(233,69,96,0.1);border:1px solid rgba(233,69,96,0.3);border-radius:100px;padding:5px 14px;font-size:11px;font-weight:700;color:#e94560;margin-bottom:20px;letter-spacing:1px;text-transform:uppercase">📢 Publicidade</div>
@@ -2693,8 +2693,6 @@
       </div>
     </div>
   </div>
-  <!-- mobile: stack -->
-  <style>@media(max-width:650px){#anuncie-grid{grid-template-columns:1fr!important}}</style>
 </section>
 
 <footer>
