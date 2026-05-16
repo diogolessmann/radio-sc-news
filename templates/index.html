@@ -2700,18 +2700,20 @@
       </div>
     </a>
 
-    <!-- ── BANNER ALERTA SC ── -->
-    <a href="https://www.4kitem.com.br/alerta" target="_blank" style="text-decoration:none;display:block;margin-bottom:20px">
-      <div style="background:linear-gradient(135deg,#1a0e12,#1c1218);border:1px solid rgba(233,69,96,.4);border-radius:16px;padding:18px 20px;box-shadow:0 4px 18px rgba(233,69,96,.12);transition:transform .2s,box-shadow .2s"
-      onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 26px rgba(233,69,96,.25)'"
-      onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(233,69,96,.12)'">
-        <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-          <div style="font-size:32px">🚨</div>
+    <!-- ── BANNER 4KITEM ── -->
+    <a href="https://www.4kitem.com.br" target="_blank" style="text-decoration:none;display:block;margin-bottom:20px">
+      <div style="background:linear-gradient(135deg,#0a0f1e,#0d1a2e);border:1px solid rgba(99,179,237,.3);border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(99,179,237,.1);transition:transform .2s,box-shadow .2s;position:relative"
+      onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 26px rgba(99,179,237,.25)'"
+      onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(99,179,237,.1)'">
+        <img src="/static/banner-4kitem.png" alt="4KITEM — Soluções digitais para o seu negócio"
+             style="width:100%;height:110px;display:block;object-fit:cover;object-position:center"
+             onerror="this.style.display='none'">
+        <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
           <div style="flex:1;min-width:0">
-            <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:3px">Alerta SC — Monitore sua CNH e veículo</div>
-            <div style="font-size:12px;color:rgba(255,255,255,.6)">Relatório mensal no WhatsApp · CNH, IPVA, multas e licenciamento · A partir de R$ 19,90/mês</div>
+            <div style="font-size:14px;font-weight:900;color:#fff;margin-bottom:2px;letter-spacing:.3px">4KITEM.com.br</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.6)">Encontre a solução digital para sua empresa · Agenda · WhatsApp · Despachante</div>
           </div>
-          <div style="background:linear-gradient(135deg,#e94560,#f5a623);color:#fff;font-size:11px;font-weight:800;padding:7px 14px;border-radius:9px;white-space:nowrap;flex-shrink:0">Saiba mais →</div>
+          <div style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:11px;font-weight:800;padding:7px 13px;border-radius:9px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 8px rgba(99,130,246,.4)">Conhecer →</div>
         </div>
       </div>
     </a>
@@ -3286,17 +3288,13 @@ async function loadNews(page=1, reset=false) {
         if (allAds.length > 0 && adIndex > 0 && adIndex % adInsertEvery === 0) {
           feed.appendChild(buildAdCard(allAds[Math.floor(adIndex/adInsertEvery-1) % allAds.length]));
         }
-        // Banner Alerta SC específico para categoria POLICIAL (após 3ª notícia)
-        if (adIndex === 3 && page === 1 && activeCat === 'policial') {
-          feed.appendChild(buildAlertaPolicialBanner());
-        }
-        // Injeta banner Agenda SC após a 5ª notícia (apenas 1x por carregamento inicial)
-        if (adIndex === 5 && page === 1 && activeCat !== 'policial') {
+        // Injeta banner Agenda SC após a 3ª notícia (apenas 1x por carregamento inicial)
+        if (adIndex === 3 && page === 1) {
           feed.appendChild(buildAgendaBanner());
         }
-        // Injeta banner Alerta SC após a 10ª notícia (apenas 1x por carregamento inicial)
+        // Injeta banner 4KITEM após a 10ª notícia (apenas 1x por carregamento inicial)
         if (adIndex === 10 && page === 1) {
-          feed.appendChild(buildAlertaBanner());
+          feed.appendChild(build4kitemBanner());
         }
         feed.appendChild(buildNewsCard(n));
         adIndex++;
@@ -3339,70 +3337,44 @@ function buildAgendaBanner() {
   return el;
 }
 
-function buildAlertaPolicialBanner() {
+function build4kitemBanner() {
   const el = document.createElement('a');
-  el.href = 'https://www.4kitem.com.br/alerta';
+  el.href = 'https://www.4kitem.com.br';
+  el.target = '_blank';
   el.style.cssText = 'text-decoration:none;display:block;width:100%;margin-bottom:4px';
   el.innerHTML = `
     <div style="
+      background:linear-gradient(135deg,#0a0f1e,#0d1a2e);
+      border:1px solid rgba(99,179,237,.3);
       border-radius:16px;
       overflow:hidden;
-      box-shadow:0 4px 20px rgba(233,69,96,.25);
+      box-shadow:0 4px 20px rgba(99,130,246,.15);
       transition:transform .2s,box-shadow .2s;
       position:relative;
-      background:#0f0a0b;
     "
-    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 32px rgba(233,69,96,.4)'"
-    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(233,69,96,.25)'">
-      <img src="/static/banner-alerta-policial.png" alt="Alerta SC"
-           style="width:100%;height:160px;display:block;object-fit:cover;object-position:center"
+    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 32px rgba(99,130,246,.3)'"
+    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 20px rgba(99,130,246,.15)'">
+      <img src="/static/banner-4kitem.png" alt="4KITEM — Soluções para sua empresa"
+           style="width:100%;height:150px;display:block;object-fit:cover;object-position:center"
            onerror="this.style.display='none'">
-      <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(15,10,11,.85) 0%,rgba(233,69,96,.25) 100%)"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(10,15,30,.75) 0%,rgba(99,102,241,.15) 100%)"></div>
       <div style="position:absolute;inset:0;padding:18px 20px;display:flex;flex-direction:column;justify-content:space-between">
         <div>
-          <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(233,69,96,.9);color:#fff;font-size:11px;font-weight:800;padding:4px 10px;border-radius:6px;letter-spacing:.5px;margin-bottom:10px">
-            🚨 ALERTA SC
+          <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(99,102,241,.85);color:#fff;font-size:11px;font-weight:800;padding:4px 10px;border-radius:6px;letter-spacing:.5px;margin-bottom:10px">
+            ⚡ 4KITEM.com.br
           </div>
           <div style="font-size:17px;font-weight:900;color:#fff;line-height:1.3;text-shadow:0 1px 4px rgba(0,0,0,.6)">
-            Sua CNH pode estar com pontos<br>pendentes sem você saber
+            Encontre a solução digital<br>para o seu negócio
           </div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-          <div style="font-size:12px;color:rgba(255,255,255,.75)">
-            Relatório mensal no WhatsApp · A partir de R$ 19,90/mês
+          <div style="font-size:12px;color:rgba(255,255,255,.7)">
+            Agenda · WhatsApp · Despachante · e muito mais
           </div>
-          <div style="background:linear-gradient(135deg,#e94560,#f5a623);color:#fff;font-size:12px;font-weight:800;padding:7px 16px;border-radius:9px;white-space:nowrap;box-shadow:0 2px 8px rgba(233,69,96,.5);flex-shrink:0">
-            Ver planos →
+          <div style="background:linear-gradient(135deg,#3b82f6,#6366f1);color:#fff;font-size:12px;font-weight:800;padding:7px 16px;border-radius:9px;white-space:nowrap;box-shadow:0 2px 8px rgba(99,130,246,.5);flex-shrink:0">
+            Explorar →
           </div>
         </div>
-      </div>
-    </div>`;
-  return el;
-}
-
-function buildAlertaBanner() {
-  const el = document.createElement('a');
-  el.href = 'https://www.4kitem.com.br/alerta';
-  el.style.cssText = 'text-decoration:none;display:block;width:100%;margin-bottom:4px';
-  el.innerHTML = `
-    <div style="
-      background:linear-gradient(135deg,#1a0e12,#1c1218);
-      border:1px solid rgba(233,69,96,.4);
-      border-radius:16px;
-      overflow:hidden;
-      padding:20px 20px;
-      box-shadow:0 4px 18px rgba(233,69,96,.12);
-      transition:transform .2s,box-shadow .2s;
-    "
-    onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 26px rgba(233,69,96,.25)'"
-    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(233,69,96,.12)'">
-      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <div style="font-size:36px;flex-shrink:0">🚨</div>
-        <div style="flex:1;min-width:0">
-          <div style="font-size:16px;font-weight:800;color:#fff;margin-bottom:4px">Alerta SC — Monitore sua CNH e veículo</div>
-          <div style="font-size:13px;color:rgba(255,255,255,.65);line-height:1.5">Receba 1x por mês no WhatsApp: pontuação da CNH, IPVA, licenciamento e multas em aberto. <strong style="color:rgba(255,255,255,.9)">A partir de R$ 19,90/mês.</strong></div>
-        </div>
-        <div style="background:linear-gradient(135deg,#e94560,#f5a623);color:#fff;font-size:12px;font-weight:800;padding:8px 16px;border-radius:10px;white-space:nowrap;flex-shrink:0;box-shadow:0 2px 8px rgba(233,69,96,.4)">Saiba mais →</div>
       </div>
     </div>`;
   return el;
