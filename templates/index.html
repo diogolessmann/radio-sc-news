@@ -1009,6 +1009,254 @@
   .cats-bar.theme-youtube { border-color: #ff0000; }
 
   /* ══════════════════════════════════════
+     🎵 MÚSICA — Tab dourada
+  ══════════════════════════════════════ */
+  .cat-btn[data-cat="musica"] {
+    background: linear-gradient(135deg, rgba(255,200,0,0.08), rgba(255,160,0,0.08));
+    border-color: rgba(255,190,0,0.35);
+    color: #FFD700;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+  }
+  .cat-btn[data-cat="musica"].active {
+    background: linear-gradient(135deg, #FFD700, #F5A623);
+    border-color: #FFD700;
+    color: #000 !important;
+    font-weight: 900;
+    box-shadow: 0 0 16px rgba(255,200,0,0.4);
+  }
+  .cats-bar.theme-musica { border-color: #FFD700; }
+
+  /* View de música */
+  .musica-view {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 0 16px 80px;
+  }
+  .musica-header {
+    text-align: center;
+    padding: 24px 0 20px;
+    border-bottom: 1px solid rgba(255,200,0,0.15);
+    margin-bottom: 20px;
+  }
+  .musica-header h2 {
+    font-size: 22px;
+    font-weight: 900;
+    background: linear-gradient(135deg, #FFD700, #F5A623);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  }
+  .musica-header p { font-size: 13px; color: var(--text2); }
+
+  /* Now Playing de música */
+  .musica-now-playing {
+    background: linear-gradient(135deg, rgba(255,200,0,0.08), rgba(245,166,35,0.06));
+    border: 1px solid rgba(255,200,0,0.25);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: all 0.3s;
+    display: none;
+  }
+  .musica-now-playing.active { display: flex; }
+  .musica-np-icon {
+    font-size: 36px;
+    flex-shrink: 0;
+    animation: musicPulse 2s ease-in-out infinite;
+  }
+  @keyframes musicPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+  .musica-np-info { flex: 1; min-width: 0; }
+  .musica-np-genre {
+    font-size: 10px;
+    font-weight: 800;
+    color: #FFD700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 2px;
+  }
+  .musica-np-name {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .musica-np-sub { font-size: 12px; color: var(--text2); }
+  .musica-np-wave {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 28px;
+    flex-shrink: 0;
+  }
+  .musica-np-wave span {
+    display: block;
+    width: 4px;
+    background: linear-gradient(to top, #FFD700, #F5A623);
+    border-radius: 2px;
+    animation: musicWave 0.8s ease-in-out infinite alternate;
+  }
+  .musica-np-wave span:nth-child(1) { animation-delay: 0s;   height: 60%; }
+  .musica-np-wave span:nth-child(2) { animation-delay: 0.1s; height: 100%; }
+  .musica-np-wave span:nth-child(3) { animation-delay: 0.2s; height: 70%; }
+  .musica-np-wave span:nth-child(4) { animation-delay: 0.15s; height: 85%; }
+  .musica-np-wave span:nth-child(5) { animation-delay: 0.05s; height: 45%; }
+  @keyframes musicWave {
+    from { transform: scaleY(0.4); }
+    to   { transform: scaleY(1); }
+  }
+
+  /* Gêneros */
+  .musica-genre-section { margin-bottom: 28px; }
+  .musica-genre-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    color: #FFD700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,200,0,0.12);
+  }
+  .musica-genre-title .line { flex: 1; height: 1px; background: rgba(255,200,0,0.12); }
+
+  /* Cards de estação musical */
+  .musica-station-card {
+    background: var(--surface);
+    border: 1px solid rgba(255,200,0,0.1);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .musica-station-card:hover {
+    border-color: rgba(255,200,0,0.35);
+    background: var(--surface2);
+    transform: translateX(3px);
+  }
+  .musica-station-card.playing {
+    border-color: #FFD700;
+    background: rgba(255,200,0,0.07);
+    box-shadow: 0 0 20px rgba(255,200,0,0.15);
+  }
+  .musica-station-card.playing::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #FFD700, #F5A623);
+    border-radius: 3px 0 0 3px;
+  }
+  .musica-station-icon {
+    font-size: 32px;
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    background: rgba(255,200,0,0.08);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,200,0,0.15);
+  }
+  .musica-station-info { flex: 1; min-width: 0; }
+  .musica-station-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 100px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .badge-mundial  { background: rgba(99,102,241,0.2); color: #818cf8; border: 1px solid rgba(99,102,241,0.3); }
+  .badge-brasil   { background: rgba(34,197,94,0.2);  color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+  .badge-qualidade{ background: rgba(255,200,0,0.2);  color: #FFD700; border: 1px solid rgba(255,200,0,0.3); }
+  .musica-station-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .musica-station-desc { font-size: 11px; color: var(--text2); line-height: 1.4; }
+  .musica-play-btn {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: 100px;
+    border: 1px solid rgba(255,200,0,0.3);
+    background: transparent;
+    color: #FFD700;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .musica-play-btn:hover { background: rgba(255,200,0,0.1); }
+  .musica-station-card.playing .musica-play-btn {
+    background: linear-gradient(135deg, #FFD700, #F5A623);
+    color: #000;
+    border-color: #FFD700;
+  }
+
+  /* Botão parar música */
+  .musica-stop-btn {
+    display: none;
+    width: 100%;
+    padding: 13px;
+    background: transparent;
+    border: 1px solid rgba(255,200,0,0.3);
+    border-radius: 12px;
+    color: #FFD700;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin: 4px 0 24px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .musica-stop-btn:hover { background: rgba(255,200,0,0.08); }
+
+  /* Qualidade badge */
+  .musica-quality {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: #FFD700;
+    background: rgba(255,200,0,0.1);
+    border: 1px solid rgba(255,200,0,0.2);
+    border-radius: 100px;
+    padding: 2px 8px;
+    margin-top: 3px;
+    font-weight: 700;
+  }
+
+  /* ══════════════════════════════════════
      YOUTUBE SECTION — Design Completo
   ══════════════════════════════════════ */
   .yt-section { padding-bottom: 80px; }
@@ -1977,6 +2225,7 @@
     <button class="cat-btn" data-cat="saude" onclick="setCat('saude')">🏥 Saúde</button>
     <button class="cat-btn" data-cat="economia" onclick="setCat('economia')">💼 Economia</button>
     <button class="cat-btn" data-cat="esporte" onclick="setCat('esporte')">⚽ Esporte</button>
+    <button class="cat-btn" data-cat="musica" onclick="setCat('musica')">🎵 MÚSICA</button>
     <button class="cat-btn" data-cat="promos" onclick="setCat('promos')">💰 Promoções</button>
     <button class="cat-btn" data-cat="radio" onclick="setCat('radio')">📻 Rádio</button>
     <button class="cat-btn" data-cat="tv" onclick="setCat('tv')">📺 TV</button>
@@ -2091,6 +2340,7 @@
     <button class="yt-filter-btn" data-cat="economia" onclick="filterYtCat('economia')">💰 Economia</button>
     <button class="yt-filter-btn" data-cat="politica" onclick="filterYtCat('politica')">🏛️ Política</button>
     <button class="yt-filter-btn" data-cat="noticias" onclick="filterYtCat('noticias')">📰 Notícias</button>
+    <button class="yt-filter-btn" data-cat="gospel" onclick="filterYtCat('gospel')">✝️ Gospel</button>
   </div>
   <div id="ytLoading" style="text-align:center;padding:40px 0;display:none">
     <div class="spinner" style="margin:0 auto 12px"></div>
@@ -2490,6 +2740,217 @@
   ↓ Carregar mais notícias
 </button>
 
+<!-- ── VIEW DE MÚSICA ── -->
+<div class="musica-view" id="musicaView" style="display:none">
+
+  <div class="musica-header">
+    <h2>🎵 Música de Qualidade</h2>
+    <p>As melhores rádios do mundo por gênero — ouça sem sair do site</p>
+  </div>
+
+  <!-- Now Playing -->
+  <div class="musica-now-playing" id="musicaNowPlaying">
+    <div class="musica-np-icon" id="musicaNpIcon">🎵</div>
+    <div class="musica-np-info">
+      <div class="musica-np-genre" id="musicaNpGenre">Tocando agora</div>
+      <div class="musica-np-name" id="musicaNpName">—</div>
+      <div class="musica-np-sub" id="musicaNpSub">—</div>
+    </div>
+    <div class="musica-np-wave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+  </div>
+
+  <!-- Botão parar -->
+  <button class="musica-stop-btn" id="musicaStopBtn" onclick="stopMusica()">
+    ⏹ Parar música
+  </button>
+
+  <!-- ── ROCK MUNDIAL ── -->
+  <div class="musica-genre-section">
+    <div class="musica-genre-title">🎸 Rock Mundial <div class="line"></div></div>
+
+    <div class="musica-station-card" id="mstation-rp-rock" onclick="playMusica('rp-rock')">
+      <div class="musica-station-icon">🎸</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-qualidade">★ FLAC · Lossless</span>
+        <div class="musica-station-name">Radio Paradise — Rock Mix</div>
+        <div class="musica-station-desc">Rock curado por humanos · Clássico, Alternativo, Progressivo · USA</div>
+        <div class="musica-quality">🔊 AAC 128k · Sem anúncios · Sem algoritmo</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-rp-rock">▶ Ouvir</button>
+    </div>
+
+    <div class="musica-station-card" id="mstation-kexp" onclick="playMusica('kexp')">
+      <div class="musica-station-icon">🌐</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-mundial">Mundial</span>
+        <div class="musica-station-name">KEXP 90.3 — Seattle</div>
+        <div class="musica-station-desc">Rock Alternativo e Independente · Rádio pública de Seattle, EUA</div>
+        <div class="musica-quality">🔊 AAC 160k · Referência mundial</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-kexp">▶ Ouvir</button>
+    </div>
+  </div>
+
+  <!-- ── ROCK BRASIL ── -->
+  <div class="musica-genre-section">
+    <div class="musica-genre-title">🇧🇷 Rock Brasil <div class="line"></div></div>
+
+    <div class="musica-station-card" id="mstation-89fm" onclick="playMusica('89fm')">
+      <div class="musica-station-icon">⚡</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-brasil">Brasil #1</span>
+        <div class="musica-station-name">89FM — A Rádio Rock</div>
+        <div class="musica-station-desc">A mais icônica do Brasil desde 1985 · FM 89.1 São Paulo</div>
+        <div class="musica-quality">🔊 128k · Rock nacional e internacional</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-89fm">▶ Ouvir</button>
+    </div>
+  </div>
+
+  <!-- ── COUNTRY MUNDIAL ── -->
+  <div class="musica-genre-section">
+    <div class="musica-genre-title">🤠 Country Mundial <div class="line"></div></div>
+
+    <div class="musica-station-card" id="mstation-wsm" onclick="playMusica('wsm')">
+      <div class="musica-station-icon">🤠</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-qualidade">★ Lenda desde 1925</span>
+        <div class="musica-station-name">WSM 650 AM — Nashville</div>
+        <div class="musica-station-desc">A casa do Grand Ole Opry · A rádio country mais histórica do mundo</div>
+        <div class="musica-quality">🔊 64k AAC · Nashville, Tennessee</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-wsm">▶ Ouvir</button>
+    </div>
+
+    <div class="musica-station-card" id="mstation-bull" onclick="playMusica('bull')">
+      <div class="musica-station-icon">🐂</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-mundial">Mundial</span>
+        <div class="musica-station-name">100.3 The Bull — Houston</div>
+        <div class="musica-station-desc">Country moderno · Bro-country · Sul dos EUA</div>
+        <div class="musica-quality">🔊 AAC streaming · iHeart Radio</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-bull">▶ Ouvir</button>
+    </div>
+  </div>
+
+  <!-- ── SERTANEJO ── -->
+  <div class="musica-genre-section">
+    <div class="musica-genre-title">🇧🇷 Sertanejo Brasil <div class="line"></div></div>
+
+    <div class="musica-station-card" id="mstation-sertanejo" onclick="playMusica('sertanejo')">
+      <div class="musica-station-icon">🎻</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-brasil">Brasil #1</span>
+        <div class="musica-station-name">Hunter.FM — Sertanejo</div>
+        <div class="musica-station-desc">Sertanejo universitário e modão 24h · Sem comerciais · 100% digital</div>
+        <div class="musica-quality">🔊 MP3 128k · Sem interrupções</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-sertanejo">▶ Ouvir</button>
+    </div>
+
+    <div class="musica-station-card" id="mstation-sertanejo2" onclick="playMusica('sertanejo2')">
+      <div class="musica-station-icon">🎵</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-brasil">Brasil</span>
+        <div class="musica-station-name">Sertanejo FM</div>
+        <div class="musica-station-desc">Modão e sertanejo romântico · Fundada em Ponta Grossa/PR</div>
+        <div class="musica-quality">🔊 MP3 128k · Zeno.FM</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-sertanejo2">▶ Ouvir</button>
+    </div>
+  </div>
+
+  <!-- ── GOSPEL ── -->
+  <div class="musica-genre-section">
+    <div class="musica-genre-title">✝️ Gospel Brasil <div class="line"></div></div>
+
+    <div class="musica-station-card" id="mstation-aleluia" onclick="playMusica('aleluia')">
+      <div class="musica-station-icon">✝️</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-brasil">Brasil #1</span>
+        <div class="musica-station-name">Rede Aleluia — SP 99.5 FM</div>
+        <div class="musica-station-desc">A maior rede gospel do Brasil · Presente em todas as capitais</div>
+        <div class="musica-quality">🔊 MP3 128k · Rede nacional</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-aleluia">▶ Ouvir</button>
+    </div>
+  </div>
+
+  <!-- ── FUNK E TRAP ── -->
+  <div class="musica-genre-section">
+    <div class="musica-genre-title">🎤 Funk &amp; Trap Brasil <div class="line"></div></div>
+
+    <div class="musica-station-card" id="mstation-funk" onclick="playMusica('funk')">
+      <div class="musica-station-icon">🔥</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-brasil">Brasil</span>
+        <div class="musica-station-name">Radio Funk Brasil</div>
+        <div class="musica-station-desc">Funk carioca e funk ostentação 24h · No ar desde 2010</div>
+        <div class="musica-quality">🔊 MP3 128k · Zeno.FM</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-funk">▶ Ouvir</button>
+    </div>
+
+    <div class="musica-station-card" id="mstation-trap" onclick="playMusica('trap')">
+      <div class="musica-station-icon">🎧</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-brasil">Brasil</span>
+        <div class="musica-station-name">Rádio Trend — Trap Hits</div>
+        <div class="musica-station-desc">Trap nacional e hits atuais · Especializada em trap brasileiro</div>
+        <div class="musica-quality">🔊 MP3 128k · São Paulo</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-trap">▶ Ouvir</button>
+    </div>
+  </div>
+
+  <!-- ── POP MUNDIAL ── -->
+  <div class="musica-genre-section">
+    <div class="musica-genre-title">🎤 Pop Mundial <div class="line"></div></div>
+
+    <div class="musica-station-card" id="mstation-z100" onclick="playMusica('z100')">
+      <div class="musica-station-icon">🗽</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-qualidade">★ #1 no mundo</span>
+        <div class="musica-station-name">Z100 — WHTZ New York</div>
+        <div class="musica-station-desc">Top 40 mais influente do planeta · FM 100.3 Nova York</div>
+        <div class="musica-quality">🔊 AAC streaming · iHeart Radio</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-z100">▶ Ouvir</button>
+    </div>
+  </div>
+
+  <!-- ── POP BRASIL ── -->
+  <div class="musica-genre-section">
+    <div class="musica-genre-title">🇧🇷 Pop Brasil <div class="line"></div></div>
+
+    <div class="musica-station-card" id="mstation-antena1" onclick="playMusica('antena1')">
+      <div class="musica-station-icon">📡</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-brasil">Brasil #1</span>
+        <div class="musica-station-name">Antena 1 — SP 94.7 FM</div>
+        <div class="musica-station-desc">A rádio online mais ouvida do Brasil · Pop de qualidade 24h</div>
+        <div class="musica-quality">🔊 AAC 128k · São Paulo / Rio</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-antena1">▶ Ouvir</button>
+    </div>
+
+    <div class="musica-station-card" id="mstation-jpop" onclick="playMusica('jpop')">
+      <div class="musica-station-icon">🎙️</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-brasil">Brasil</span>
+        <div class="musica-station-name">Jovem Pan FM — 100.9</div>
+        <div class="musica-station-desc">Pop e rock nacionais · 19 estados · Segunda mais ouvida online</div>
+        <div class="musica-quality">🔊 MP3/AAC 128k · Rede nacional</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-jpop">▶ Ouvir</button>
+    </div>
+  </div>
+
+</div>
+
 <div class="promos-view" id="promosView" style="display:none">
   <div class="promos-header">
     <div>
@@ -2824,6 +3285,197 @@ const STATIONS = {
   }
 };
 
+// ══════════════════════════════════════════════
+// 🎵 MÚSICA — Estações por gênero
+// ══════════════════════════════════════════════
+const MUSIC_STATIONS = {
+  'rp-rock': {
+    name: 'Radio Paradise — Rock Mix',
+    genre: '🎸 Rock Mundial',
+    sub: 'Rock curado por humanos · USA',
+    icon: '🎸',
+    stream: 'http://stream.radioparadise.com/rock-128',
+    fallback: 'https://radioparadise.com/listen'
+  },
+  'kexp': {
+    name: 'KEXP 90.3 FM — Seattle',
+    genre: '🎸 Rock Alternativo',
+    sub: 'Rock Independente · Seattle, EUA',
+    icon: '🌐',
+    stream: 'https://kexp.streamguys1.com/kexp160.aac',
+    fallback: 'https://www.kexp.org/listen'
+  },
+  '89fm': {
+    name: '89FM — A Rádio Rock',
+    genre: '🇧🇷 Rock Brasil',
+    sub: 'FM 89.1 · São Paulo · Desde 1985',
+    icon: '⚡',
+    stream: 'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIOROCK_AACAAC.aac',
+    fallback: 'https://www.radiorock.com.br'
+  },
+  'wsm': {
+    name: 'WSM 650 AM — Nashville',
+    genre: '🤠 Country Mundial',
+    sub: 'Grand Ole Opry · Nashville, Tennessee',
+    icon: '🤠',
+    stream: 'https://playerservices.streamtheworld.com/api/livestream-redirect/WSMAM.mp3',
+    fallback: 'https://wsmradio.com'
+  },
+  'bull': {
+    name: '100.3 The Bull — Houston',
+    genre: '🤠 Country Moderno',
+    sub: 'Bro-Country · Sul dos EUA',
+    icon: '🐂',
+    stream: 'https://playerservices.streamtheworld.com/api/livestream-redirect/KILTRFMAAC.aac',
+    fallback: 'https://www.iheart.com/live/1003-the-bull-10861/'
+  },
+  'sertanejo': {
+    name: 'Hunter.FM — Sertanejo',
+    genre: '🇧🇷 Sertanejo Brasil',
+    sub: 'Sertanejo universitário e modão · Sem comerciais',
+    icon: '🎻',
+    stream: 'https://stream.hunter.fm/sertanejo',
+    fallback: 'https://hunter.fm/sertanejo/'
+  },
+  'sertanejo2': {
+    name: 'Sertanejo FM',
+    genre: '🇧🇷 Sertanejo Raiz',
+    sub: 'Modão e sertanejo romântico · Ponta Grossa/PR',
+    icon: '🎵',
+    stream: 'https://stream.zeno.fm/sertanejofm',
+    fallback: 'https://zeno.fm/radio/sertanejofm/'
+  },
+  'aleluia': {
+    name: 'Rede Aleluia — 99.5 FM',
+    genre: '✝️ Gospel Brasil',
+    sub: 'Maior rede gospel do Brasil · São Paulo',
+    icon: '✝️',
+    stream: 'https://playerservices.streamtheworld.com/api/livestream-redirect/ALELUIA_SPAAC.aac',
+    fallback: 'https://redealeluia.com.br'
+  },
+  'funk': {
+    name: 'Radio Funk Brasil',
+    genre: '🔥 Funk Brasil',
+    sub: 'Funk carioca e ostentação · Desde 2010',
+    icon: '🔥',
+    stream: 'https://stream.zeno.fm/r4s5w4bm7mquv',
+    fallback: 'https://zeno.fm/radio/funk-brasil/'
+  },
+  'trap': {
+    name: 'Rádio Trend — Trap Hits',
+    genre: '🎧 Trap Nacional',
+    sub: 'Trap brasileiro e hits atuais · São Paulo',
+    icon: '🎧',
+    stream: 'https://stream.zeno.fm/trendtraphits',
+    fallback: 'https://www.radios.com.br/aovivo/radio-trend-trap-hits/203011'
+  },
+  'z100': {
+    name: 'Z100 — WHTZ 100.3 New York',
+    genre: '🎤 Pop Mundial',
+    sub: 'Top 40 · A mais influente do planeta',
+    icon: '🗽',
+    stream: 'https://playerservices.streamtheworld.com/api/livestream-redirect/WHTZFMAAC.aac',
+    fallback: 'https://z100.iheart.com'
+  },
+  'antena1': {
+    name: 'Antena 1 — 94.7 FM SP',
+    genre: '🇧🇷 Pop Brasil',
+    sub: 'A rádio online mais ouvida do Brasil',
+    icon: '📡',
+    stream: 'https://playerservices.streamtheworld.com/api/livestream-redirect/ANTENA1_SP.mp3',
+    fallback: 'https://www.antena1.com.br/ouvir-radio-online'
+  },
+  'jpop': {
+    name: 'Jovem Pan FM — 100.9',
+    genre: '🇧🇷 Pop Brasil',
+    sub: 'Pop e rock · 19 estados brasileiros',
+    icon: '🎙️',
+    stream: 'https://playerservices.streamtheworld.com/api/livestream-redirect/JOVEMPANFMAAC.aac',
+    fallback: 'https://jovempan.com.br/jovem-pan-ao-vivo'
+  }
+};
+
+let currentMusic = null;
+
+function playMusica(id) {
+  const station = MUSIC_STATIONS[id];
+  if (!station) return;
+
+  // Para notícia se estiver tocando
+  if (currentPlayingId !== null) {
+    audio.pause();
+    const pb = document.getElementById(`play-${currentPlayingId}`);
+    if (pb) { pb.textContent = '▶'; pb.classList.remove('playing'); }
+    const pc = document.getElementById(`card-${currentPlayingId}`);
+    if (pc) pc.classList.remove('playing');
+    currentPlayingId = null;
+  }
+
+  // Para rádio regional se estiver tocando
+  if (currentRadio) stopRadio();
+
+  // Clicou na que está tocando → para
+  if (currentMusic === id) {
+    stopMusica();
+    return;
+  }
+
+  // Atualiza visual dos cards
+  document.querySelectorAll('.musica-station-card').forEach(c => {
+    c.classList.remove('playing');
+    const b = c.querySelector('.musica-play-btn');
+    if (b) { b.textContent = '▶ Ouvir'; }
+  });
+
+  const card = document.getElementById(`mstation-${id}`);
+  const btn  = document.getElementById(`mbtn-${id}`);
+  if (card) card.classList.add('playing');
+  if (btn)  btn.textContent = '⏸ Tocando...';
+
+  // Now Playing
+  document.getElementById('musicaNpIcon').textContent  = station.icon;
+  document.getElementById('musicaNpGenre').textContent = station.genre;
+  document.getElementById('musicaNpName').textContent  = station.name;
+  document.getElementById('musicaNpSub').textContent   = station.sub;
+  document.getElementById('musicaNowPlaying').classList.add('active');
+  document.getElementById('musicaStopBtn').style.display = 'flex';
+
+  // Toca
+  audio.src = station.stream;
+  audio.play().catch(() => {
+    // Se CORS bloquear, abre o fallback
+    if (btn) btn.textContent = '↗ Abrir site';
+    if (card) {
+      card.onclick = () => window.open(station.fallback, '_blank');
+    }
+    // Tenta fallback direto
+    if (station.fallback && station.fallback.endsWith('.mp3') || station.fallback && station.fallback.endsWith('.aac')) {
+      audio.src = station.fallback;
+      audio.play().catch(() => {});
+    }
+  });
+
+  currentMusic = id;
+}
+
+function stopMusica() {
+  audio.pause();
+  audio.src = '';
+  currentMusic = null;
+  document.querySelectorAll('.musica-station-card').forEach(c => {
+    c.classList.remove('playing');
+    const b = c.querySelector('.musica-play-btn');
+    if (b) b.textContent = '▶ Ouvir';
+  });
+  // Restaura onclick original
+  Object.keys(MUSIC_STATIONS).forEach(id => {
+    const card = document.getElementById(`mstation-${id}`);
+    if (card) card.onclick = () => playMusica(id);
+  });
+  document.getElementById('musicaNowPlaying').classList.remove('active');
+  document.getElementById('musicaStopBtn').style.display = 'none';
+}
+
 let currentRadio = null;
 
 function playStation(id) {
@@ -3071,7 +3723,7 @@ async function loadCounts() {
     // Badges nas categorias
     document.querySelectorAll('.cat-btn[data-cat]').forEach(btn => {
       const cat = btn.dataset.cat;
-      if (!cat || cat === 'promos' || cat === 'radio' || cat === 'tv') return;
+      if (!cat || cat === 'promos' || cat === 'radio' || cat === 'tv' || cat === 'musica') return;
       const n = data.categories[cat];
       if (n) btn.innerHTML += ` <span class="count">(${n})</span>`;
     });
@@ -3132,10 +3784,11 @@ function closeSpecialSections() {
 // ── FILTROS: CATEGORIA ──
 function setCat(cat) {
   const feed = document.getElementById('feed');
-  const promosView = document.getElementById('promosView');
-  const radioView  = document.getElementById('radioView');
-  const tvView     = document.getElementById('tvView');
-  const searchBar  = document.querySelector('.search-bar');
+  const promosView  = document.getElementById('promosView');
+  const radioView   = document.getElementById('radioView');
+  const tvView      = document.getElementById('tvView');
+  const musicaView  = document.getElementById('musicaView');
+  const searchBar   = document.querySelector('.search-bar');
   const loadMoreBtn = document.getElementById('loadMoreBtn');
 
   // Fecha YouTube / Transmissões / Anúncios se estiverem abertos
@@ -3147,43 +3800,54 @@ function setCat(cat) {
 
   // Tema de cor na barra de categorias
   const catsBar = document.getElementById('catsBar');
-  const specialCats = ['promos', 'radio', 'tv'];
+  const specialCats = ['promos', 'radio', 'tv', 'musica'];
   let theme = '';
   if (cat && !specialCats.includes(cat)) theme = ` theme-${cat}`;
-  else if (cat === 'radio') theme = ' theme-radio';
-  else if (cat === 'tv')    theme = ' theme-tv';
+  else if (cat === 'radio')  theme = ' theme-radio';
+  else if (cat === 'tv')     theme = ' theme-tv';
+  else if (cat === 'musica') theme = ' theme-musica';
   catsBar.className = 'cats-bar' + theme;
 
   // Esconde tudo primeiro
-  feed.style.display = 'none';
+  feed.style.display        = 'none';
   loadMoreBtn.style.display = 'none';
-  searchBar.style.display = 'none';
-  promosView.style.display = 'none';
-  radioView.style.display  = 'none';
-  tvView.style.display     = 'none';
+  searchBar.style.display   = 'none';
+  promosView.style.display  = 'none';
+  radioView.style.display   = 'none';
+  tvView.style.display      = 'none';
+  musicaView.style.display  = 'none';
 
   if (cat === 'promos') {
     activeCat = 'promos';
     promosView.style.display = 'block';
     loadPromosView();
+  } else if (cat === 'musica') {
+    activeCat = 'musica';
+    musicaView.style.display = 'block';
+    // Para TV e rádio regional ao entrar na música
+    pauseTvIframe();
+    if (currentRadio) stopRadio();
   } else if (cat === 'radio') {
     activeCat = 'radio';
     radioView.style.display = 'block';
-    // Para a TV se estiver tocando
+    // Para música e TV se estiverem tocando
+    if (currentMusic) stopMusica();
     pauseTvIframe();
   } else if (cat === 'tv') {
     activeCat = 'tv';
     tvView.style.display = 'block';
-    // Para o rádio se estiver tocando
+    // Para rádio e música se estiverem tocando
     if (currentRadio) stopRadio();
+    if (currentMusic) stopMusica();
     // Busca IDs atuais antes de exibir o player
     fetchLiveChannels().then(() => resumeTvIframe());
   } else {
     activeCat = cat;
     feed.style.display = 'flex';
     searchBar.style.display = 'block';
-    // Para rádio e TV ao sair
+    // Para rádio, música e TV ao sair
     if (currentRadio) stopRadio();
+    if (currentMusic) stopMusica();
     pauseTvIframe();
     resetAndLoad();
   }

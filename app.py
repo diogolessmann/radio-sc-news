@@ -1137,6 +1137,8 @@ CURATED_YT_CHANNELS = [
     {'name': 'Portal R7',           'channel_id': 'UCIwRd7CNbYcTUp-VCtMqkDw', 'category': 'noticias', 'sort_order': 13},
     # Regional Norte de SC
     {'name': 'Jornal Razão',        'channel_id': 'UCLS4wwx81rvrCCVCyr52GCQ', 'category': 'noticias', 'sort_order': 14},
+    # Gospel / Fé
+    {'name': 'Frei Gilson',         'channel_id': 'UCbh6_TmFnAJLI56aAQeD3qw', 'category': 'gospel',   'sort_order': 15},
 ]
 
 _yt_videos_cache = {'data': None, 'ts': 0}
@@ -1192,6 +1194,7 @@ def seed_youtube_channels():
             ('Os Pingos nos Is',    'UCzjtGnD7qqeaHW3nvDVrjQA', 'politica', 8),
             ('CNN Brasil',          'UCvdwhh_fDyWccR42-rReZLw',  'politica', 10),
             ('Jornal Razão',        'UCLS4wwx81rvrCCVCyr52GCQ', 'noticias', 14),
+            ('Frei Gilson',         'UCbh6_TmFnAJLI56aAQeD3qw', 'gospel',   15),
         ]
         for name, cid, cat, order in to_add:
             exists = conn.execute(
