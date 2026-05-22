@@ -2844,8 +2844,8 @@
       <div class="musica-station-icon">🎻</div>
       <div class="musica-station-info">
         <span class="musica-station-badge badge-brasil">Brasil</span>
-        <div class="musica-station-name">Rádio Sertanejo Brasil</div>
-        <div class="musica-station-desc">Sertanejo universitário e modão · 24h · Brasil</div>
+        <div class="musica-station-name">Rádio Buteco Sertanejo</div>
+        <div class="musica-station-desc">Sertanejo universitário e raiz · 24h · Brasil</div>
         <div class="musica-quality">🔊 MP3 128k · Zeno.FM</div>
       </div>
       <button class="musica-play-btn" id="mbtn-sertanejo">▶ Ouvir</button>
@@ -2854,10 +2854,10 @@
     <div class="musica-station-card" id="mstation-sertanejo2" onclick="playMusica('sertanejo2')">
       <div class="musica-station-icon">🎵</div>
       <div class="musica-station-info">
-        <span class="musica-station-badge badge-qualidade">★ Sem Anúncios</span>
-        <div class="musica-station-name">Radio Paradise — Mellow Mix</div>
-        <div class="musica-station-desc">Músicas suaves e relaxantes · Curado por humanos · EUA</div>
-        <div class="musica-quality">🔊 MP3 128k · Radio Paradise</div>
+        <span class="musica-station-badge badge-brasil">Brasil</span>
+        <div class="musica-station-name">MGT Sertanejo Universitário</div>
+        <div class="musica-station-desc">Sertanejo universitário e modão · 24h · Brasil</div>
+        <div class="musica-quality">🔊 AAC · MGT Radio</div>
       </div>
       <button class="musica-play-btn" id="mbtn-sertanejo2">▶ Ouvir</button>
     </div>
@@ -2879,30 +2879,41 @@
     </div>
   </div>
 
-  <!-- ── FUNK E TRAP ── -->
+  <!-- ── POP & HITS ── -->
   <div class="musica-genre-section">
-    <div class="musica-genre-title">🎤 Funk &amp; Trap Brasil <div class="line"></div></div>
+    <div class="musica-genre-title">🎸 Pop & Hits Brasil <div class="line"></div></div>
 
     <div class="musica-station-card" id="mstation-funk" onclick="playMusica('funk')">
-      <div class="musica-station-icon">🔥</div>
+      <div class="musica-station-icon">🎸</div>
       <div class="musica-station-info">
         <span class="musica-station-badge badge-brasil">Brasil</span>
-        <div class="musica-station-name">Radio Funk Brasil</div>
-        <div class="musica-station-desc">Funk carioca e funk ostentação 24h · No ar desde 2010</div>
-        <div class="musica-quality">🔊 MP3 128k · Zeno.FM</div>
+        <div class="musica-station-name">Antena 1 — São Paulo</div>
+        <div class="musica-station-desc">Pop rock nacional e internacional · 24h · São Paulo</div>
+        <div class="musica-quality">🔊 MP3 128k · Antena 1</div>
       </div>
       <button class="musica-play-btn" id="mbtn-funk">▶ Ouvir</button>
     </div>
 
     <div class="musica-station-card" id="mstation-trap" onclick="playMusica('trap')">
-      <div class="musica-station-icon">🎧</div>
+      <div class="musica-station-icon">🎤</div>
       <div class="musica-station-info">
         <span class="musica-station-badge badge-brasil">Brasil</span>
-        <div class="musica-station-name">Rádio Trend — Trap Hits</div>
-        <div class="musica-station-desc">Trap nacional e hits atuais · Especializada em trap brasileiro</div>
-        <div class="musica-quality">🔊 MP3 128k · São Paulo</div>
+        <div class="musica-station-name">Jovem Pan FM</div>
+        <div class="musica-station-desc">Hits nacionais e internacionais · 24h · São Paulo</div>
+        <div class="musica-quality">🔊 MP3 128k · Jovem Pan</div>
       </div>
       <button class="musica-play-btn" id="mbtn-trap">▶ Ouvir</button>
+    </div>
+
+    <div class="musica-station-card" id="mstation-bossajazz" onclick="playMusica('bossajazz')">
+      <div class="musica-station-icon">🎷</div>
+      <div class="musica-station-info">
+        <span class="musica-station-badge badge-brasil">Brasil</span>
+        <div class="musica-station-name">Bossa Jazz Brasil</div>
+        <div class="musica-station-desc">MPB, bossa nova e jazz brasileiro · 24h · Brasil</div>
+        <div class="musica-quality">🔊 MP3 · Ao vivo 24h</div>
+      </div>
+      <button class="musica-play-btn" id="mbtn-bossajazz">▶ Ouvir</button>
     </div>
   </div>
 
@@ -3330,20 +3341,20 @@ const MUSIC_STATIONS = {
     fallback: 'https://radioparadise.com/listen'
   },
   'sertanejo': {
-    name: 'Rádio Sertanejo Brasil',
+    name: 'Rádio Buteco Sertanejo',
     genre: '🇧🇷 Sertanejo Brasil',
-    sub: 'Sertanejo universitário e modão · 24h · Brasil',
+    sub: 'Sertanejo universitário e raiz · 24h · Brasil',
     icon: '🎻',
-    stream: 'https://stream.zeno.fm/0r0xa792kwzuv',
-    fallback: 'https://zeno.fm/radio/radio-sertanejo-brasil/'
+    stream: 'https://stream.zeno.fm/6kumndewqbruv',
+    fallback: 'https://zeno.fm/radio/radio-buteco-sertanejo/'
   },
   'sertanejo2': {
-    name: 'Radio Paradise — Mellow Mix',
-    genre: '🎵 Mellow & Romântico',
-    sub: 'Músicas suaves e relaxantes · Curado por humanos · USA',
+    name: 'MGT Sertanejo Universitário',
+    genre: '🎵 Sertanejo Universitário',
+    sub: 'Sertanejo universitário e modão · 24h · Brasil',
     icon: '🎵',
-    stream: 'https://stream.radioparadise.com/mellow-128',
-    fallback: 'https://radioparadise.com/listen'
+    stream: 'https://cast.mgtradio.net/radio/8020/aac',
+    fallback: 'https://www.mgtradio.net/'
   },
   'aleluia': {
     name: 'Melodia FM 97.5 — Rio de Janeiro',
@@ -3354,20 +3365,28 @@ const MUSIC_STATIONS = {
     fallback: 'https://www.melodia.com.br/'
   },
   'funk': {
-    name: 'Radio Funk Brasil',
-    genre: '🔥 Funk Brasil',
-    sub: 'Funk carioca e ostentação · Desde 2010',
-    icon: '🔥',
-    stream: 'https://stream.zeno.fm/r4s5w4bm7mquv',
-    fallback: 'https://zeno.fm/radio/funk-brasil/'
+    name: 'Antena 1 — São Paulo',
+    genre: '🎸 Pop Rock Clássicos',
+    sub: 'Pop rock nacional e internacional · 24h · São Paulo',
+    icon: '🎸',
+    stream: 'https://antenaone.crossradio.com.br/stream/1',
+    fallback: 'https://www.antena1.com.br/'
   },
   'trap': {
-    name: 'Rádio Trend — Trap Hits',
-    genre: '🎧 Trap Nacional',
-    sub: 'Trap brasileiro e hits atuais · São Paulo',
-    icon: '🎧',
-    stream: 'https://stream.zeno.fm/trendtraphits',
-    fallback: 'https://www.radios.com.br/aovivo/radio-trend-trap-hits/203011'
+    name: 'Jovem Pan FM',
+    genre: '🎤 Hits & Jovem Pan',
+    sub: 'Hits nacionais e internacionais · 24h · São Paulo',
+    icon: '🎤',
+    stream: 'https://stream.zeno.fm/c45wbq2us3buv',
+    fallback: 'https://jovempan.com.br/jovempanfm'
+  },
+  'bossajazz': {
+    name: 'Bossa Jazz Brasil',
+    genre: '🎷 MPB & Bossa Nova',
+    sub: 'MPB, bossa nova e jazz brasileiro · 24h · Brasil',
+    icon: '🎷',
+    stream: 'https://centova5.transmissaodigital.com:20104/live',
+    fallback: 'https://www.radios.com.br/'
   },
   'z100': {
     name: 'SomaFM: Underground 80s',
