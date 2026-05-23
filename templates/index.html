@@ -4069,13 +4069,14 @@ function buildRotatingBanner() {
   const wrap = document.createElement('div');
   wrap.style.cssText = 'width:100%;margin-bottom:4px;';
   const uid = 'rc-' + Math.random().toString(36).slice(2,7);
+  const mob = window.innerWidth <= 599;
   wrap.innerHTML = `
     <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#666;text-transform:uppercase;margin-bottom:6px;">✦ Parceiros</div>
     <div id="${uid}-car" style="position:relative;overflow:hidden;border-radius:16px;">
       <div id="${uid}-trk" style="display:flex;width:500%;transition:transform .5s cubic-bezier(.4,0,.2,1);">
         <a href="https://www.4kitem.com.br/agenda" target="_blank" style="width:20%;flex-shrink:0;text-decoration:none;">
           <div style="border-radius:16px;overflow:hidden;position:relative;min-height:130px;background:#16a34a;">
-            <img src="/static/banner-agenda.jpg?v=3" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
+            <img src="${mob ? '/static/banner-agenda-mobile.jpg?v=2' : '/static/banner-agenda.jpg?v=3'}" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
             <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:8px 12px;display:flex;justify-content:space-between;align-items:flex-end;">
               <div style="font-size:10px;color:rgba(255,255,255,.85);">📅 Agendamento grátis · 30 dias</div>
               <div style="background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:6px;white-space:nowrap;">Criar grátis →</div>
@@ -4084,7 +4085,7 @@ function buildRotatingBanner() {
         </a>
         <a href="https://www.4kitem.com.br/mandaja" target="_blank" style="width:20%;flex-shrink:0;text-decoration:none;">
           <div style="border-radius:16px;overflow:hidden;position:relative;min-height:130px;">
-            <img src="/static/banner-mandaja.jpg?v=3" style="width:100%;height:130px;object-fit:cover;object-position:center;display:block;" onerror="this.style.display='none'">
+            <img src="${mob ? '/static/banner-mandaja-mobile.jpg?v=2' : '/static/banner-mandaja.jpg?v=3'}" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
             <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:8px 12px;display:flex;justify-content:space-between;align-items:flex-end;">
               <div style="font-size:10px;color:rgba(255,255,255,.85);">🛵 Delivery sem comissão</div>
               <div style="background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:6px;white-space:nowrap;">Conhecer →</div>
@@ -4093,7 +4094,7 @@ function buildRotatingBanner() {
         </a>
         <a href="https://www.4kitem.com.br/mandazap" target="_blank" style="width:20%;flex-shrink:0;text-decoration:none;">
           <div style="border-radius:16px;overflow:hidden;position:relative;min-height:130px;">
-            <img src="/static/banner-mandazap.jpg?v=3" style="width:100%;height:130px;object-fit:cover;object-position:center;display:block;" onerror="this.style.display='none'">
+            <img src="${mob ? '/static/banner-mandazap-mobile.jpg?v=2' : '/static/banner-mandazap.jpg?v=3'}" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
             <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:8px 12px;display:flex;justify-content:space-between;align-items:flex-end;">
               <div style="font-size:10px;color:rgba(255,255,255,.85);">📲 Taxa 97% · Anti-ban</div>
               <div style="background:linear-gradient(135deg,#128c7e,#25d366);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:6px;white-space:nowrap;">Começar →</div>
@@ -4102,7 +4103,7 @@ function buildRotatingBanner() {
         </a>
         <a href="https://www.4kitem.com.br" target="_blank" style="width:20%;flex-shrink:0;text-decoration:none;">
           <div style="border-radius:16px;overflow:hidden;position:relative;min-height:130px;background:#4f46e5;">
-            <img src="/static/banner-4kitem.jpg?v=3" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
+            <img src="${mob ? '/static/banner-4kitem-mobile.jpg?v=2' : '/static/banner-4kitem.jpg?v=3'}" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
             <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:8px 12px;display:flex;justify-content:space-between;align-items:flex-end;">
               <div style="font-size:10px;color:rgba(255,255,255,.85);">🚀 Norte de SC · Sem complicação</div>
               <div style="background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:6px;white-space:nowrap;">Ver soluções →</div>
@@ -4111,7 +4112,7 @@ function buildRotatingBanner() {
         </a>
         <a href="https://www.dldespachante.com.br" target="_blank" style="width:20%;flex-shrink:0;text-decoration:none;">
           <div style="border-radius:16px;overflow:hidden;position:relative;min-height:130px;">
-            <img src="/static/banner-despachante.jpg?v=3" style="width:100%;height:130px;object-fit:cover;object-position:center top;display:block;" onerror="this.style.display='none'">
+            <img src="${mob ? '/static/banner-despachante-mobile.jpg?v=2' : '/static/banner-despachante.jpg?v=3'}" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
             <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:8px 12px;display:flex;justify-content:space-between;align-items:flex-end;">
               <div style="font-size:10px;color:rgba(255,255,255,.85);">🚗 IPVA · Licenciamento · SC</div>
               <div style="background:linear-gradient(135deg,#b8860b,#d4a017);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:6px;white-space:nowrap;">Falar agora →</div>
