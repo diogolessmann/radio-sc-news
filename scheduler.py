@@ -37,7 +37,7 @@ def check_live_job():
 
 
 def cleanup_job():
-    """Remove notícias com mais de 48h para manter o banco limpo."""
+    """Remove notícias com mais de 7 dias, garantindo mínimo de 60 artigos."""
     try:
         import sqlite3, os
         db_path = os.environ.get('DB_PATH', 'radio_sc.db')
@@ -46,10 +46,33 @@ def cleanup_job():
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row
 
-        # Busca notícias antigas para deletar os áudios antes
+        # Segurança: só limpa se tiver notícias suficientes recentes (últimas 24h)
+        recentes = conn.execute("""
+            SELECT COUNT(*) FROM news
+            WHERE created_at > datetime('now', '-24 hours') AND active = 1
+        """).fetchone()[0]
+
+        total = conn.execute("SELECT COUNT(*) FROM news WHERE active = 1").fetchone()[0]
+
+        if recentes < 10:
+            logger.warning(f"🛑 Limpeza cancelada — apenas {recentes} notícias nas últimas 24h. Executando coleta emergencial...")
+            conn.close()
+            try:
+                from scraper import collect_all
+                collect_all()
+            except Exception as ex:
+                logger.error(f"❌ Coleta emergencial falhou: {ex}")
+            return
+
+        if total < 60:
+            logger.warning(f"🛑 Limpeza cancelada — apenas {total} notícias no banco. Limite mínimo: 60.")
+            conn.close()
+            return
+
+        # Busca notícias antigas para deletar os áudios antes (7 dias)
         old_news = conn.execute("""
             SELECT id, audio_file FROM news
-            WHERE created_at < datetime('now', '-48 hours')
+            WHERE created_at < datetime('now', '-7 days')
             AND active = 1
         """).fetchall()
 
@@ -64,13 +87,13 @@ def cleanup_job():
 
         result = conn.execute("""
             DELETE FROM news
-            WHERE created_at < datetime('now', '-48 hours')
+            WHERE created_at < datetime('now', '-7 days')
         """)
         deleted = result.rowcount
         conn.commit()
         conn.close()
 
-        logger.info(f"🧹 Limpeza: {deleted} notícias antigas removidas.")
+        logger.info(f"🧹 Limpeza: {deleted} notícias antigas (>7 dias) removidas. Restam: {total - deleted}.")
     except Exception as e:
         logger.error(f"❌ Erro na limpeza: {e}")
 

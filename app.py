@@ -680,6 +680,25 @@ def admin_collect():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/api/coletar-agora')
+def api_coletar_agora():
+    """Coleta emergencial de notícias — apenas com token de admin."""
+    token = request.args.get('token', '')
+    if token != _admin_pw_env:
+        return jsonify({'error': 'unauthorized'}), 403
+    try:
+        from scraper import collect_all
+        total = collect_all()
+        conn = get_db()
+        count = conn.execute('SELECT COUNT(*) FROM news WHERE active=1').fetchone()[0]
+        conn.close()
+        logger.info(f"Coleta emergencial via API: {total} novas, {count} total.")
+        return jsonify({'success': True, 'novas': total, 'total_ativo': count})
+    except Exception as e:
+        logger.error(f"Erro na coleta emergencial: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/admin/fix_sports', methods=['POST'])
 @login_required
 def admin_fix_sports():
@@ -1010,12 +1029,15 @@ def background_startup():
 
     try:
         conn = get_db()
-        count = conn.execute('SELECT COUNT(*) FROM news').fetchone()[0]
+        count = conn.execute('SELECT COUNT(*) FROM news WHERE active=1').fetchone()[0]
         conn.close()
-        if count == 0:
-            logger.info("Banco vazio — fazendo coleta inicial em background...")
+        if count < 10:
+            logger.info(f"Banco com {count} notícias ativas — fazendo coleta automática de emergência...")
             from scraper import collect_all
-            collect_all()
+            total = collect_all()
+            logger.info(f"Coleta de emergência: {total} novas notícias coletadas.")
+        else:
+            logger.info(f"Banco OK: {count} notícias ativas.")
     except Exception as e:
         logger.warning(f"Coleta inicial falhou: {e}")
 
