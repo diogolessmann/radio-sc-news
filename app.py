@@ -1279,16 +1279,34 @@ def api_youtube_videos():
     ).fetchall()
     conn.close()
 
-    result = []
-    for ch in channels:
-        videos = fetch_yt_rss(ch['channel_id'], max_videos=5)
-        result.append({
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    def _fetch_one(ch):
+        try:
+            videos = fetch_yt_rss(ch['channel_id'], max_videos=5)
+        except Exception:
+            videos = []
+        return {
             'id': ch['id'],
             'name': ch['name'],
             'channel_id': ch['channel_id'],
             'category': ch['category'],
+            'sort_order': ch['sort_order'] if 'sort_order' in ch.keys() else 0,
             'videos': videos,
-        })
+        }
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        futures = {pool.submit(_fetch_one, ch): ch for ch in channels}
+        result_map = {}
+        for fut in as_completed(futures, timeout=20):
+            try:
+                item = fut.result()
+                result_map[item['id']] = item
+            except Exception:
+                pass
+
+    # Reconstrói na ordem original
+    result = [result_map[ch['id']] for ch in channels if ch['id'] in result_map]
 
     _yt_videos_cache = {'data': result, 'ts': now}
     filtered = [ch for ch in result if ch['category'] == category] if category else result
