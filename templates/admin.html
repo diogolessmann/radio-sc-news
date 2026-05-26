@@ -183,7 +183,6 @@
     <button class="nav-btn" onclick="showTab('publish')">✍️ Publicar</button>
     <button class="nav-btn" onclick="showTab('media')">🖼️ Mídia</button>
     <button class="nav-btn" onclick="showTab('ads')">📢 Propagandas</button>
-    <button class="nav-btn" onclick="showTab('transmissions')">📡 Transmissões</button>
     <button class="nav-btn" onclick="showTab('youtube')">▶️ YouTube</button>
     <button class="nav-btn" onclick="showTab('classifieds')">📢 Anúncios</button>
     <button class="nav-btn" onclick="showTab('jobs')">💼 Vagas</button>
@@ -208,7 +207,6 @@
     <button class="tab-btn" onclick="showTab('publish')">✍️ Publicar</button>
     <button class="tab-btn" onclick="showTab('media')">🖼️ Mídia</button>
     <button class="tab-btn" onclick="showTab('ads')">📢 Propagandas</button>
-    <button class="tab-btn" onclick="showTab('transmissions')">📡 Transmissões</button>
     <button class="tab-btn" onclick="showTab('youtube')">▶️ YouTube</button>
     <button class="tab-btn" onclick="showTab('classifieds')">📢 Anúncios</button>
     <button class="tab-btn" onclick="showTab('jobs')">💼 Vagas</button>
@@ -438,191 +436,6 @@
     </div>
   </div>
 
-  <!-- TAB: TRANSMISSÕES -->
-  <div id="tab-transmissions" class="tab-content">
-
-    <!-- Explicação das duas modalidades -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px">
-      <div style="background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.25);border-radius:14px;padding:18px">
-        <div style="font-size:20px;margin-bottom:8px">🤖 Auto-detectado <span style="font-size:11px;background:rgba(39,174,96,.2);color:#27ae60;padding:2px 8px;border-radius:6px;font-weight:700">GRATUITO</span></div>
-        <div style="font-size:13px;color:var(--text2);line-height:1.6">Canais da região monitorados automaticamente a cada 10 min. Quando entram ao vivo (jogo, missa, show), aparecem no portal sozinhos — sem você fazer nada.</div>
-      </div>
-      <div style="background:rgba(245,166,35,.07);border:1px solid rgba(245,166,35,.25);border-radius:14px;padding:18px">
-        <div style="font-size:20px;margin-bottom:8px">💰 Agendado manualmente <span style="font-size:11px;background:rgba(245,166,35,.2);color:var(--accent2);padding:2px 8px;border-radius:6px;font-weight:700">PAGO</span></div>
-        <div style="font-size:13px;color:var(--text2);line-height:1.6">Clubes, igrejas, empresas ou eventos que querem aparecer em destaque no portal. Você agenda manualmente após combinar o valor com o cliente.</div>
-      </div>
-    </div>
-
-    <!-- Formulário: Nova Transmissão PAGA -->
-    <div class="form-card" style="border-color:rgba(245,166,35,.3)">
-      <h3>💰 Cadastrar Transmissão Paga / Agendada</h3>
-      <div class="form-row">
-        <div class="form-group" style="grid-column:1/-1">
-          <label>Título *</label>
-          <input class="form-control" id="tx-title" placeholder="Ex: Jogo do Joinville FC..." type="text">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Tipo</label>
-          <select class="form-control" id="tx-type">
-            <option value="esporte">⚽ Esporte / Futebol</option>
-            <option value="missa">🕯️ Missa / Culto</option>
-            <option value="show">🎵 Show / Evento</option>
-            <option value="geral">📡 Geral</option>
-            <option value="tv">📺 TV Regional</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Cidade / Região</label>
-          <input class="form-control" id="tx-city" placeholder="Ex: Schroeder, Joinville..." type="text">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Data e Hora (agendada)</label>
-          <input class="form-control" id="tx-scheduled" type="datetime-local">
-        </div>
-        <div class="form-group">
-          <label>Duração (minutos)</label>
-          <input class="form-control" id="tx-duration" type="number" value="90" min="1">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>ID do Canal YouTube</label>
-          <input class="form-control" id="tx-channel-id" placeholder="UCxxxxxxxxxxxxxxxxxxxxxx" type="text">
-        </div>
-        <div class="form-group">
-          <label>ID do Vídeo YouTube (embed)</label>
-          <input class="form-control" id="tx-video-id" placeholder="xxxxxxxxxxx (11 chars)" type="text">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>URL do Stream (alternativo)</label>
-          <input class="form-control" id="tx-stream-url" placeholder="https://..." type="url">
-        </div>
-        <div class="form-group">
-          <label>Thumbnail URL</label>
-          <input class="form-control" id="tx-thumbnail" placeholder="https://..." type="url">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Descrição</label>
-        <textarea class="form-control" id="tx-description" placeholder="Descrição opcional da transmissão..."></textarea>
-      </div>
-      <div class="form-row">
-        <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:24px">
-          <input type="checkbox" id="tx-recurring" style="width:16px;height:16px;accent-color:var(--accent)">
-          <label for="tx-recurring" style="margin:0;text-transform:none;font-size:14px">Transmissão recorrente</label>
-        </div>
-        <div class="form-group">
-          <label>Dias de recorrência (ex: seg,qua,sex)</label>
-          <input class="form-control" id="tx-recurrence-days" placeholder="seg,ter,qua,qui,sex,sab,dom" type="text">
-        </div>
-      </div>
-      <button class="btn btn-primary" onclick="createTransmission()">📤 Cadastrar Transmissão</button>
-    </div>
-
-    <!-- Lista de Transmissões -->
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-      <h3>📋 Transmissões Ativas</h3>
-      <button class="btn btn-blue btn-sm" onclick="loadTransmissionsAdmin()">🔄 Atualizar</button>
-    </div>
-    <div style="overflow-x:auto">
-      <table class="tx-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Título</th>
-            <th>Tipo</th>
-            <th>Cidade</th>
-            <th>Agendada</th>
-            <th>Status</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody id="txTableBody">
-          <tr><td colspan="7" style="color:var(--text2);padding:20px 12px">Carregando...</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- Canais Monitorados -->
-    <div style="margin-top:40px">
-      <div class="form-card" style="border-color:rgba(39,174,96,.3)">
-        <h3>🤖 Adicionar Canal para Monitoramento Automático</h3>
-        <p style="font-size:13px;color:var(--text2);margin-bottom:16px">Cole o Channel ID do YouTube (começa com UC...). O sistema verifica automaticamente a cada 10 minutos se o canal está ao vivo. Quando entra ao vivo → aparece no portal sozinho.</p>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nome do Canal *</label>
-            <input class="form-control" id="ch-name" placeholder="Ex: Câmara de Schroeder" type="text">
-          </div>
-          <div class="form-group">
-            <label>Tipo</label>
-            <select class="form-control" id="ch-type">
-              <option value="esporte">⚽ Esporte / Futebol</option>
-              <option value="missa">🕯️ Missa / Culto</option>
-              <option value="show">🎵 Show / Evento</option>
-              <option value="geral">📡 Geral</option>
-              <option value="tv">📺 TV Regional</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Channel ID do YouTube <span style="color:var(--accent2)">*</span></label>
-            <input class="form-control" id="ch-channel-id" placeholder="UCxxxxxxxxxxxxxxxxxxxxxx" type="text">
-            <div style="font-size:11px;color:var(--text2);margin-top:4px">💡 Entre no canal → URL do YouTube → copie o ID após /channel/</div>
-          </div>
-          <div class="form-group">
-            <label>Handle YouTube (opcional)</label>
-            <input class="form-control" id="ch-handle" placeholder="@nomecanal" type="text">
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Cidade</label>
-            <input class="form-control" id="ch-city" placeholder="Ex: Schroeder" type="text">
-          </div>
-          <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:24px">
-            <input type="checkbox" id="ch-auto-publish" checked style="width:16px;height:16px;accent-color:var(--accent)">
-            <label for="ch-auto-publish" style="margin:0;text-transform:none;font-size:14px">Publicar automaticamente quando ao vivo</label>
-          </div>
-        </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="createChannel()">📺 Adicionar Canal</button>
-          <button class="btn btn-green" onclick="checkLiveNow()">🔴 Verificar Ao Vivo Agora</button>
-        </div>
-      </div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <h3>📋 Canais Monitorados</h3>
-        <button class="btn btn-blue btn-sm" onclick="loadChannelsAdmin()">🔄 Atualizar</button>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="channels-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Nome</th>
-              <th>Tipo</th>
-              <th>Cidade</th>
-              <th>Channel ID</th>
-              <th>Auto</th>
-              <th>Última verificação</th>
-              <th>Ações</th>
-            </tr>
-          </thead>
-          <tbody id="chTableBody">
-            <tr><td colspan="8" style="color:var(--text2);padding:20px 12px">Carregando...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-  </div>
 
   <!-- TAB: YOUTUBE -->
   <div id="tab-youtube" class="tab-content">
@@ -840,7 +653,7 @@
 // ── TABS ──────────────────────────────────────
 const TAB_KEYWORDS = {
   news: 'notícia', publish: 'publicar', media: 'mídia',
-  ads: 'propagan', transmissions: 'transmiss', youtube: 'youtube',
+  ads: 'propagan', youtube: 'youtube',
   classifieds: 'anúnci', jobs: 'vagas'
 };
 function showTab(name) {
@@ -853,10 +666,6 @@ function showTab(name) {
   document.querySelectorAll('.tab-btn, .nav-btn').forEach(b => {
     if (b.textContent.toLowerCase().includes(kw)) b.classList.add('active');
   });
-  if (name === 'transmissions') {
-    loadTransmissionsAdmin();
-    loadChannelsAdmin();
-  }
   if (name === 'youtube') {
     loadYtChannelsAdmin();
   }
@@ -1202,14 +1011,6 @@ async function deleteTransmission(id) {
   }
 }
 
-async function toggleTransmissionLive(id) {
-  const r = await fetch(`/admin/transmissions/${id}/toggle_live`, {method:'POST'});
-  const d = await r.json();
-  if (d.success) {
-    toast(d.is_live ? '🔴 Marcada como ao vivo!' : '⏹ Encerrada.', 'success');
-    loadTransmissionsAdmin();
-  }
-}
 
 // ── CANAIS MONITORADOS ─────────────────────────
 async function loadChannelsAdmin() {
