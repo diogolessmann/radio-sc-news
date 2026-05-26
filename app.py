@@ -216,6 +216,7 @@ def allowed_file(filename):
 # ──────────────────────────────────────────────
 WA_CHANNEL_URL = os.environ.get('WA_CHANNEL_URL', '')
 TV_STREAM_ID   = os.environ.get('TV_STREAM_ID', 'EKqjDNytTkw')   # SCC SBT 24h — fallback estático
+PORTAL_URL     = os.environ.get('PORTAL_URL', 'https://www.radioscnews.com.br')  # URL canônica do portal
 
 # ── Canais monitorados para detecção automática de live ──
 LIVE_CHANNELS = {
@@ -443,6 +444,26 @@ def index():
     return render_template('index.html',
                            wa_channel=WA_CHANNEL_URL,
                            tv_stream_id=TV_STREAM_ID)
+
+
+@app.route('/noticia/<int:news_id>')
+def noticia_permalink(news_id):
+    """Página de artigo individual — permalink compartilhável com Open Graph."""
+    conn = get_db()
+    n = conn.execute('SELECT * FROM news WHERE id=? AND active=1', (news_id,)).fetchone()
+    conn.close()
+    if not n:
+        return redirect('/', 302)
+    n = dict(n)
+    # Imagem para OG: prefere admin_image, depois image_url
+    og_image = ''
+    if n.get('admin_image'):
+        og_image = f"{PORTAL_URL}/uploads/{n['admin_image']}"
+    elif n.get('image_url'):
+        og_image = n['image_url']
+    og_url = f"{PORTAL_URL}/noticia/{news_id}"
+    return render_template('noticia.html', n=n, og_url=og_url, og_image=og_image,
+                           portal_url=PORTAL_URL)
 
 
 @app.route('/manifest.json')

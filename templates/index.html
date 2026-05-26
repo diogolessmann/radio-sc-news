@@ -4225,8 +4225,11 @@ function buildNewsCard(n) {
   const cityEmoji = CITY_EMOJI[n.city] || '📍';
   const imgSrc = n.admin_image ? `/uploads/${n.admin_image}` : n.image_url;
   const isUrgente = n.priority && (Date.now() - new Date(n.published_at)) / 3600000 < 2;
-  const waText = encodeURIComponent(`📻 ${n.title}\n${n.link || ''}`);
-  const waUrl  = `https://wa.me/?text=${waText}`;
+  // Share usa URL própria do portal (não a da fonte) → tráfego volta pra nós
+  const portalUrl = window.location.origin;
+  const shareUrl  = `${portalUrl}/noticia/${n.id}`;
+  const waText    = encodeURIComponent(`📻 ${n.title}\n${shareUrl}`);
+  const waUrl     = `https://wa.me/?text=${waText}`;
 
   let urgenteHtml = isUrgente ? `<div class="urgente-bar"><div class="urgente-dot"></div> URGENTE</div>` : '';
   let imageHtml   = imgSrc ? `<img class="card-image" src="${escHtml(imgSrc)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
@@ -4253,7 +4256,7 @@ function buildNewsCard(n) {
         <span class="meta-time">${formatTime(n.published_at)}</span>
       </div>
       <div class="card-title">
-        ${n.link ? `<a href="${escHtml(n.link)}" target="_blank" rel="noopener">${escHtml(n.title)}</a>` : escHtml(n.title)}
+        <a href="${shareUrl}" target="_blank">${escHtml(n.title)}</a>
       </div>
       ${n.summary ? `<div class="card-summary">${escHtml(n.summary)}</div>` : ''}
       ${audioHtml}
