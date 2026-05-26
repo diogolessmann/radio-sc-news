@@ -1152,10 +1152,15 @@ def seed_youtube_channels():
 
 def fetch_yt_rss(channel_id, max_videos=5):
     """Busca últimos vídeos de um canal YouTube via RSS (sem API key)."""
-    import feedparser
+    import feedparser, requests as _req
     url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+    _UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+           'AppleWebKit/537.36 (KHTML, like Gecko) '
+           'Chrome/124.0.0.0 Safari/537.36')
     try:
-        feed = feedparser.parse(url)
+        # Fetch com requests primeiro para evitar bloqueio de UA do feedparser
+        resp = _req.get(url, headers={'User-Agent': _UA}, timeout=10)
+        feed = feedparser.parse(resp.content if resp.status_code == 200 else url)
         videos = []
         for entry in feed.entries[:max_videos]:
             vid_id = getattr(entry, 'yt_videoid', None)
