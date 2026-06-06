@@ -699,6 +699,31 @@ def api_coletar_agora():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/social-testar')
+def api_social_testar():
+    """Dispara um post de TESTE nas redes (IG+FB), ignorando a trava SOCIAL_AUTOPOST.
+    Protegido por token de admin.
+    Uso:  /api/social-testar?token=SENHA           -> posta a proxima noticia
+          /api/social-testar?token=SENHA&tipo=bomdia -> posta o Bom dia Vale
+    """
+    token = request.args.get('token', '')
+    if token != _admin_pw_env:
+        return jsonify({'error': 'unauthorized'}), 403
+    tipo = request.args.get('tipo', 'noticia')
+    try:
+        if tipo == 'bomdia':
+            import bom_dia
+            bom_dia.run(post=True)
+            return jsonify({'success': True, 'tipo': 'bomdia',
+                            'message': 'Bom dia Vale postado no IG+FB.'})
+        import distribuidor
+        n = distribuidor.run_once(post=True, limit=1)
+        return jsonify({'success': True, 'tipo': 'noticia', 'postadas': n})
+    except Exception as e:
+        logger.error(f"Erro no teste social: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/admin/fix_sports', methods=['POST'])
 @login_required
 def admin_fix_sports():

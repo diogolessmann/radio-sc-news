@@ -3,6 +3,7 @@ scheduler.py — Agendador de coleta automática de notícias
 Rádio SC News
 """
 import logging
+import os
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
@@ -10,6 +11,34 @@ from apscheduler.triggers.cron import CronTrigger
 logger = logging.getLogger(__name__)
 
 _scheduler = None
+
+
+def _autopost_on():
+    """Trava de seguranca: so publica sozinho quando SOCIAL_AUTOPOST=1 (e tokens Meta existem)."""
+    return os.environ.get('SOCIAL_AUTOPOST', '0') == '1'
+
+
+def bom_dia_job():
+    """Gera o 'Bom dia, Vale' toda manha. Posta IG+FB se autopost ligado."""
+    try:
+        import bom_dia
+        bom_dia.run(post=_autopost_on())
+        logger.info("☀️ Bom dia Vale %s.", "gerado e POSTADO" if _autopost_on() else "gerado (preview)")
+    except Exception as e:
+        logger.error(f"❌ Bom dia Vale falhou: {e}")
+
+
+def social_news_job():
+    """Distribui a proxima noticia nas redes. Só age se autopost ligado."""
+    if not _autopost_on():
+        logger.info("📭 Autopost OFF — distribuicao de noticia pulada (modo seguro).")
+        return
+    try:
+        import distribuidor
+        n = distribuidor.run_once(post=True, limit=1)
+        logger.info(f"📣 Distribuidor: {n} materia(s) postada(s) no IG+FB.")
+    except Exception as e:
+        logger.error(f"❌ Distribuidor falhou: {e}")
 
 
 def collect_job():
@@ -135,8 +164,28 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
+    # ☀️ "Bom dia, Vale" — produto-bandeira, todo dia às 7h
+    _scheduler.add_job(
+        func=bom_dia_job,
+        trigger=CronTrigger(hour=7, minute=0, timezone='America/Sao_Paulo'),
+        id='bom_dia_vale',
+        name='Bom dia Vale (carrossel + WhatsApp)',
+        replace_existing=True
+    )
+
+    # 📣 Distribuição de notícia nas redes — 12h e 18h (2 posts/dia)
+    _scheduler.add_job(
+        func=social_news_job,
+        trigger=CronTrigger(hour='12,18', minute=0, timezone='America/Sao_Paulo'),
+        id='social_news',
+        name='Distribuidor de notícias (IG+FB)',
+        replace_existing=True
+    )
+
     _scheduler.start()
-    logger.info(f"✅ Scheduler iniciado — notícias a cada {interval_minutes} min · ao vivo a cada 10 min · limpeza às 3h.")
+    _ap = "LIGADO" if _autopost_on() else "modo seguro (preview)"
+    logger.info(f"✅ Scheduler iniciado — notícias a cada {interval_minutes} min · ao vivo a cada 10 min · "
+                f"limpeza às 3h · Bom dia às 7h · distribuição 12h/18h · autopost {_ap}.")
     return _scheduler
 
 

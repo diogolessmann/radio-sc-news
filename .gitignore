@@ -8,3 +8,5 @@ uploads/
 gen_audio*.py
 radio_sc/
 .env
+instagram_posts/
+static/social/
