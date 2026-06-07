@@ -198,6 +198,22 @@ def ensure_column(conn):
     if "social_hold" not in cols:
         # materia segurada pelo filtro editorial (tema sensivel) — nao posta sozinha
         conn.execute("ALTER TABLE news ADD COLUMN social_hold TEXT")
+    # Central do Canal: mensagem pronta + midia + controle de "ja enviei no Canal"
+    if "zap_text" not in cols:
+        conn.execute("ALTER TABLE news ADD COLUMN zap_text TEXT")
+    if "social_media" not in cols:
+        conn.execute("ALTER TABLE news ADD COLUMN social_media TEXT")
+    if "channel_posted_at" not in cols:
+        conn.execute("ALTER TABLE news ADD COLUMN channel_posted_at TEXT")
+    conn.commit()
+
+
+def save_channel_payload(conn, news_id, zap_text, media_url):
+    """Guarda a mensagem pronta do WhatsApp + a midia, p/ a Central do Canal."""
+    conn.execute(
+        "UPDATE news SET zap_text=?, social_media=? WHERE id=?",
+        (zap_text, media_url, news_id),
+    )
     conn.commit()
 
 
@@ -538,6 +554,9 @@ def process_one(conn, news, do_post, day_dir):
     if do_post:
         publish_real(news, imgs, caption)
         mark_posted(conn, nid)
+        # guarda a mensagem pronta do WhatsApp + 1a imagem p/ a Central do Canal
+        media_url = f"{PUBLIC_BASE_URL}/static/social/n{nid}_s1.jpg"
+        save_channel_payload(conn, nid, zap, media_url)
         print(f"   ✔ POSTADO e marcado (social_posted_at) — id {nid}")
     else:
         print("   (dry-run) NADA foi publicado e a materia NAO foi marcada.")

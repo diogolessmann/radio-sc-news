@@ -344,10 +344,20 @@ def run(post=False):
     paths, zap, cap, weather = generate()
     print(f"[bom_dia] {len(paths)} slides | tempo: {'OK' if weather else 'sem chave'}")
     if post:
-        from distribuidor import publish_images
+        from distribuidor import publish_images, PUBLIC_BASE_URL
         day = datetime.now().strftime("%Y%m%d")
         publish_images(f"bomdia_{day}", paths, cap)
         print("[bom_dia] publicado no IG + FB.")
+        # guarda o payload p/ a Central do Canal (post-bandeira da manha)
+        try:
+            import json
+            latest = os.path.join("static", "social", "bomdia_latest.json")
+            with open(latest, "w", encoding="utf-8") as f:
+                json.dump({"zap": zap,
+                           "media": f"{PUBLIC_BASE_URL}/static/social/bomdia_{day}_s1.jpg",
+                           "data": data_extenso()}, f, ensure_ascii=False)
+        except Exception:
+            pass
     return paths, zap
 
 

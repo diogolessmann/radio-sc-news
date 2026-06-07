@@ -154,6 +154,8 @@ def make_reel_for(news, day_dir, do_post=False):
 
     resumo = dist.groq_summary(news)
     caption = dist.social_caption(news, resumo)
+    zap = dist.whatsapp_message(news, resumo)
+    media_url = f"{dist.PUBLIC_BASE_URL}/static/social/r{nid}.mp4"
 
     # 1) slides do carrossel (reusa o gerador existente)
     outdir = os.path.join(day_dir, str(nid))
@@ -186,7 +188,7 @@ def make_reel_for(news, day_dir, do_post=False):
 
     if not do_post:
         print("   (dry-run) vídeo pronto, NADA foi publicado.")
-        return {"mp4": mp4_path}
+        return {"mp4": mp4_path, "zap": zap, "media_url": media_url}
 
     video_url = f"{dist.PUBLIC_BASE_URL}/static/social/r{nid}.mp4"
     print("   > publicando Reels no Instagram...")
@@ -199,7 +201,8 @@ def make_reel_for(news, day_dir, do_post=False):
     except Exception as e:
         fb = {"erro": str(e)}
         print(f"     ! FB vídeo falhou (segue mesmo assim): {e}")
-    return {"instagram": ig, "facebook": fb, "mp4": mp4_path}
+    return {"instagram": ig, "facebook": fb, "mp4": mp4_path,
+            "zap": zap, "media_url": media_url}
 
 
 # ---------------------------------------------------------------- entrada p/ scheduler
@@ -239,9 +242,11 @@ def run_reel(post=False, limit=1):
                 vistos.append(news)
                 continue
         try:
-            make_reel_for(news, day_dir, do_post=post)
+            res = make_reel_for(news, day_dir, do_post=post)
             if post:
                 dist.mark_posted(conn, news["id"])
+                dist.save_channel_payload(conn, news["id"],
+                                          res.get("zap", ""), res.get("media_url", ""))
                 vistos.append(news)
             done += 1
         except Exception as e:
