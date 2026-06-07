@@ -412,6 +412,36 @@ def post_facebook(image_path_public_url, caption):
                         "access_token": META_PAGE_TOKEN})
 
 
+def _story_image(slide_path, out_path):
+    """Converte um slide (1080x1350) num quadro 9:16 (1080x1920) p/ Story."""
+    from PIL import Image
+    canvas = Image.new("RGB", (1080, 1920), gi.BG)
+    im = Image.open(slide_path).convert("RGB")
+    if im.width != 1080:
+        new_h = int(im.height * 1080 / im.width)
+        im = im.resize((1080, new_h))
+    if im.height > 1920:
+        top = (im.height - 1920) // 2
+        im = im.crop((0, top, 1080, top + 1920))
+    y = (1920 - im.height) // 2
+    canvas.paste(im, (0, max(0, y)))
+    canvas.save(out_path, "JPEG", quality=90)
+    return out_path
+
+
+def post_instagram_story(image_url):
+    """Publica um Story de imagem no Instagram (some em 24h, mas mantem no topo)."""
+    cont = _graph_post(
+        f"{GRAPH}/{META_IG_USER_ID}/media",
+        {"media_type": "STORIES", "image_url": image_url, "access_token": META_PAGE_TOKEN},
+    )["id"]
+    time.sleep(2)
+    return _graph_post(
+        f"{GRAPH}/{META_IG_USER_ID}/media_publish",
+        {"creation_id": cont, "access_token": META_PAGE_TOKEN},
+    )
+
+
 def post_instagram_carousel(public_urls, caption):
     """Posta carrossel no Instagram. ATENCAO: IG exige image_url PUBLICA (https) em JPG."""
     children = []
@@ -460,7 +490,19 @@ def publish_images(prefix, image_paths, caption):
     print("   > publicando no Facebook...")
     fb = post_facebook(public_urls[0], caption)
     print(f"     FB ok: {fb}")
-    return {"instagram": ig, "facebook": fb}
+
+    # Story automatico (capa em 9:16) — desligue com SOCIAL_STORY=0
+    story = None
+    if _env("SOCIAL_STORY", "1") == "1":
+        try:
+            story_jpg = os.path.join(PUBLIC_IMG_DIR, f"{prefix}_story.jpg")
+            _story_image(image_paths[0], story_jpg)
+            story_url = f"{PUBLIC_BASE_URL}/static/social/{prefix}_story.jpg"
+            story = post_instagram_story(story_url)
+            print(f"     Story ok: {story}")
+        except Exception as e:
+            print(f"     ! Story falhou (segue mesmo assim): {e}")
+    return {"instagram": ig, "facebook": fb, "story": story}
 
 
 def publish_real(news, image_paths, caption):
