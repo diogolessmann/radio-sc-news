@@ -199,25 +199,31 @@ def _sponsor_band(img, d, sponsor):
     """Faixa de OFERECIMENTO no rodape (logo + nome do patrocinador)."""
     if not sponsor:
         return
-    by0 = H - 150
-    d.rounded_rectangle([40, by0, W - 40, H - 40], radius=24, fill=gi.CARD)
+    fone = (sponsor.get("phone") or "").strip()
+    by0 = H - (185 if fone else 150)
+    d.rounded_rectangle([40, by0, W - 40, H - 35], radius=24, fill=gi.CARD)
     # rotulo
-    d.text((70, by0 + 22), "OFERECIMENTO", font=gi.font(28, bold=False), fill=MUTED)
+    d.text((70, by0 + 20), "OFERECIMENTO", font=gi.font(28, bold=False), fill=MUTED)
     # logo (opcional)
     text_x = 70
     try:
         import sponsors as sp
         logo = sp.fetch_logo(sponsor.get("logo_url"))
         if logo:
-            lh = 78
+            lh = 86
             ratio = lh / logo.height
             logo = logo.resize((int(logo.width * ratio), lh))
-            img.paste(logo, (70, by0 + 50), logo)
+            img.paste(logo, (70, by0 + 56), logo)
             text_x = 70 + logo.width + 24
     except Exception:
         pass
     nome = (sponsor.get("name") or "").upper()
-    d.text((text_x, by0 + 56), nome, font=gi.font(46, impact=True), fill=GOLD)
+    if fone:
+        # nome em cima + telefone/whats embaixo (sem emoji: fonte do slide nao tem)
+        d.text((text_x, by0 + 52), nome, font=gi.font(42, impact=True), fill=GOLD)
+        d.text((text_x, by0 + 110), f"WhatsApp {fone}", font=gi.font(36), fill=WHITE)
+    else:
+        d.text((text_x, by0 + 56), nome, font=gi.font(46, impact=True), fill=GOLD)
 
 
 def slide_cta(outdir, n, sponsor=None):
@@ -254,7 +260,10 @@ def slide_cta(outdir, n, sponsor=None):
 def whatsapp_bomdia(weather, headlines, curiosidade, sponsor=None):
     linhas = [f"☀️ *BOM DIA, VALE!* — {data_extenso()}", ""]
     if sponsor and sponsor.get("name"):
-        linhas += [f"💙 Oferecimento: *{sponsor['name']}*", ""]
+        ofer = f"💙 Oferecimento: *{sponsor['name']}*"
+        if (sponsor.get("phone") or "").strip():
+            ofer += f" — 📱 {sponsor['phone'].strip()}"
+        linhas += [ofer, ""]
     if weather:
         linhas.append("🌡️ *Tempo agora:*")
         for w in weather:

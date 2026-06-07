@@ -36,21 +36,27 @@ def ensure_table(conn=None):
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             logo_url TEXT,
+            phone TEXT,
             active INTEGER DEFAULT 1,
             created_at TEXT
         )
     """)
+    # migracao: adiciona phone se a tabela ja existia sem essa coluna
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(sponsors)")]
+    if "phone" not in cols:
+        conn.execute("ALTER TABLE sponsors ADD COLUMN phone TEXT")
     conn.commit()
     if own:
         conn.close()
 
 
-def add_sponsor(name, logo_url=""):
+def add_sponsor(name, logo_url="", phone=""):
     conn = get_db()
     ensure_table(conn)
     cur = conn.execute(
-        "INSERT INTO sponsors (name, logo_url, active, created_at) VALUES (?, ?, 1, ?)",
-        (name.strip(), (logo_url or "").strip(), datetime.now().isoformat(timespec="seconds")),
+        "INSERT INTO sponsors (name, logo_url, phone, active, created_at) VALUES (?, ?, ?, 1, ?)",
+        (name.strip(), (logo_url or "").strip(), (phone or "").strip(),
+         datetime.now().isoformat(timespec="seconds")),
     )
     conn.commit()
     sid = cur.lastrowid
@@ -62,7 +68,7 @@ def list_sponsors():
     conn = get_db()
     ensure_table(conn)
     rows = [dict(r) for r in conn.execute(
-        "SELECT id, name, logo_url, active, created_at FROM sponsors ORDER BY id"
+        "SELECT id, name, logo_url, phone, active, created_at FROM sponsors ORDER BY id"
     ).fetchall()]
     conn.close()
     return rows
@@ -89,7 +95,7 @@ def active_sponsors(conn=None):
     conn = conn or get_db()
     ensure_table(conn)
     rows = conn.execute(
-        "SELECT id, name, logo_url FROM sponsors WHERE active=1 ORDER BY id"
+        "SELECT id, name, logo_url, phone FROM sponsors WHERE active=1 ORDER BY id"
     ).fetchall()
     out = [dict(r) for r in rows]
     if own:

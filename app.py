@@ -746,7 +746,7 @@ def api_social_testar():
 def api_sponsor(acao):
     """Gestão do Selo Patrocinador (Bom dia, Vale). Protegido por token de admin.
        /api/sponsor/list?token=SENHA
-       /api/sponsor/add?token=SENHA&name=Padaria%20X&logo=https://.../logo.png
+       /api/sponsor/add?token=SENHA&name=Padaria%20X&logo=https://.../logo.png&phone=47999990000
        /api/sponsor/remove?token=SENHA&id=3
        /api/sponsor/toggle?token=SENHA&id=3&active=0
     """
@@ -758,7 +758,8 @@ def api_sponsor(acao):
             name = (request.args.get('name') or '').strip()
             if not name:
                 return jsonify({'success': False, 'error': 'name obrigatorio'}), 400
-            sid = sp.add_sponsor(name, request.args.get('logo', ''))
+            sid = sp.add_sponsor(name, request.args.get('logo', ''),
+                                 request.args.get('phone', ''))
             return jsonify({'success': True, 'id': sid, 'sponsors': sp.list_sponsors()})
         if acao == 'remove':
             sp.remove_sponsor(request.args.get('id'))
