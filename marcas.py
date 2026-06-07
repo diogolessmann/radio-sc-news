@@ -540,7 +540,22 @@ def publish_brand(t, prefix, image_paths, caption):
     # Facebook foto
     fb = dist._graph_post(f"{GRAPH}/{page_id}/photos",
                           {"caption": caption, "url": public_urls[0], "access_token": token})
-    return {"instagram": ig, "facebook": fb}
+    # Story automatico (capa em 9:16) — desligavel com SOCIAL_STORY=0
+    story = None
+    if dist._env("SOCIAL_STORY", "1") == "1":
+        try:
+            story_jpg = os.path.join(PUBLIC_IMG_DIR, f"{prefix}_story.jpg")
+            dist._story_image(image_paths[0], story_jpg)
+            story_url = f"{base}/static/social/{prefix}_story.jpg"
+            sc = dist._graph_post(f"{GRAPH}/{ig_id}/media",
+                                  {"media_type": "STORIES", "image_url": story_url,
+                                   "access_token": token})["id"]
+            time.sleep(2)
+            story = dist._graph_post(f"{GRAPH}/{ig_id}/media_publish",
+                                     {"creation_id": sc, "access_token": token})
+        except Exception as e:
+            print(f"   ! Story da marca falhou (segue): {e}")
+    return {"instagram": ig, "facebook": fb, "story": story}
 
 
 # ----------------------------------------------------------------- run
