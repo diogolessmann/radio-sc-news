@@ -10,6 +10,7 @@ import sqlite3
 import logging
 import re
 import os
+import unicodedata
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -192,6 +193,41 @@ def get_db():
     return conn
 
 
+# ── Deduplicação por CONTEÚDO (mesmo fato vindo de várias fontes) ──
+_DEDUP_STOP = set((
+    "de da do das dos a o e os as um uma uns umas no na nos nas ao aos que com por "
+    "para pra apos sobre entre ate sem sob desde como mais menos muito pouco urgente "
+    "video veja confira saiba assista foto fotos imagem imagens noticia em e foi sao "
+    "ser tem ter dois tres anos ano hoje agora cidade regiao apos"
+).split())
+
+
+def _stem_keys(text):
+    t = unicodedata.normalize("NFKD", (text or "").lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    keys = set()
+    for w in re.findall(r"[a-z0-9]+", t):
+        if len(w) < 3 or w in _DEDUP_STOP:
+            continue
+        keys.add(w[:5])  # stem leve por prefixo (atropelado/atropelamento -> atrop)
+    return keys
+
+
+def _overlap(a, b):
+    ka, kb = _stem_keys(a), _stem_keys(b)
+    if not ka or not kb:
+        return 0.0
+    return len(ka & kb) / min(len(ka), len(kb))
+
+
+def _is_similar(title, titles, thresh=0.6):
+    """True se 'title' for o mesmo fato de algum título já visto."""
+    for t in titles:
+        if _overlap(title, t) >= thresh:
+            return True
+    return False
+
+
 def detect_city(text):
     text_lower = text.lower()
     for city, keywords in CITY_KEYWORDS.items():
@@ -299,15 +335,30 @@ def fetch_feed(feed_config):
 
 
 def save_articles(articles):
-    """Salva notícias no banco, ignorando duplicatas."""
+    """Salva notícias no banco, ignorando duplicatas (link exato E mesmo fato/conteúdo)."""
     conn = get_db()
     saved = 0
+    # base de comparação p/ dedup de conteúdo: títulos dos últimos 3 dias
+    try:
+        recent = conn.execute(
+            "SELECT title FROM news WHERE created_at > datetime('now','-3 days')"
+        ).fetchall()
+        seen_titles = [r['title'] for r in recent if r['title']]
+    except Exception:
+        seen_titles = []
+
     for art in articles:
         try:
             existing = conn.execute(
                 'SELECT id FROM news WHERE link = ?', (art['link'],)
             ).fetchone()
             if existing:
+                continue
+
+            # dedup por conteúdo: mesma notícia de outra fonte (título parecido)
+            if _is_similar(art['title'], seen_titles, thresh=0.6):
+                logger.info(f"♻ Duplicada (mesmo fato) ignorada: {art['title'][:60]}")
+                seen_titles.append(art['title'])
                 continue
 
             conn.execute('''
@@ -320,6 +371,7 @@ def save_articles(articles):
                 art['published_at'], art.get('image_url'), int(art.get('priority', False)),
                 datetime.now().isoformat()
             ))
+            seen_titles.append(art['title'])
             saved += 1
         except Exception as e:
             logger.error(f"Erro ao salvar notícia: {e}")
