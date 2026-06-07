@@ -717,8 +717,9 @@ def api_social_testar():
             return jsonify({'success': True, 'tipo': 'bomdia',
                             'message': 'Bom dia Vale postado no IG+FB.'})
         import distribuidor
-        n = distribuidor.run_once(post=True, limit=1)
-        return jsonify({'success': True, 'tipo': 'noticia', 'postadas': n})
+        r = distribuidor.run_once(post=True, limit=1)
+        return jsonify({'success': True, 'tipo': 'noticia',
+                        'postadas': r['postadas'], 'erros': r['erros']})
     except Exception as e:
         logger.error(f"Erro no teste social: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500

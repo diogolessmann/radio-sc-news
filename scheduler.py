@@ -35,8 +35,8 @@ def social_news_job():
         return
     try:
         import distribuidor
-        n = distribuidor.run_once(post=True, limit=1)
-        logger.info(f"📣 Distribuidor: {n} materia(s) postada(s) no IG+FB.")
+        r = distribuidor.run_once(post=True, limit=1)
+        logger.info(f"📣 Distribuidor: {r['postadas']} postada(s). Erros: {r['erros']}")
     except Exception as e:
         logger.error(f"❌ Distribuidor falhou: {e}")
 

@@ -336,18 +336,20 @@ def run_once(post=False, limit=1):
     if not news_list:
         conn.close()
         print("[distribuidor] nada pendente.")
-        return 0
+        return {"postadas": 0, "erros": ["nada pendente"]}
     day_dir = os.path.join(PREVIEW_BASE, datetime.now().strftime("%Y-%m-%d") + "_social")
     os.makedirs(day_dir, exist_ok=True)
-    done = 0
+    done, erros = 0, []
     for news in news_list:
         try:
             process_one(conn, news, post, day_dir)
             done += 1
         except Exception as e:
-            print(f"   ! ERRO na materia {news['id']}: {e}")
+            msg = f"materia {news['id']}: {e}"
+            print("   ! ERRO " + msg)
+            erros.append(msg)
     conn.close()
-    return done
+    return {"postadas": done, "erros": erros}
 
 
 # ---------------------------------------------------------------- main
