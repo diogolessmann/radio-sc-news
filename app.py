@@ -919,7 +919,12 @@ def canal_central():
                  if is_video else
                  f'<img src="{media}" style="max-width:100%;border-radius:10px" '
                  f'onerror="this.style.display=\'none\'">')
-        baixar = f'<a class="btn ghost" href="{media}" download target="_blank">⬇️ Baixar mídia</a>' if media else ""
+        if is_video:
+            thumb += ('<div style="color:#a8aab4;font-size:13px;margin-top:6px">'
+                      '🎵 Este vídeo serve pro <b>Canal do WhatsApp</b> E pro <b>TikTok</b> '
+                      '— baixe e poste nos dois.</div>')
+        baixar = (f'<a class="btn ghost" href="{media}" download target="_blank">⬇️ Baixar '
+                  f'{"(Canal + TikTok)" if is_video else "mídia"}</a>') if media else ""
         cards.append(f"""
         <div class="card">
           <div class="cidade">📍 {_html.escape(r['city'] or '')}</div>
