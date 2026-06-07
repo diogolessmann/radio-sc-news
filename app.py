@@ -909,6 +909,125 @@ def canal_central():
     return pagina
 
 
+@app.route('/revisar/aprovar')
+def revisar_aprovar():
+    """Aprova e POSTA uma materia segurada (roda em segundo plano)."""
+    if request.args.get('token', '') != _admin_pw_env:
+        return jsonify({'error': 'unauthorized'}), 403
+    nid = request.args.get('id')
+    try:
+        import threading, distribuidor
+
+        def _job():
+            try:
+                r = distribuidor.post_specific(nid)
+                logger.info(f"✅ Revisao: materia {nid} aprovada -> {r}")
+            except Exception as e:
+                logger.error(f"Revisao aprovar {nid} falhou: {e}")
+
+        threading.Thread(target=_job, daemon=True).start()
+        return redirect(f"/revisar?token={request.args.get('token')}&msg=aprovada")
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/revisar/descartar')
+def revisar_descartar():
+    """Descarta uma materia segurada (nao posta, sai da fila)."""
+    if request.args.get('token', '') != _admin_pw_env:
+        return jsonify({'error': 'unauthorized'}), 403
+    try:
+        import distribuidor
+        from datetime import datetime as _dt
+        conn = distribuidor.get_db()
+        distribuidor.ensure_column(conn)
+        conn.execute("UPDATE news SET social_hold=? WHERE id=?",
+                     (f"descartada @ {_dt.now().isoformat(timespec='seconds')}",
+                      request.args.get('id')))
+        conn.commit()
+        conn.close()
+        return redirect(f"/revisar?token={request.args.get('token')}&msg=descartada")
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/revisar')
+def revisar_fila():
+    """Fila de Revisao: materias seguradas pelo filtro editorial (tema sensivel).
+       Acesso: /revisar?token=SENHA"""
+    import html as _html
+    if request.args.get('token', '') != _admin_pw_env:
+        return "<h3>Acesso negado</h3>", 403
+    token = request.args.get('token')
+    import distribuidor
+    conn = distribuidor.get_db()
+    distribuidor.ensure_column(conn)
+    rows = conn.execute(
+        "SELECT id, title, city, summary, image_url, social_hold FROM news "
+        "WHERE social_hold LIKE 'sensivel%' "
+        "AND (social_posted_at IS NULL OR social_posted_at='') "
+        "ORDER BY datetime(published_at) DESC LIMIT 40"
+    ).fetchall()
+    conn.close()
+
+    cards = []
+    for r in rows:
+        motivo = _html.escape((r["social_hold"] or "").replace("sensivel:", "").split("@")[0].strip())
+        img = (f'<img src="{r["image_url"]}" style="max-width:100%;border-radius:10px" '
+               f'onerror="this.style.display=\'none\'">' if r["image_url"] else "")
+        resumo = _html.escape((r["summary"] or "")[:240])
+        cards.append(f"""
+        <div class="card">
+          <div class="tag">⚠️ segurada — termo: <b>{motivo}</b></div>
+          <div class="cidade">📍 {_html.escape(r['city'] or '')}</div>
+          <h3>{_html.escape(r['title'] or '')}</h3>
+          <div class="media">{img}</div>
+          <p class="resumo">{resumo}</p>
+          <div class="row">
+            <a class="btn ok" href="/revisar/aprovar?token={token}&id={r['id']}"
+               onclick="return confirm('Aprovar e POSTAR esta materia no Instagram e Facebook?')">✅ Aprovar e postar</a>
+            <a class="btn no" href="/revisar/descartar?token={token}&id={r['id']}"
+               onclick="return confirm('Descartar? Nao sera postada.')">🗑️ Descartar</a>
+          </div>
+        </div>""")
+
+    body = "".join(cards) or '<p class="vazio">🎉 Nada na fila. Nenhuma matéria segurada pendente.</p>'
+    msg = request.args.get('msg', '')
+    aviso = ''
+    if msg == 'aprovada':
+        aviso = '<div class="flash">✅ Aprovada! Postando em segundo plano (aparece em ~1 min).</div>'
+    elif msg == 'descartada':
+        aviso = '<div class="flash">🗑️ Descartada.</div>'
+
+    pagina = f"""<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fila de Revisão — Rádio SC News</title>
+    <style>
+      :root{{--red:#e74c3c;--gold:#f5c518;--bg:#111218;--card:#1b1d26;--muted:#a8aab4}}
+      *{{box-sizing:border-box}} body{{margin:0;background:var(--bg);color:#eee;
+        font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:16px;max-width:680px;margin:auto}}
+      header{{position:sticky;top:0;background:var(--bg);padding:10px 0 14px;border-bottom:1px solid #2a2d3a;z-index:5}}
+      h1{{font-size:20px;margin:0}} .sub{{color:var(--muted);font-size:13px;margin-top:4px}}
+      .card{{background:var(--card);border-radius:14px;padding:14px;margin:14px 0;border:1px solid #3a2a2a}}
+      .tag{{color:#ff9; font-size:13px}} .cidade{{color:var(--gold);font-size:13px;font-weight:700;margin-top:6px}}
+      h3{{font-size:16px;margin:6px 0 10px}} .resumo{{color:var(--muted);font-size:14px}}
+      .media{{margin:6px 0 10px}} .row{{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}}
+      .btn{{color:#fff;border:0;padding:12px 14px;border-radius:10px;font-weight:700;
+        cursor:pointer;text-decoration:none;font-size:14px;display:inline-block}}
+      .btn.ok{{background:#2e7d32}} .btn.no{{background:#555}}
+      .vazio{{text-align:center;color:var(--muted);padding:40px}}
+      .flash{{background:#2e7d32;padding:10px 14px;border-radius:10px;margin:10px 0}}
+    </style></head><body>
+    <header>
+      <h1>🗂️ Fila de Revisão</h1>
+      <div class="sub">Matérias seguradas pelo filtro (tema sensível). Aprove ou descarte. ({len(rows)} na fila)</div>
+    </header>
+    {aviso}
+    {body}
+    </body></html>"""
+    return pagina
+
+
 @app.route('/admin/fix_sports', methods=['POST'])
 @login_required
 def admin_fix_sports():

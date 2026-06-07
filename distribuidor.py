@@ -469,6 +469,27 @@ def publish_real(news, image_paths, caption):
 
 
 # ---------------------------------------------------------------- ponto de entrada p/ scheduler
+def post_specific(news_id):
+    """Posta UMA materia especifica (usado pela Fila de Revisao ao aprovar).
+    Ignora filtro/hold (decisao humana). Marca como postada no sucesso."""
+    conn = get_db()
+    ensure_column(conn)
+    rows = pick_next(conn, only_id=news_id)
+    if not rows:
+        conn.close()
+        return {"ok": False, "erro": "materia nao encontrada"}
+    news = rows[0]
+    day_dir = os.path.join(PREVIEW_BASE, datetime.now().strftime("%Y-%m-%d") + "_revisao")
+    os.makedirs(day_dir, exist_ok=True)
+    try:
+        process_one(conn, news, True, day_dir)  # posta + marca + salva payload do Canal
+        conn.close()
+        return {"ok": True}
+    except Exception as e:
+        conn.close()
+        return {"ok": False, "erro": str(e)}
+
+
 def run_once(post=False, limit=1):
     """Chamado pelo scheduler. Prepara (e opcionalmente posta) as proximas materias.
     FILTRO EDITORIAL: ao postar de verdade, materias com tema sensivel sao SEGURADAS
