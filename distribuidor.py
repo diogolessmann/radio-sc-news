@@ -255,44 +255,51 @@ def _meta_ready():
     return bool(META_PAGE_TOKEN and META_IG_USER_ID and META_PAGE_ID)
 
 
+def _graph_post(url, data, tries=2):
+    """POST na Graph API mostrando o ERRO DETALHADO da Meta (nao so o status)."""
+    last = ""
+    for _ in range(tries):
+        r = requests.post(url, data=data, timeout=60)
+        if r.ok:
+            return r.json()
+        last = r.text[:400]
+        # erro de imagem ainda processando -> espera e tenta de novo
+        if r.status_code in (400, 500) and ("media" in last.lower() or "process" in last.lower()):
+            time.sleep(4)
+            continue
+        break
+    raise RuntimeError(f"Graph {url.rsplit('/', 1)[-1]} -> {last}")
+
+
 def post_facebook(image_path_public_url, caption):
     """Posta UMA foto na Pagina do Facebook (FB aceita upload direto OU url)."""
-    url = f"{GRAPH}/{META_PAGE_ID}/photos"
-    data = {"caption": caption, "url": image_path_public_url, "access_token": META_PAGE_TOKEN}
-    r = requests.post(url, data=data, timeout=60)
-    r.raise_for_status()
-    return r.json()
+    return _graph_post(f"{GRAPH}/{META_PAGE_ID}/photos",
+                       {"caption": caption, "url": image_path_public_url,
+                        "access_token": META_PAGE_TOKEN})
 
 
 def post_instagram_carousel(public_urls, caption):
-    """Posta carrossel no Instagram. ATENCAO: IG exige image_url PUBLICA (https)."""
+    """Posta carrossel no Instagram. ATENCAO: IG exige image_url PUBLICA (https) em JPG."""
     children = []
     for u in public_urls:
-        r = requests.post(
+        res = _graph_post(
             f"{GRAPH}/{META_IG_USER_ID}/media",
-            data={"image_url": u, "is_carousel_item": "true", "access_token": META_PAGE_TOKEN},
-            timeout=60,
+            {"image_url": u, "is_carousel_item": "true", "access_token": META_PAGE_TOKEN},
         )
-        r.raise_for_status()
-        children.append(r.json()["id"])
-        time.sleep(1)
+        children.append(res["id"])
+        time.sleep(2)
 
-    r = requests.post(
+    container = _graph_post(
         f"{GRAPH}/{META_IG_USER_ID}/media",
-        data={"media_type": "CAROUSEL", "children": ",".join(children),
-              "caption": caption, "access_token": META_PAGE_TOKEN},
-        timeout=60,
-    )
-    r.raise_for_status()
-    container = r.json()["id"]
+        {"media_type": "CAROUSEL", "children": ",".join(children),
+         "caption": caption, "access_token": META_PAGE_TOKEN},
+    )["id"]
+    time.sleep(3)
 
-    r = requests.post(
+    return _graph_post(
         f"{GRAPH}/{META_IG_USER_ID}/media_publish",
-        data={"creation_id": container, "access_token": META_PAGE_TOKEN},
-        timeout=60,
+        {"creation_id": container, "access_token": META_PAGE_TOKEN},
     )
-    r.raise_for_status()
-    return r.json()
 
 
 def publish_images(prefix, image_paths, caption):
@@ -303,13 +310,14 @@ def publish_images(prefix, image_paths, caption):
             "Tokens Meta ausentes. Configure META_PAGE_TOKEN, META_IG_USER_ID e "
             "META_PAGE_ID no ambiente (Railway) antes de postar."
         )
-    import shutil
+    from PIL import Image
     os.makedirs(PUBLIC_IMG_DIR, exist_ok=True)
     public_urls = []
     for i, p in enumerate(image_paths, 1):
-        fname = f"{prefix}_s{i}.png"
+        # Instagram exige JPG (nao aceita PNG) -> converte
+        fname = f"{prefix}_s{i}.jpg"
         dest = os.path.join(PUBLIC_IMG_DIR, fname)
-        shutil.copyfile(p, dest)
+        Image.open(p).convert("RGB").save(dest, "JPEG", quality=90)
         public_urls.append(f"{PUBLIC_BASE_URL}/static/social/{fname}")
 
     print("   > publicando no Instagram...")
