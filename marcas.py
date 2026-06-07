@@ -97,7 +97,7 @@ BRANDS = {
         "tagline": "Trânsito descomplicado em Schroeder e região",
         "site": "dldespachante.com.br",
         "whats": "(47) 99716-2967",
-        "instagram": "",   # preenche quando tiver o @
+        "instagram": "@despachantelessmann",
         # tema (azul confiança + dourado)
         "bg": (11, 31, 51), "card": (18, 42, 66), "accent": (242, 183, 5),
         "accent2": (46, 134, 222), "white": (245, 247, 250), "muted": (160, 175, 190),
