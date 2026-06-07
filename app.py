@@ -716,6 +716,22 @@ def api_social_testar():
             bom_dia.run(post=True)
             return jsonify({'success': True, 'tipo': 'bomdia',
                             'message': 'Bom dia Vale postado no IG+FB.'})
+        if tipo == 'reel':
+            # Reels demora pra processar no IG (pode passar do timeout do gunicorn).
+            # Roda em segundo plano e responde na hora.
+            import threading, reels
+
+            def _job():
+                try:
+                    r = reels.run_reel(post=True, limit=1)
+                    logger.info(f"🎬 Reels: postadas={r['postadas']} erros={r['erros']} seguradas={r.get('seguradas')}")
+                except Exception as e:
+                    logger.error(f"🎬 Reels falhou: {e}")
+
+            threading.Thread(target=_job, daemon=True).start()
+            return jsonify({'success': True, 'tipo': 'reel',
+                            'status': 'gerando em segundo plano — aparece no Instagram em 1-3 min. '
+                                      'Veja os logs do Railway para o resultado.'})
         import distribuidor
         r = distribuidor.run_once(post=True, limit=1)
         return jsonify({'success': True, 'tipo': 'noticia',

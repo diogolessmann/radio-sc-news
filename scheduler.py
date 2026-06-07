@@ -41,6 +41,19 @@ def social_news_job():
         logger.error(f"❌ Distribuidor falhou: {e}")
 
 
+def reels_job():
+    """Gera e posta 1 Reels (vídeo vertical narrado) por dia. Só age se autopost ligado."""
+    if not _autopost_on():
+        logger.info("📭 Autopost OFF — Reels pulado (modo seguro).")
+        return
+    try:
+        import reels
+        r = reels.run_reel(post=True, limit=1)
+        logger.info(f"🎬 Reels: {r['postadas']} postado(s). Erros: {r['erros']} Seguradas: {r.get('seguradas')}")
+    except Exception as e:
+        logger.error(f"❌ Reels falhou: {e}")
+
+
 def collect_job():
     """Coleta notícias de todos os feeds RSS."""
     try:
@@ -182,10 +195,19 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
+    # 🎬 Reels (vídeo vertical narrado) — 1x por dia às 19h (horário nobre)
+    _scheduler.add_job(
+        func=reels_job,
+        trigger=CronTrigger(hour=19, minute=0, timezone='America/Sao_Paulo'),
+        id='reels_news',
+        name='Reels diário (vídeo narrado IG+FB)',
+        replace_existing=True
+    )
+
     _scheduler.start()
     _ap = "LIGADO" if _autopost_on() else "modo seguro (preview)"
     logger.info(f"✅ Scheduler iniciado — notícias a cada {interval_minutes} min · ao vivo a cada 10 min · "
-                f"limpeza às 3h · Bom dia às 7h · distribuição 12h/18h · autopost {_ap}.")
+                f"limpeza às 3h · Bom dia às 7h · distribuição 12h/18h · Reels às 19h · autopost {_ap}.")
     return _scheduler
 
 

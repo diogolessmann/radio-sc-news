@@ -247,6 +247,29 @@ def generate_audio(title, summary, source=None, city=None, news_id=None, categor
     return None
 
 
+def generate_tts(text, filepath, category=None):
+    """Gera narracao de um texto LIVRE (ex: resumo de Reels) no caminho dado.
+    Mesma cadeia de qualidade: ElevenLabs -> edge-tts -> gTTS. Retorna filepath ou None."""
+    clean = clean_text_for_tts(text)
+    if not clean:
+        return None
+    settings = get_voice_settings(category)
+    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(clean, filepath, voice_settings=settings):
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
+            return filepath
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    if _generate_with_edge_tts(clean, filepath):
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
+            return filepath
+        if os.path.exists(filepath):
+            os.remove(filepath)
+    if _generate_with_gtts(clean, filepath):
+        if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
+            return filepath
+    return None
+
+
 def generate_audio_for_ad(text, ad_id):
     """Gera áudio para propaganda."""
     clean = clean_text_for_tts(text)
