@@ -51,13 +51,20 @@ NORTE_SC = {"Schroeder", "Joinville", "Jaragua do Sul", "Jaraguá do Sul",
 
 FONTS = os.environ.get("FONTS_DIR", "C:/Windows/Fonts" if os.name == "nt" else "")
 
+# Pasta de fontes EMPACOTADAS no projeto (caminho absoluto, nao depende do cwd do Railway).
+# DejaVu Sans tem acentuacao completa (Ã, Ó, ç, etc.) e e livre para redistribuir.
+_BUNDLED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts")
+
 # Fallback de fontes para Linux/Railway (que nao tem as fontes do Windows).
-# Windows continua usando arial/impact normalmente; Linux cai no DejaVu (sempre presente).
+# Ordem: fonte empacotada (sempre presente) -> dejavu do sistema -> nada.
 _FONT_FALLBACK = {
-    "regular": ["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", "fonts/DejaVuSans.ttf"],
-    "bold":    ["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "fonts/DejaVuSans-Bold.ttf"],
-    # Impact nao existe no Linux; usa Anton (gratis, se voce empacotar) ou DejaVu Bold.
-    "impact":  ["fonts/Anton-Regular.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"],
+    "regular": [os.path.join(_BUNDLED, "DejaVuSans.ttf"),
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"],
+    "bold":    [os.path.join(_BUNDLED, "DejaVuSans-Bold.ttf"),
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"],
+    # Impact nao existe no Linux: usa DejaVu Bold empacotada (com acentos).
+    "impact":  [os.path.join(_BUNDLED, "DejaVuSans-Bold.ttf"),
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"],
 }
 
 
