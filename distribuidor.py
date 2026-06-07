@@ -83,6 +83,41 @@ PREVIEW_BASE = "instagram_posts"          # dry-run salva aqui (mesma pasta do g
 PUBLIC_IMG_DIR = os.path.join("static", "social")  # postagem real serve as imagens daqui
 
 
+# ---------------------------------------------------------------- filtro editorial
+# Temas sensiveis que NAO devem ser postados automaticamente: ficam SEGURADOS p/
+# revisao humana (o robo pula e posta a proxima noticia segura). Foco: morte/tragedia,
+# menores como vitima, crimes sexuais e suicidio — onde um post automatico no tom
+# errado queima a marca ou gera bloqueio na Meta.
+_SENSITIVE_DEFAULT = [
+    r"mort[eoa]s?", r"falec", r"óbit", r"cadáver", r"v[íi]tima fatal", r"corpo encontrad",
+    r"assassin", r"homicíd", r"feminicíd", r"esfaque", r"chacina", r"latrocínio",
+    r"suicíd", r"enforcad", r"tirou a própria vida",
+    r"estupr", r"abuso sexual", r"pedofil", r"importunç", r"violência sexual",
+    r"criança", r"menino", r"menina", r"bebê", r"recém-nascid", r"adolescente",
+    r"atropelad", r"afogad", r"queda fatal",
+]
+
+
+def _sensitive_regex():
+    """Monta o regex de bloqueio. Voce pode ADICIONAR termos via env SOCIAL_BLOCK_WORDS
+    (separados por virgula) sem mexer no codigo."""
+    words = list(_SENSITIVE_DEFAULT)
+    extra = _env("SOCIAL_BLOCK_WORDS")
+    if extra:
+        words += [re.escape(w.strip()) for w in extra.split(",") if w.strip()]
+    return re.compile(r"\b(" + "|".join(words) + r")", re.IGNORECASE)
+
+
+_SENSITIVE_RE = _sensitive_regex()
+
+
+def sensitive_reason(news):
+    """Devolve o termo sensivel encontrado (pra segurar a materia) ou None se for segura."""
+    blob = f"{news['title'] or ''} {news['summary'] or ''}"
+    m = _SENSITIVE_RE.search(blob)
+    return m.group(0) if m else None
+
+
 # ---------------------------------------------------------------- banco
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -94,7 +129,10 @@ def ensure_column(conn):
     cols = [r[1] for r in conn.execute("PRAGMA table_info(news)")]
     if "social_posted_at" not in cols:
         conn.execute("ALTER TABLE news ADD COLUMN social_posted_at TEXT")
-        conn.commit()
+    if "social_hold" not in cols:
+        # materia segurada pelo filtro editorial (tema sensivel) — nao posta sozinha
+        conn.execute("ALTER TABLE news ADD COLUMN social_hold TEXT")
+    conn.commit()
 
 
 def pick_next(conn, only_id=None, limit=1):
@@ -105,6 +143,7 @@ def pick_next(conn, only_id=None, limit=1):
     rows = conn.execute(
         "SELECT * FROM news WHERE active=1 "
         "AND (social_posted_at IS NULL OR social_posted_at='') "
+        "AND (social_hold IS NULL OR social_hold='') "
         "ORDER BY priority DESC, datetime(published_at) DESC LIMIT 200"
     ).fetchall()
 
@@ -118,6 +157,16 @@ def mark_posted(conn, news_id):
     conn.execute(
         "UPDATE news SET social_posted_at=? WHERE id=?",
         (datetime.now().isoformat(timespec="seconds"), news_id),
+    )
+    conn.commit()
+
+
+def mark_hold(conn, news_id, reason):
+    """Segura a materia (filtro editorial): nao entra mais no auto-post, fica p/ revisao."""
+    stamp = datetime.now().isoformat(timespec="seconds")
+    conn.execute(
+        "UPDATE news SET social_hold=? WHERE id=?",
+        (f"sensivel:{reason} @ {stamp}", news_id),
     )
     conn.commit()
 
@@ -337,18 +386,32 @@ def publish_real(news, image_paths, caption):
 # ---------------------------------------------------------------- ponto de entrada p/ scheduler
 def run_once(post=False, limit=1):
     """Chamado pelo scheduler. Prepara (e opcionalmente posta) as proximas materias.
-    Retorna quantas foram processadas."""
+    FILTRO EDITORIAL: ao postar de verdade, materias com tema sensivel sao SEGURADAS
+    p/ revisao humana (o robo pula e segue p/ a proxima noticia segura).
+    Retorna {postadas, erros, seguradas}."""
     conn = get_db()
     ensure_column(conn)
-    news_list = pick_next(conn, only_id=None, limit=limit)
-    if not news_list:
+    # pega um lote maior que o limite p/ ter de onde pular as seguradas
+    pool = pick_next(conn, only_id=None, limit=max(limit * 6, 12))
+    if not pool:
         conn.close()
         print("[distribuidor] nada pendente.")
-        return {"postadas": 0, "erros": ["nada pendente"]}
+        return {"postadas": 0, "erros": ["nada pendente"], "seguradas": []}
     day_dir = os.path.join(PREVIEW_BASE, datetime.now().strftime("%Y-%m-%d") + "_social")
     os.makedirs(day_dir, exist_ok=True)
-    done, erros = 0, []
-    for news in news_list:
+    done, erros, seguradas = 0, [], []
+    for news in pool:
+        if done >= limit:
+            break
+        # filtro editorial — so quando vai POSTAR de verdade
+        if post:
+            reason = sensitive_reason(news)
+            if reason:
+                mark_hold(conn, news["id"], reason)
+                aviso = f"materia {news['id']} SEGURADA p/ revisao (tema sensivel: '{reason}')"
+                print("   ⏸ " + aviso)
+                seguradas.append(aviso)
+                continue
         try:
             process_one(conn, news, post, day_dir)
             done += 1
@@ -357,7 +420,7 @@ def run_once(post=False, limit=1):
             print("   ! ERRO " + msg)
             erros.append(msg)
     conn.close()
-    return {"postadas": done, "erros": erros}
+    return {"postadas": done, "erros": erros, "seguradas": seguradas}
 
 
 # ---------------------------------------------------------------- main
