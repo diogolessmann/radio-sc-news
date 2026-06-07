@@ -200,7 +200,8 @@ def _sponsor_band(img, d, sponsor):
     if not sponsor:
         return
     fone = (sponsor.get("phone") or "").strip()
-    by0 = H - (185 if fone else 150)
+    tem_contato = bool(fone or (sponsor.get("instagram") or "").strip())
+    by0 = H - (185 if tem_contato else 150)
     d.rounded_rectangle([40, by0, W - 40, H - 35], radius=24, fill=gi.CARD)
     # rotulo
     d.text((70, by0 + 20), "OFERECIMENTO", font=gi.font(28, bold=False), fill=MUTED)
@@ -218,10 +219,16 @@ def _sponsor_band(img, d, sponsor):
     except Exception:
         pass
     nome = (sponsor.get("name") or "").upper()
+    insta = (sponsor.get("instagram") or "").strip()
+    contato_parts = []
     if fone:
-        # nome em cima + telefone/whats embaixo (sem emoji: fonte do slide nao tem)
+        contato_parts.append(f"WhatsApp {fone}")
+    if insta:
+        contato_parts.append(insta)
+    contato = "   ".join(contato_parts)
+    if contato:
         d.text((text_x, by0 + 52), nome, font=gi.font(42, impact=True), fill=GOLD)
-        d.text((text_x, by0 + 110), f"WhatsApp {fone}", font=gi.font(36), fill=WHITE)
+        d.text((text_x, by0 + 110), contato, font=gi.font(34), fill=WHITE)
     else:
         d.text((text_x, by0 + 56), nome, font=gi.font(46, impact=True), fill=GOLD)
 
@@ -261,6 +268,8 @@ def whatsapp_bomdia(weather, headlines, curiosidade, sponsor=None):
     linhas = [f"☀️ *BOM DIA, VALE!* — {data_extenso()}", ""]
     if sponsor and sponsor.get("name"):
         ofer = f"💙 Oferecimento: *{sponsor['name']}*"
+        if (sponsor.get("instagram") or "").strip():
+            ofer += f" {sponsor['instagram'].strip()}"
         if (sponsor.get("phone") or "").strip():
             ofer += f" — 📱 {sponsor['phone'].strip()}"
         linhas += [ofer, ""]

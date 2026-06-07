@@ -16,6 +16,7 @@ Gestão simples por URL (protegida por token de admin) — ver rotas em app.py:
   /api/sponsor/toggle?token=SENHA&id=3&active=0
 """
 import os
+import re
 import sqlite3
 from datetime import datetime
 
@@ -41,22 +42,35 @@ def ensure_table(conn=None):
             created_at TEXT
         )
     """)
-    # migracao: adiciona phone se a tabela ja existia sem essa coluna
+    # migracao: adiciona colunas novas se a tabela ja existia sem elas
     cols = [r[1] for r in conn.execute("PRAGMA table_info(sponsors)")]
     if "phone" not in cols:
         conn.execute("ALTER TABLE sponsors ADD COLUMN phone TEXT")
+    if "instagram" not in cols:
+        conn.execute("ALTER TABLE sponsors ADD COLUMN instagram TEXT")
     conn.commit()
     if own:
         conn.close()
 
 
-def add_sponsor(name, logo_url="", phone=""):
+def _norm_ig(handle):
+    """Normaliza o @ do Instagram: tira url/@ e devolve '@usuario' (ou '')."""
+    h = (handle or "").strip()
+    if not h:
+        return ""
+    h = re.sub(r"https?://(www\.)?instagram\.com/", "", h, flags=re.I)
+    h = h.strip("/@ ").split("/")[0].split("?")[0]
+    return f"@{h}" if h else ""
+
+
+def add_sponsor(name, logo_url="", phone="", instagram=""):
     conn = get_db()
     ensure_table(conn)
     cur = conn.execute(
-        "INSERT INTO sponsors (name, logo_url, phone, active, created_at) VALUES (?, ?, ?, 1, ?)",
+        "INSERT INTO sponsors (name, logo_url, phone, instagram, active, created_at) "
+        "VALUES (?, ?, ?, ?, 1, ?)",
         (name.strip(), (logo_url or "").strip(), (phone or "").strip(),
-         datetime.now().isoformat(timespec="seconds")),
+         _norm_ig(instagram), datetime.now().isoformat(timespec="seconds")),
     )
     conn.commit()
     sid = cur.lastrowid
@@ -68,7 +82,7 @@ def list_sponsors():
     conn = get_db()
     ensure_table(conn)
     rows = [dict(r) for r in conn.execute(
-        "SELECT id, name, logo_url, phone, active, created_at FROM sponsors ORDER BY id"
+        "SELECT id, name, logo_url, phone, instagram, active, created_at FROM sponsors ORDER BY id"
     ).fetchall()]
     conn.close()
     return rows
@@ -95,7 +109,7 @@ def active_sponsors(conn=None):
     conn = conn or get_db()
     ensure_table(conn)
     rows = conn.execute(
-        "SELECT id, name, logo_url, phone FROM sponsors WHERE active=1 ORDER BY id"
+        "SELECT id, name, logo_url, phone, instagram FROM sponsors WHERE active=1 ORDER BY id"
     ).fetchall()
     out = [dict(r) for r in rows]
     if own:

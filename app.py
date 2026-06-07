@@ -759,7 +759,8 @@ def api_sponsor(acao):
             if not name:
                 return jsonify({'success': False, 'error': 'name obrigatorio'}), 400
             sid = sp.add_sponsor(name, request.args.get('logo', ''),
-                                 request.args.get('phone', ''))
+                                 request.args.get('phone', ''),
+                                 request.args.get('instagram', ''))
             return jsonify({'success': True, 'id': sid, 'sponsors': sp.list_sponsors()})
         if acao == 'remove':
             sp.remove_sponsor(request.args.get('id'))
