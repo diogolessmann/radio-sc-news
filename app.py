@@ -733,6 +733,11 @@ def api_social_testar():
                             'status': 'gerando em segundo plano — aparece no Instagram em 1-3 min. '
                                       'Veja os logs do Railway para o resultado.'})
         import distribuidor
+        if tipo == 'urgente':
+            r = distribuidor.run_urgent(post=True, limit=1)
+            return jsonify({'success': True, 'tipo': 'urgente',
+                            'postadas': r['postadas'], 'erros': r['erros'],
+                            'seguradas': r.get('seguradas', [])})
         r = distribuidor.run_once(post=True, limit=1)
         return jsonify({'success': True, 'tipo': 'noticia',
                         'postadas': r['postadas'], 'erros': r['erros'],

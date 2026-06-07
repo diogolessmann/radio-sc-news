@@ -261,6 +261,34 @@ def pick_next(conn, only_id=None, limit=1):
     return ordered[:limit]
 
 
+# ---------------------------------------------------------------- urgencia (tempo real)
+_URGENT_RE = re.compile(
+    r"\b(urgent|acidente|grave|gravíssim|interdi|bloquead|alerta|ao vivo|incêndi|"
+    r"incendi|explos|desaparec|temporal|alagament|enchente|capotad|colis|tombament|"
+    r"resgat|deslizament|vendaval|ciclone|granizo|apagão|apagao)", re.IGNORECASE)
+
+
+def is_urgent(news):
+    """True se a noticia tem cara de URGENTE/plantao (pra postar na hora)."""
+    return bool(_URGENT_RE.search(f"{news['title'] or ''} {news['summary'] or ''}"))
+
+
+def pick_urgent(conn, minutes=120, limit=5):
+    """Noticias URGENTES recem-coletadas (ainda nao postadas), prioriza Norte de SC."""
+    rows = conn.execute(
+        "SELECT * FROM news WHERE active=1 "
+        "AND (social_posted_at IS NULL OR social_posted_at='') "
+        "AND (social_hold IS NULL OR social_hold='') "
+        "AND created_at > datetime('now', ?) "
+        "ORDER BY datetime(published_at) DESC LIMIT 60",
+        (f"-{minutes} minutes",),
+    ).fetchall()
+    urg = [r for r in rows if is_urgent(r)]
+    local = [r for r in urg if r["city"] in gi.NORTE_SC]
+    rest = [r for r in urg if r["city"] not in gi.NORTE_SC]
+    return (local + rest)[:limit]
+
+
 def mark_posted(conn, news_id):
     conn.execute(
         "UPDATE news SET social_posted_at=? WHERE id=?",
@@ -556,6 +584,43 @@ def post_specific(news_id):
     except Exception as e:
         conn.close()
         return {"ok": False, "erro": str(e)}
+
+
+def run_urgent(post=True, limit=1):
+    """Posta NA HORA noticias urgentes recem-coletadas (plantao). Mesmo filtro
+    editorial + dedup. Sensiveis vao p/ revisao marcadas como URGENTE."""
+    conn = get_db()
+    ensure_column(conn)
+    pool = pick_urgent(conn)
+    if not pool:
+        conn.close()
+        return {"postadas": 0, "erros": [], "seguradas": []}
+    day_dir = os.path.join(PREVIEW_BASE, datetime.now().strftime("%Y-%m-%d") + "_urgente")
+    os.makedirs(day_dir, exist_ok=True)
+    vistos = list(recent_posted(conn))
+    done, erros, seguradas = 0, [], []
+    for news in pool:
+        if done >= limit:
+            break
+        reason = sensitive_reason(news)
+        if reason:
+            mark_hold(conn, news["id"], f"sensivel:{reason} (URGENTE — revise rapido)")
+            seguradas.append(f"materia {news['id']} URGENTE+sensivel -> revisao ('{reason}')")
+            vistos.append(news)
+            continue
+        dup = duplicate_of(news, vistos)
+        if dup:
+            mark_dup(conn, news["id"], dup)
+            vistos.append(news)
+            continue
+        try:
+            process_one(conn, news, post, day_dir)
+            vistos.append(news)
+            done += 1
+        except Exception as e:
+            erros.append(f"materia {news['id']}: {e}")
+    conn.close()
+    return {"postadas": done, "erros": erros, "seguradas": seguradas}
 
 
 def run_once(post=False, limit=1):

@@ -54,6 +54,19 @@ def reels_job():
         logger.error(f"❌ Reels falhou: {e}")
 
 
+def urgent_news_job():
+    """Plantão: posta NA HORA notícia urgente recém-coletada. Só age se autopost ligado."""
+    if not _autopost_on():
+        return
+    try:
+        import distribuidor
+        r = distribuidor.run_urgent(post=True, limit=1)
+        if r['postadas'] or r['seguradas']:
+            logger.info(f"⚡ URGENTE: {r['postadas']} postada(s) · seguradas: {r['seguradas']}")
+    except Exception as e:
+        logger.error(f"❌ Urgente falhou: {e}")
+
+
 def collect_job():
     """Coleta notícias de todos os feeds RSS."""
     try:
@@ -201,6 +214,15 @@ def start_scheduler(interval_minutes=60):
         trigger=CronTrigger(hour=19, minute=0, timezone='America/Sao_Paulo'),
         id='reels_news',
         name='Reels diário (vídeo narrado IG+FB)',
+        replace_existing=True
+    )
+
+    # ⚡ Plantão: notícia urgente em tempo real — checa a cada 20 min
+    _scheduler.add_job(
+        func=urgent_news_job,
+        trigger=IntervalTrigger(minutes=20),
+        id='urgent_news',
+        name='Plantão de notícia urgente (tempo real)',
         replace_existing=True
     )
 
