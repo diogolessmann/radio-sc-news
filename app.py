@@ -742,6 +742,38 @@ def api_social_testar():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/sponsor/<acao>')
+def api_sponsor(acao):
+    """Gestão do Selo Patrocinador (Bom dia, Vale). Protegido por token de admin.
+       /api/sponsor/list?token=SENHA
+       /api/sponsor/add?token=SENHA&name=Padaria%20X&logo=https://.../logo.png
+       /api/sponsor/remove?token=SENHA&id=3
+       /api/sponsor/toggle?token=SENHA&id=3&active=0
+    """
+    if request.args.get('token', '') != _admin_pw_env:
+        return jsonify({'error': 'unauthorized'}), 403
+    try:
+        import sponsors as sp
+        if acao == 'add':
+            name = (request.args.get('name') or '').strip()
+            if not name:
+                return jsonify({'success': False, 'error': 'name obrigatorio'}), 400
+            sid = sp.add_sponsor(name, request.args.get('logo', ''))
+            return jsonify({'success': True, 'id': sid, 'sponsors': sp.list_sponsors()})
+        if acao == 'remove':
+            sp.remove_sponsor(request.args.get('id'))
+            return jsonify({'success': True, 'sponsors': sp.list_sponsors()})
+        if acao == 'toggle':
+            sp.set_active(request.args.get('id'), request.args.get('active', '1'))
+            return jsonify({'success': True, 'sponsors': sp.list_sponsors()})
+        # default: list
+        return jsonify({'success': True, 'hoje': sp.sponsor_of_the_day(),
+                        'sponsors': sp.list_sponsors()})
+    except Exception as e:
+        logger.error(f"Erro no sponsor/{acao}: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/admin/fix_sports', methods=['POST'])
 @login_required
 def admin_fix_sports():

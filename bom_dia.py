@@ -195,7 +195,32 @@ def slide_curiosidade(texto, outdir, n):
     return p
 
 
-def slide_cta(outdir, n):
+def _sponsor_band(img, d, sponsor):
+    """Faixa de OFERECIMENTO no rodape (logo + nome do patrocinador)."""
+    if not sponsor:
+        return
+    by0 = H - 150
+    d.rounded_rectangle([40, by0, W - 40, H - 40], radius=24, fill=gi.CARD)
+    # rotulo
+    d.text((70, by0 + 22), "OFERECIMENTO", font=gi.font(28, bold=False), fill=MUTED)
+    # logo (opcional)
+    text_x = 70
+    try:
+        import sponsors as sp
+        logo = sp.fetch_logo(sponsor.get("logo_url"))
+        if logo:
+            lh = 78
+            ratio = lh / logo.height
+            logo = logo.resize((int(logo.width * ratio), lh))
+            img.paste(logo, (70, by0 + 50), logo)
+            text_x = 70 + logo.width + 24
+    except Exception:
+        pass
+    nome = (sponsor.get("name") or "").upper()
+    d.text((text_x, by0 + 56), nome, font=gi.font(46, impact=True), fill=GOLD)
+
+
+def slide_cta(outdir, n, sponsor=None):
     img, d = _canvas()
     gi.brand_header(d)
     cy = H // 2 - 160
@@ -219,14 +244,17 @@ def slide_cta(outdir, n):
     d.rounded_rectangle([(W - w) // 2 - 40, y + 110, (W + w) // 2 + 40, y + 200],
                         radius=20, fill=RED)
     d.text(((W - w) // 2, y + 126), SITE, font=site_f, fill=WHITE)
+    _sponsor_band(img, d, sponsor)
     p = os.path.join(outdir, f"slide_{n}.png")
     img.save(p, quality=92)
     return p
 
 
 # ------ WhatsApp ------
-def whatsapp_bomdia(weather, headlines, curiosidade):
+def whatsapp_bomdia(weather, headlines, curiosidade, sponsor=None):
     linhas = [f"☀️ *BOM DIA, VALE!* — {data_extenso()}", ""]
+    if sponsor and sponsor.get("name"):
+        linhas += [f"💙 Oferecimento: *{sponsor['name']}*", ""]
     if weather:
         linhas.append("🌡️ *Tempo agora:*")
         for w in weather:
@@ -268,6 +296,13 @@ def generate(outdir=None):
     if not headlines:
         raise RuntimeError("Sem manchetes no banco — rode o scraper antes.")
 
+    # patrocinador do dia (Selo Patrocinador) — rotaciona entre os ativos
+    try:
+        import sponsors as sp
+        sponsor = sp.sponsor_of_the_day()
+    except Exception:
+        sponsor = None
+
     if outdir is None:
         day = datetime.now().strftime("%Y-%m-%d")
         outdir = os.path.join(OUT_BASE, day + "_bomdia")
@@ -278,9 +313,9 @@ def generate(outdir=None):
         slide_tempo(weather, outdir, 2),
         slide_manchetes(headlines, outdir, 3),
         slide_curiosidade(curiosidade, outdir, 4),
-        slide_cta(outdir, 5),
+        slide_cta(outdir, 5, sponsor=sponsor),
     ]
-    zap = whatsapp_bomdia(weather, headlines, curiosidade)
+    zap = whatsapp_bomdia(weather, headlines, curiosidade, sponsor=sponsor)
     with open(os.path.join(outdir, "whatsapp.txt"), "w", encoding="utf-8") as f:
         f.write(zap)
     return paths, zap, ig_caption(zap), weather
