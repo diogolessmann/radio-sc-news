@@ -247,14 +247,16 @@ def generate_audio(title, summary, source=None, city=None, news_id=None, categor
     return None
 
 
-def generate_tts(text, filepath, category=None):
+def generate_tts(text, filepath, category=None, prefer_free=False):
     """Gera narracao de um texto LIVRE (ex: resumo de Reels) no caminho dado.
-    Mesma cadeia de qualidade: ElevenLabs -> edge-tts -> gTTS. Retorna filepath ou None."""
+    prefer_free=True -> pula o ElevenLabs e usa edge-tts (GRATIS) p/ economizar creditos.
+    Caso contrario: ElevenLabs -> edge-tts -> gTTS. Retorna filepath ou None."""
     clean = clean_text_for_tts(text)
     if not clean:
         return None
     settings = get_voice_settings(category)
-    if ELEVENLABS_API_KEY and _generate_with_elevenlabs(clean, filepath, voice_settings=settings):
+    use_eleven = ELEVENLABS_API_KEY and not prefer_free
+    if use_eleven and _generate_with_elevenlabs(clean, filepath, voice_settings=settings):
         if os.path.exists(filepath) and os.path.getsize(filepath) > 1000:
             return filepath
         if os.path.exists(filepath):

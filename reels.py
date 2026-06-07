@@ -169,7 +169,11 @@ def make_reel_for(news, day_dir, do_post=False):
     os.makedirs(AUDIO_DIR, exist_ok=True)
     narr_path = os.path.join(AUDIO_DIR, f"reel_{nid}.mp3")
     script = _narration_script(news, resumo)
-    audio = tts_engine.generate_tts(script, narr_path, category=news["category"])
+    # Por padrao narra com edge-tts (GRATIS) p/ poupar creditos do ElevenLabs.
+    # Ligue REELS_USE_ELEVEN=1 no ambiente se quiser a voz premium nos Reels.
+    prefer_free = dist._env("REELS_USE_ELEVEN", "0") != "1"
+    audio = tts_engine.generate_tts(script, narr_path, category=news["category"],
+                                    prefer_free=prefer_free)
     if not audio:
         raise RuntimeError("não consegui gerar a narração (TTS).")
 
@@ -213,6 +217,7 @@ def run_reel(post=False, limit=1):
     os.makedirs(day_dir, exist_ok=True)
 
     done, erros, seguradas = 0, [], []
+    vistos = list(dist.recent_posted(conn)) if post else []
     for news in pool:
         if done >= limit:
             break
@@ -223,11 +228,21 @@ def run_reel(post=False, limit=1):
                 aviso = f"materia {news['id']} SEGURADA p/ revisao (tema sensivel: '{reason}')"
                 print("   ⏸ " + aviso)
                 seguradas.append(aviso)
+                vistos.append(news)
+                continue
+            dup = dist.duplicate_of(news, vistos)
+            if dup:
+                dist.mark_dup(conn, news["id"], dup)
+                aviso = f"materia {news['id']} PULADA (duplicada do mesmo fato da #{dup})"
+                print("   ♻ " + aviso)
+                seguradas.append(aviso)
+                vistos.append(news)
                 continue
         try:
             make_reel_for(news, day_dir, do_post=post)
             if post:
                 dist.mark_posted(conn, news["id"])
+                vistos.append(news)
             done += 1
         except Exception as e:
             msg = f"materia {news['id']}: {e}"

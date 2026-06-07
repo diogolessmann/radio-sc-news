@@ -35,6 +35,7 @@ import sqlite3
 import sys
 import textwrap
 import time
+import unicodedata
 from datetime import datetime
 
 import requests
@@ -116,6 +117,67 @@ def sensitive_reason(news):
     blob = f"{news['title'] or ''} {news['summary'] or ''}"
     m = _SENSITIVE_RE.search(blob)
     return m.group(0) if m else None
+
+
+# ---------------------------------------------------------------- deduplicacao
+# Evita postar a MESMA noticia que veio de varias fontes com titulos diferentes
+# (ex: o mesmo acidente reportado por 4 portais). Compara por sobreposicao de
+# palavras-chave (com stem leve por prefixo).
+_DEDUP_STOP = set((
+    "de da do das dos a o e os as um uma uns umas no na nos nas ao aos que com por "
+    "para pra apos sobre entre ate sem sob desde como mais menos muito pouco urgente "
+    "video veja confira saiba assista foto fotos imagem imagens noticia em e é foi sao "
+    "ser tem ter um dois tres anos ano hoje agora cidade regiao"
+).split())
+
+
+def _stem_keys(text):
+    t = unicodedata.normalize("NFKD", (text or "").lower())
+    t = "".join(c for c in t if not unicodedata.combining(c))
+    keys = set()
+    for w in re.findall(r"[a-z0-9]+", t):
+        if len(w) < 3 or w in _DEDUP_STOP:
+            continue
+        keys.add(w[:5])  # stem leve por prefixo (atropelado/atropelamento -> atrop)
+    return keys
+
+
+def _overlap(a, b):
+    ka, kb = _stem_keys(a), _stem_keys(b)
+    if not ka or not kb:
+        return 0.0
+    return len(ka & kb) / min(len(ka), len(kb))
+
+
+def duplicate_of(news, others, thresh=0.55):
+    """Se 'news' for o mesmo fato de alguma 'others', devolve o id dela; senao None."""
+    base = news["title"] or ""
+    for o in others:
+        oid = o["id"] if not isinstance(o, dict) else o.get("id")
+        if oid == news["id"]:
+            continue
+        if _overlap(base, (o["title"] if not isinstance(o, dict) else o.get("title")) or "") >= thresh:
+            return oid
+    return None
+
+
+def recent_posted(conn, limit=100):
+    """Titulos ja postados (p/ comparar e nao repetir o mesmo fato)."""
+    return conn.execute(
+        "SELECT id, title FROM news "
+        "WHERE social_posted_at IS NOT NULL AND social_posted_at!='' "
+        "ORDER BY social_posted_at DESC LIMIT ?",
+        (limit,),
+    ).fetchall()
+
+
+def mark_dup(conn, news_id, dup_id):
+    """Marca como duplicada (reusa social_hold) p/ nao postar nem reavaliar."""
+    conn.execute(
+        "UPDATE news SET social_hold=? WHERE id=?",
+        (f"duplicada de #{dup_id} @ {datetime.now().isoformat(timespec='seconds')}", news_id),
+    )
+    conn.commit()
 
 
 # ---------------------------------------------------------------- banco
@@ -400,20 +462,35 @@ def run_once(post=False, limit=1):
     day_dir = os.path.join(PREVIEW_BASE, datetime.now().strftime("%Y-%m-%d") + "_social")
     os.makedirs(day_dir, exist_ok=True)
     done, erros, seguradas = 0, [], []
+    # base de comparacao p/ dedup: ja postadas + tudo que for visto neste lote
+    vistos = list(recent_posted(conn)) if post else []
     for news in pool:
         if done >= limit:
             break
-        # filtro editorial — so quando vai POSTAR de verdade
+        # so filtra quando vai POSTAR de verdade
         if post:
+            # 1) filtro editorial (tema sensivel)
             reason = sensitive_reason(news)
             if reason:
                 mark_hold(conn, news["id"], reason)
                 aviso = f"materia {news['id']} SEGURADA p/ revisao (tema sensivel: '{reason}')"
                 print("   ⏸ " + aviso)
                 seguradas.append(aviso)
+                vistos.append(news)
+                continue
+            # 2) deduplicacao (mesmo fato de outra fonte)
+            dup = duplicate_of(news, vistos)
+            if dup:
+                mark_dup(conn, news["id"], dup)
+                aviso = f"materia {news['id']} PULADA (duplicada do mesmo fato da #{dup})"
+                print("   ♻ " + aviso)
+                seguradas.append(aviso)
+                vistos.append(news)
                 continue
         try:
             process_one(conn, news, post, day_dir)
+            if post:
+                vistos.append(news)
             done += 1
         except Exception as e:
             msg = f"materia {news['id']}: {e}"
