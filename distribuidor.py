@@ -49,18 +49,34 @@ except Exception:
 import gen_instagram as gi
 
 # ---------------------------------------------------------------- config
+def _env(name, default=""):
+    """Le variavel de ambiente TOLERANDO espacos acidentais no nome ou no valor
+    (comum ao colar no painel do Railway). Devolve o valor ja sem espacos nas pontas."""
+    v = os.environ.get(name)
+    if not v:
+        target = name.strip()
+        for k, val in os.environ.items():
+            if k.strip() == target and val:
+                v = val
+                break
+    if v is None:
+        return default
+    v = v.strip()
+    return v if v else default
+
+
 DB_PATH = os.environ.get("DB_PATH", "radio_sc.db")
 SITE = gi.SITE
-PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "https://www.radioscnews.com.br").rstrip("/")
+PUBLIC_BASE_URL = _env("PUBLIC_BASE_URL", "https://www.radioscnews.com.br").rstrip("/")
 
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_MODEL = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_API_KEY = _env("GROQ_API_KEY")
+GROQ_MODEL = _env("GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-# Meta (Fase 1)
-META_PAGE_TOKEN = os.environ.get("META_PAGE_TOKEN", "")
-META_IG_USER_ID = os.environ.get("META_IG_USER_ID", "")
-META_PAGE_ID = os.environ.get("META_PAGE_ID", "")
+# Meta (Fase 1) — _env tolera espaco invisivel no nome da variavel
+META_PAGE_TOKEN = _env("META_PAGE_TOKEN")
+META_IG_USER_ID = _env("META_IG_USER_ID")
+META_PAGE_ID = _env("META_PAGE_ID")
 GRAPH = "https://graph.facebook.com/v21.0"
 
 PREVIEW_BASE = "instagram_posts"          # dry-run salva aqui (mesma pasta do gen_instagram)
