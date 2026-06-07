@@ -91,6 +91,52 @@ DESPACHANTE_CONTEUDO = [
 ]
 
 
+# 4kitem — sistemas/apps que facilitam o dia a dia de pequenos negocios.
+# SlotZap (rifa/sorteio) fica de FORA: a Meta bane rifa e pode derrubar a conta.
+KITEM_CONTEUDO = [
+    {"cat": "AGENDAMENTO", "titulo": "AgendaJá — sua agenda no automático",
+     "bullets": ["Página de agendamento com link próprio",
+                 "Cliente marca pelo celular, sem baixar app",
+                 "Sem horário duplo — você só atende"]},
+    {"cat": "DELIVERY", "titulo": "MandaJá — delivery SEM comissão",
+     "bullets": ["Sua loja online pronta em minutos",
+                 "PIX direto, sem intermediário levando %",
+                 "Pedido chega no seu WhatsApp na hora"]},
+    {"cat": "WHATSAPP", "titulo": "MandaZap — marketing no WhatsApp com anti-ban",
+     "bullets": ["Importe sua lista (CSV ou PDF)",
+                 "Mensagem personalizada com o nome do cliente",
+                 "Disparo em massa com anti-ban inteligente"]},
+    {"cat": "TRÂNSITO", "titulo": "AlertaJá — CNH e veículo de olho pra você",
+     "bullets": ["Pontos, vencimento e categoria da CNH",
+                 "IPVA, licenciamento e multas do veículo",
+                 "Relatório todo mês no seu WhatsApp"]},
+    {"cat": "BAR & PUB", "titulo": "PubShow — a jukebox digital do seu bar",
+     "bullets": ["Cliente pede música pelo celular",
+                 "Paga via PIX e toca na hora",
+                 "Sua TV exibe videoclipes e seus avisos"]},
+    {"cat": "SALA DE ESPERA", "titulo": "SalaTV — a TV certa pro seu ambiente",
+     "bullets": ["Conteúdo curado e seguro (clínica, salão, kids)",
+                 "Sem anúncios do YouTube atrapalhando",
+                 "Exiba seus próprios avisos na tela"]},
+    {"cat": "PET", "titulo": "VetZap — triagem do seu pet 24 horas",
+     "bullets": ["Saiba se é urgência em 3 minutos",
+                 "Classifica: Estável, Atenção ou Urgente",
+                 "Cartão digital de vacinas do pet"]},
+    {"cat": "PRODUTIVIDADE", "titulo": "Baú — cofre das suas senhas na nuvem",
+     "bullets": ["Guarde sites, logins e dicas de senha",
+                 "Nunca mais perca senha ao formatar o PC",
+                 "Acesse de qualquer dispositivo"]},
+    {"cat": "DESPACHANTE", "titulo": "Amigo Despachante — sua loja organizada",
+     "bullets": ["Ordens de serviço em quadro Kanban",
+                 "Controle de licenciamento por final de placa",
+                 "IA que ajuda no dia a dia"]},
+    {"cat": "DEFESA DE MULTAS", "titulo": "DefesaPro — defesa de multas sem retrabalho",
+     "bullets": ["Motor de petições baseado no CTB",
+                 "OCR: preenche o processo por foto ou PDF",
+                 "Controle de prazos e honorários"]},
+]
+
+
 BRANDS = {
     "despachante": {
         "nome": "Despachante Lessmann",
@@ -128,6 +174,29 @@ BRANDS = {
                      "#jaraguadosul", "#guaramirim", "#dlmobilidade", "#semcnh",
                      "#scooter", "#viacredi"],
         "photo_based": True,   # usa FOTOS REAIS (assets/dl_scooters) com oferta por cima
+    },
+
+    "4kitem": {
+        "nome": "4kitem",
+        "brand_tag": "4KITEM",
+        "tagline": "Sistemas que facilitam o seu negócio",
+        "site": "4kitem.com.br",
+        "whats": "(47) 99960-6998",
+        "instagram": "",   # preenche quando o IG estiver pronto
+        # tema tech (indigo + ciano)
+        "bg": (13, 14, 26), "card": (24, 26, 44), "accent": (108, 99, 255),
+        "accent2": (0, 210, 200), "white": (245, 247, 250), "muted": (165, 170, 190),
+        "env": {"token": "KITEM_PAGE_TOKEN", "ig": "KITEM_IG_USER_ID", "page": "KITEM_PAGE_ID"},
+        "conteudo": KITEM_CONTEUDO,
+        "cta_seal": "TESTE GRÁTIS",
+        "cta_big": ["COMECE", "HOJE MESMO"],
+        "hashtags": ["#4kitem", "#sistema", "#app", "#pequenonegocio", "#empreendedor",
+                     "#automatizacao", "#whatsappbusiness", "#agendamento", "#delivery",
+                     "#santacatarina"],
+        "voz": ("Você é o social media do 4kitem, empresa de sistemas/apps que facilitam o "
+                "dia a dia de pequenos negócios. Tom: moderno, direto e simples, SEM "
+                "tecniquês. Foque no BENEFÍCIO pro dono do negócio: economiza tempo, vende "
+                "mais, menos dor de cabeça. Convide pra testar grátis."),
     },
 }
 
@@ -359,10 +428,10 @@ def slide_cta(t, outdir, n=3):
     _brand_header(d, t)
     cy = H // 2 - 180
     fs = _font(44)
-    seal = "FALA COM A GENTE"
+    seal = t.get("cta_seal", "FALA COM A GENTE")
     sw = d.textlength(seal, font=fs)
     gi.pill(d, (W - sw) // 2 - 30, cy, seal, fs, t["accent"], (10, 10, 10))
-    big = ["RESOLVEMOS", "PRA VOCÊ"]
+    big = t.get("cta_big", ["RESOLVEMOS", "PRA VOCÊ"])
     fbig = _font(92, impact=True)
     y = cy + 110
     for ln in big:
