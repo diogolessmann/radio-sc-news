@@ -245,6 +245,7 @@ def run_reel(post=False, limit=1):
             res = make_reel_for(news, day_dir, do_post=post)
             if post:
                 dist.mark_posted(conn, news["id"])
+                dist.mark_cluster(conn, news)  # blindagem cross-engine (carrossel x reels)
                 dist.save_channel_payload(conn, news["id"],
                                           res.get("zap", ""), res.get("media_url", ""))
                 vistos.append(news)

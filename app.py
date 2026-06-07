@@ -776,6 +776,47 @@ def api_sponsor(acao):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/limpar-duplicadas')
+def api_limpar_duplicadas():
+    """Segura as noticias duplicadas que ja estao na fila (linhas repetidas do
+    mesmo fato vindas de antes do dedup). Mantem 1 de cada cluster.
+       /api/limpar-duplicadas?token=SENHA"""
+    if request.args.get('token', '') != _admin_pw_env:
+        return jsonify({'error': 'unauthorized'}), 403
+    try:
+        import distribuidor as d
+        conn = d.get_db()
+        d.ensure_column(conn)
+        rows = conn.execute(
+            "SELECT id, title FROM news WHERE active=1 "
+            "AND (social_posted_at IS NULL OR social_posted_at='') "
+            "AND (social_hold IS NULL OR social_hold='') "
+            "ORDER BY datetime(published_at) DESC"
+        ).fetchall()
+        from datetime import datetime as _dt
+        stamp = _dt.now().isoformat(timespec='seconds')
+        kept, held = [], 0
+        for r in rows:
+            dup = None
+            for k in kept:
+                if d._overlap(r['title'] or '', k['title'] or '') >= 0.6:
+                    dup = k['id']
+                    break
+            if dup:
+                conn.execute("UPDATE news SET social_hold=? WHERE id=?",
+                             (f"duplicada de #{dup} @ {stamp}", r['id']))
+                held += 1
+            else:
+                kept.append(r)
+        conn.commit()
+        conn.close()
+        return jsonify({'success': True, 'duplicadas_seguradas': held,
+                        'noticias_unicas_na_fila': len(kept)})
+    except Exception as e:
+        logger.error(f"Erro limpar-duplicadas: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/marca-testar')
 def api_marca_testar():
     """Posta um conteúdo de teste de uma MARCA (Despachante/4kitem/DL). Em 2º plano.

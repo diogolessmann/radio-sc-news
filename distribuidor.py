@@ -184,6 +184,32 @@ def mark_dup(conn, news_id, dup_id):
     conn.commit()
 
 
+def mark_cluster(conn, posted_news, thresh=0.6):
+    """BLINDAGEM: apos postar uma materia, marca TODAS as outras nao-postadas do
+    MESMO fato (titulo parecido) como duplicadas. Assim nenhum motor (carrossel
+    OU reels) posta a mesma noticia de novo, independente de id, timing ou linha
+    duplicada no banco. Retorna quantas foram seguradas."""
+    pid = posted_news["id"]
+    ptitle = posted_news["title"] or ""
+    rows = conn.execute(
+        "SELECT id, title FROM news WHERE active=1 "
+        "AND (social_posted_at IS NULL OR social_posted_at='') "
+        "AND (social_hold IS NULL OR social_hold='') AND id != ?",
+        (pid,),
+    ).fetchall()
+    stamp = datetime.now().isoformat(timespec="seconds")
+    n = 0
+    for r in rows:
+        if _overlap(ptitle, r["title"] or "") >= thresh:
+            conn.execute("UPDATE news SET social_hold=? WHERE id=?",
+                         (f"duplicada de #{pid} @ {stamp}", r["id"]))
+            n += 1
+    if n:
+        conn.commit()
+        print(f"   🛡️ cluster: {n} versao(oes) do mesmo fato seguradas")
+    return n
+
+
 # ---------------------------------------------------------------- banco
 def get_db():
     conn = sqlite3.connect(DB_PATH)
@@ -617,6 +643,7 @@ def process_one(conn, news, do_post, day_dir):
     if do_post:
         publish_real(news, imgs, caption)
         mark_posted(conn, nid)
+        mark_cluster(conn, news)  # blindagem: segura todas as irmas do mesmo fato
         # guarda a mensagem pronta do WhatsApp + 1a imagem p/ a Central do Canal
         media_url = f"{PUBLIC_BASE_URL}/static/social/n{nid}_s1.jpg"
         save_channel_payload(conn, nid, zap, media_url)
