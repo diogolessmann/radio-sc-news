@@ -776,6 +776,34 @@ def api_sponsor(acao):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/marca-testar')
+def api_marca_testar():
+    """Posta um conteúdo de teste de uma MARCA (Despachante/4kitem/DL). Em 2º plano.
+       /api/marca-testar?token=SENHA&brand=despachante"""
+    if request.args.get('token', '') != _admin_pw_env:
+        return jsonify({'error': 'unauthorized'}), 403
+    brand = request.args.get('brand', 'despachante')
+    try:
+        import threading, marcas
+        if brand not in marcas.BRANDS:
+            return jsonify({'success': False, 'error': f'marca {brand} nao existe',
+                            'disponiveis': list(marcas.BRANDS)}), 400
+
+        def _job():
+            try:
+                marcas.run(brand, post=True)
+                logger.info(f"🏷️ Marca {brand}: postado.")
+            except Exception as e:
+                logger.error(f"🏷️ Marca {brand} falhou: {e}")
+
+        threading.Thread(target=_job, daemon=True).start()
+        return jsonify({'success': True, 'brand': brand,
+                        'status': 'gerando e postando em segundo plano — veja o Instagram em ~1 min.'})
+    except Exception as e:
+        logger.error(f"Erro marca-testar: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/canal/done')
 def canal_done():
     """Marca uma noticia como 'ja postada no Canal do WhatsApp'."""
