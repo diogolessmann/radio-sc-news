@@ -238,6 +238,13 @@ def whatsapp_bomdia(weather, headlines, curiosidade):
     linhas += ["", f"💡 *Você sabia?* {curiosidade}", ""]
     linhas += ["👀 Viu algo na cidade? *Manda pra gente!*",
                f"👉 Tudo no site: {SITE}"]
+    try:
+        import distribuidor
+        if distribuidor.WHATSAPP_CHANNEL:
+            linhas += ["", "📲 *Receba em 1º lugar no nosso Canal:*",
+                       distribuidor.WHATSAPP_CHANNEL]
+    except Exception:
+        pass
     return "\n".join(linhas)
 
 

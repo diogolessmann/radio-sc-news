@@ -70,6 +70,10 @@ DB_PATH = os.environ.get("DB_PATH", "radio_sc.db")
 SITE = gi.SITE
 PUBLIC_BASE_URL = _env("PUBLIC_BASE_URL", "https://www.radioscnews.com.br").rstrip("/")
 
+# Canal do WhatsApp (motor de retencao) — CTA fixo em todo post. Troque via env.
+WHATSAPP_CHANNEL = _env("WHATSAPP_CHANNEL_URL",
+                        "https://whatsapp.com/channel/0029Vb7wPbRJ93wdnwfzbb2Z")
+
 GROQ_API_KEY = _env("GROQ_API_KEY")
 GROQ_MODEL = _env("GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
@@ -335,10 +339,13 @@ def social_caption(news, resumo):
             seen.add(t)
             uniq.append(t)
 
+    cta_zap = (f"📲 Receba em 1º lugar no nosso Canal do WhatsApp:\n{WHATSAPP_CHANNEL}\n\n"
+               if WHATSAPP_CHANNEL else "")
     return (
         f"{resumo}\n\n"
         f"📲 Leia a materia completa e OUCA em audio no site (link na bio)\n"
         f"📍 {city}  ·  🔗 {SITE}\n\n"
+        f"{cta_zap}"
         f"👀 Viu algo na sua cidade? Manda no nosso direct ou WhatsApp — a proxima "
         f"noticia pode ser sua.\n"
         f"Siga @radioscnews — tudo do Norte de SC em 1 minuto.\n\n"
