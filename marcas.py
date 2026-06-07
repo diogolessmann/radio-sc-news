@@ -21,6 +21,7 @@ USO real (posta):
   python marcas.py despachante --post
 """
 import argparse
+import glob
 import os
 import re
 import textwrap
@@ -111,7 +112,176 @@ BRANDS = {
                 "acolhedor. NUNCA se passe por Detran/governo — a DL AJUDA o cliente. "
                 "Sem juridiquês, sem sensacionalismo."),
     },
+
+    "dl_mobilidade": {
+        "nome": "DL Mobilidade",
+        "brand_tag": "DL MOBILIDADE",
+        "tagline": "Scooters elétricas NXT em Schroeder e região",
+        "site": "dldespachante.com.br",
+        "whats": "(47) 99716-2967",
+        "instagram": "",   # preenche quando o IG estiver pronto
+        # tema laranja/preto (energia + scooter)
+        "bg": (15, 17, 22), "card": (26, 29, 38), "accent": (255, 120, 20),
+        "accent2": (245, 197, 24), "white": (245, 247, 250), "muted": (170, 178, 188),
+        "env": {"token": "DL_PAGE_TOKEN", "ig": "DL_IG_USER_ID", "page": "DL_PAGE_ID"},
+        "hashtags": ["#scootereletrica", "#nxt", "#mobilidadeeletrica", "#schroeder",
+                     "#jaraguadosul", "#guaramirim", "#dlmobilidade", "#semcnh",
+                     "#scooter", "#viacredi"],
+        "photo_based": True,   # usa FOTOS REAIS (assets/dl_scooters) com oferta por cima
+    },
 }
+
+
+# ----------------------------------------------------------------- DL Mobilidade (foto + oferta)
+DL_PHOTOS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "dl_scooters")
+
+# Angulos que rotacionam por dia (a foto tambem rotaciona).
+DL_ANGLES = [
+    {"badge": "EXCLUSIVO · SÓ A DL TEM", "h1": "ATÉ 48x", "h2": "pela Viacredi",
+     "sub": "Scooters NXT a partir de R$ 4.990"},
+    {"badge": "SEM BUROCRACIA · CONTRAN 996", "h1": "SEM CNH,", "h2": "SEM EMPLACAMENTO",
+     "sub": "Liberdade pra rodar sem dor de cabeça"},
+    {"badge": "ECONOMIA DE VERDADE", "h1": "ZERO", "h2": "GASOLINA",
+     "sub": "Recarrega na tomada · economiza todo mês"},
+    {"badge": "VÁRIOS MODELOS NXT", "h1": "A PARTIR DE", "h2": "R$ 4.990",
+     "sub": "Do urbano ao premium — tem o seu aqui"},
+]
+
+# Bullets do slide (SEM emoji — a fonte do slide nao renderiza emoji).
+DL_BENEFITS = [
+    "Scooters elétricas NXT — vários modelos",
+    "Sem CNH e sem emplacamento (CONTRAN 996)",
+    "Autonomia de 50 a 140 km por carga",
+    "Até 24x no cartão ou 48x pela Viacredi",
+    "Zero gasolina — economia de verdade",
+    "Respaldo do Grupo DL",
+]
+
+
+def _dl_photo_card(angle, photo_path, t, outdir, n=1):
+    """Slide de oferta: foto real do scooter + gradiente + oferta por cima."""
+    from PIL import Image, ImageDraw
+    ph = Image.open(photo_path).convert("RGB")
+    r = max(W / ph.width, H / ph.height)
+    ph = ph.resize((int(ph.width * r), int(ph.height * r)))
+    l = (ph.width - W) // 2
+    tp = (ph.height - H) // 2
+    ph = ph.crop((l, tp, l + W, tp + H))
+    # gradiente escuro de baixo p/ cima (leitura do texto)
+    grad = Image.new("L", (1, H), 0)
+    for y in range(H):
+        grad.putpixel((0, y), int(238 * max(0, (y - H * 0.36) / (H * 0.64))))
+    ph = Image.composite(Image.new("RGB", (W, H), (8, 10, 16)), ph, grad.resize((W, H)))
+    d = ImageDraw.Draw(ph)
+    OR, GO, WH = t["accent"], t["accent2"], t["white"]
+    gi.pill(d, 56, 56, t["brand_tag"], _font(40), OR, WH)
+    gi.pill(d, 56, H - 560, angle["badge"], _font(34), GO, (10, 10, 10))
+    d.text((50, H - 500), angle["h1"], font=_font(140, impact=True), fill=WH,
+           stroke_width=3, stroke_fill=(0, 0, 0))
+    d.text((56, H - 350), angle["h2"], font=_font(62, impact=True), fill=OR)
+    d.text((56, H - 262), angle["sub"], font=_font(38), fill=WH)
+    d.text((56, H - 200), "Sem CNH · Sem emplacamento · até 32 km/h",
+           font=_font(34, bold=False), fill=(195, 200, 210))
+    wtxt = f"WhatsApp {t['whats']}"
+    fw = _font(40)
+    tw = d.textlength(wtxt, font=fw)
+    d.rounded_rectangle([56, H - 135, 56 + tw + 60, H - 65], radius=18, fill=(37, 211, 102))
+    d.text((86, H - 125), wtxt, font=fw, fill=(5, 50, 30))
+    d.text((56, H - 44), "*Financiamento sujeito a análise de crédito.",
+           font=_font(26, bold=False), fill=(150, 155, 165))
+    p = os.path.join(outdir, f"slide_{n}.png")
+    ph.save(p, quality=90)
+    return p
+
+
+def _dl_beneficios(t, outdir, n=2):
+    img, d = _canvas(t)
+    _brand_header(d, t)
+    gi.pill(d, 56, 200, "POR QUE NA DL?", _font(50, impact=True), t["accent"], t["white"])
+    y = 360
+    fb = _font(44, bold=False)
+    for b in DL_BENEFITS:
+        d.ellipse([56, y + 12, 78, y + 34], fill=t["accent2"])
+        lines = gi.wrap(d, b, fb, W - 180)
+        gi.draw_lines(d, lines, fb, 100, y, t["white"], int(fb.size * 1.32))
+        y += max(108, len(lines) * int(fb.size * 1.32) + 34)
+    _footer(d, t)
+    p = os.path.join(outdir, f"slide_{n}.png")
+    img.save(p, quality=92)
+    return p
+
+
+def _dl_cta(t, photo_path, outdir, n=3):
+    """CTA com foto de fundo + chamada pro WhatsApp."""
+    from PIL import Image, ImageDraw
+    ph = Image.open(photo_path).convert("RGB")
+    r = max(W / ph.width, H / ph.height)
+    ph = ph.resize((int(ph.width * r), int(ph.height * r)))
+    l = (ph.width - W) // 2
+    tp = (ph.height - H) // 2
+    ph = ph.crop((l, tp, l + W, tp + H))
+    dark = Image.new("RGB", (W, H), (8, 10, 16))
+    ph = Image.blend(ph, dark, 0.62)
+    d = ImageDraw.Draw(ph)
+    OR, WH = t["accent"], t["white"]
+    gi.pill(d, 56, 56, t["brand_tag"], _font(40), OR, WH)
+    cy = H // 2 - 160
+    for i, ln in enumerate(["VEM CONHECER", "SUA NOVA SCOOTER"]):
+        f = _font(78, impact=True)
+        w = d.textlength(ln, font=f)
+        d.text(((W - w) // 2, cy + i * 90), ln, font=f, fill=WH, stroke_width=2, stroke_fill=(0, 0, 0))
+    wtxt = t["whats"]
+    fw = _font(56)
+    w = d.textlength(wtxt, font=fw)
+    d.rounded_rectangle([(W - w) // 2 - 50, cy + 240, (W + w) // 2 + 50, cy + 340],
+                        radius=22, fill=(37, 211, 102))
+    d.text(((W - w) // 2, cy + 260), wtxt, font=fw, fill=(5, 50, 30))
+    fl = _font(40, bold=False)
+    loc = "Schroeder/SC  ·  " + t["site"]
+    w2 = d.textlength(loc, font=fl)
+    d.text(((W - w2) // 2, cy + 370), loc, font=fl, fill=(210, 215, 225))
+    p = os.path.join(outdir, f"slide_{n}.png")
+    ph.save(p, quality=90)
+    return p
+
+
+def _dl_caption(t, angle):
+    ig = f"Siga {t['instagram']}\n" if t.get("instagram") else ""
+    return (
+        "🛴⚡ Scooters elétricas NXT na DL Mobilidade!\n\n"
+        "✅ Sem CNH e sem emplacamento (CONTRAN 996)\n"
+        "✅ Autonomia de 50 a 140 km por carga\n"
+        "✅ Zero gasolina — economia de verdade\n"
+        "💳 Até 24x no cartão ou 48x pela VIACREDI — exclusivo da DL!\n"
+        "🛡️ Respaldo do Grupo DL\n\n"
+        "📍 Schroeder/SC · a partir de R$ 4.990\n"
+        f"📲 Faça sua simulação no WhatsApp: {t['whats']}\n"
+        f"🌐 {t['site']}\n"
+        f"{ig}\n"
+        "*Financiamento sujeito a análise de crédito (com juros).\n\n"
+        + " ".join(t["hashtags"])
+    )
+
+
+def generate_dl(brand_key, outdir=None):
+    t = BRANDS[brand_key]
+    yday = datetime.now().timetuple().tm_yday
+    angle = DL_ANGLES[yday % len(DL_ANGLES)]
+    photos = sorted(glob.glob(os.path.join(DL_PHOTOS_DIR, "*.jpg")))
+    if not photos:
+        raise RuntimeError("Sem fotos em assets/dl_scooters.")
+    ph1 = photos[yday % len(photos)]
+    ph2 = photos[(yday + 7) % len(photos)]   # foto diferente no CTA
+    if outdir is None:
+        outdir = os.path.join(OUT_BASE, datetime.now().strftime("%Y-%m-%d") + f"_{brand_key}")
+    os.makedirs(outdir, exist_ok=True)
+    paths = [_dl_photo_card(angle, ph1, t, outdir, 1),
+             _dl_beneficios(t, outdir, 2),
+             _dl_cta(t, ph2, outdir, 3)]
+    caption = _dl_caption(t, angle)
+    with open(os.path.join(outdir, "legenda.txt"), "w", encoding="utf-8") as f:
+        f.write(caption)
+    return paths, caption, {"titulo": f"{angle['h1']} {angle['h2']}"}
 
 
 # ----------------------------------------------------------------- desenho
@@ -307,6 +477,8 @@ def publish_brand(t, prefix, image_paths, caption):
 # ----------------------------------------------------------------- run
 def generate(brand_key, outdir=None, item=None):
     t = BRANDS[brand_key]
+    if t.get("photo_based"):
+        return generate_dl(brand_key, outdir)
     item = item or topic_of_the_day(t)
     if outdir is None:
         day = datetime.now().strftime("%Y-%m-%d")
