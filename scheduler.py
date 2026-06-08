@@ -82,7 +82,9 @@ def marca_job(brand_key):
             logger.error("❌ Marca '%s' não existe em BRANDS.", brand_key)
             return
         token, ig_id, page_id = marcas._brand_tokens(t)
-        if not (token and ig_id and page_id):
+        # Marcas ig_only (DL/4kitem) não usam page_id — basta token + ig_id.
+        falta = (not (token and ig_id)) if t.get("ig_only") else (not (token and ig_id and page_id))
+        if falta:
             logger.info("⏭️ Marca '%s' sem tokens Meta ainda — pulada "
                         "(crie o IG + tokens p/ ativar automaticamente).", brand_key)
             return

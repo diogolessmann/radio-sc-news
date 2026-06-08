@@ -174,6 +174,7 @@ BRANDS = {
                      "#jaraguadosul", "#guaramirim", "#dlmobilidade", "#semcnh",
                      "#scooter", "#viacredi"],
         "photo_based": True,   # usa FOTOS REAIS (assets/dl_scooters) com oferta por cima
+        "ig_only": True,       # só Instagram (não posta no Facebook)
     },
 
     "4kitem": {
@@ -197,6 +198,7 @@ BRANDS = {
                 "dia a dia de pequenos negócios. Tom: moderno, direto e simples, SEM "
                 "tecniquês. Foque no BENEFÍCIO pro dono do negócio: economiza tempo, vende "
                 "mais, menos dor de cabeça. Convide pra testar grátis."),
+        "ig_only": True,       # só Instagram (não posta no Facebook)
     },
 }
 
@@ -510,9 +512,13 @@ def _brand_tokens(t):
 
 
 def publish_brand(t, prefix, image_paths, caption):
-    """Posta carrossel no IG + foto no FB usando os TOKENS DA MARCA."""
+    """Posta carrossel no IG (+ foto no FB, exceto marcas ig_only) usando os TOKENS DA MARCA."""
     token, ig_id, page_id = _brand_tokens(t)
-    if not (token and ig_id and page_id):
+    ig_only = t.get("ig_only", False)
+    # IG-only ainda precisa de token + ig_id (o token é da Página vinculada, exigência do Meta),
+    # mas NÃO precisa de page_id pois não publicamos nada no feed do Facebook.
+    falta = not (token and ig_id) if ig_only else not (token and ig_id and page_id)
+    if falta:
         raise RuntimeError(f"Tokens Meta da marca ausentes ({t['env']}).")
     from PIL import Image
     os.makedirs(PUBLIC_IMG_DIR, exist_ok=True)
@@ -537,9 +543,11 @@ def publish_brand(t, prefix, image_paths, caption):
     time.sleep(3)
     ig = dist._graph_post(f"{GRAPH}/{ig_id}/media_publish",
                           {"creation_id": cont, "access_token": token})
-    # Facebook foto
-    fb = dist._graph_post(f"{GRAPH}/{page_id}/photos",
-                          {"caption": caption, "url": public_urls[0], "access_token": token})
+    # Facebook foto (pulado nas marcas ig_only — DL Mobilidade e 4kitem)
+    fb = None
+    if not ig_only:
+        fb = dist._graph_post(f"{GRAPH}/{page_id}/photos",
+                              {"caption": caption, "url": public_urls[0], "access_token": token})
     # Story automatico (capa em 9:16) — desligavel com SOCIAL_STORY=0
     story = None
     if dist._env("SOCIAL_STORY", "1") == "1":
