@@ -67,6 +67,31 @@ def urgent_news_job():
         logger.error(f"❌ Urgente falhou: {e}")
 
 
+def marca_job(brand_key):
+    """Posta 1 carrossel (IG) + foto (FB) + Story da MARCA por dia.
+    Só age se autopost ligado E se os tokens Meta daquela marca existirem.
+    Se faltar token (ex: IG ainda não criado), PULA sem erro — assim DL/4kitem
+    ativam sozinhos quando os tokens forem adicionados, sem mexer no código."""
+    if not _autopost_on():
+        logger.info("📭 Autopost OFF — marca '%s' pulada (modo seguro).", brand_key)
+        return
+    try:
+        import marcas
+        t = marcas.BRANDS.get(brand_key)
+        if not t:
+            logger.error("❌ Marca '%s' não existe em BRANDS.", brand_key)
+            return
+        token, ig_id, page_id = marcas._brand_tokens(t)
+        if not (token and ig_id and page_id):
+            logger.info("⏭️ Marca '%s' sem tokens Meta ainda — pulada "
+                        "(crie o IG + tokens p/ ativar automaticamente).", brand_key)
+            return
+        marcas.run(brand_key, post=True)
+        logger.info("🏷️ Marca '%s' POSTADA (IG carrossel + FB + Story).", brand_key)
+    except Exception as e:
+        logger.error(f"❌ Marca '{brand_key}' falhou: {e}")
+
+
 def collect_job():
     """Coleta notícias de todos os feeds RSS."""
     try:
@@ -226,10 +251,36 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
+    # 🏷️ MARCAS (motores próprios) — 1 carrossel+story por dia cada, horários diferentes.
+    # Despachante já tem tokens (LIVE) → posta hoje. DL Mobilidade e 4kitem PULAM sozinhos
+    # até criar o IG + tokens; aí ativam automaticamente sem mexer no código.
+    _scheduler.add_job(
+        func=marca_job, args=['despachante'],
+        trigger=CronTrigger(hour=10, minute=0, timezone='America/Sao_Paulo'),
+        id='marca_despachante',
+        name='Despachante Lessmann (carrossel diário 10h)',
+        replace_existing=True
+    )
+    _scheduler.add_job(
+        func=marca_job, args=['4kitem'],
+        trigger=CronTrigger(hour=14, minute=0, timezone='America/Sao_Paulo'),
+        id='marca_4kitem',
+        name='4kitem (carrossel diário 14h)',
+        replace_existing=True
+    )
+    _scheduler.add_job(
+        func=marca_job, args=['dl_mobilidade'],
+        trigger=CronTrigger(hour=16, minute=0, timezone='America/Sao_Paulo'),
+        id='marca_dl_mobilidade',
+        name='DL Mobilidade (carrossel diário 16h)',
+        replace_existing=True
+    )
+
     _scheduler.start()
     _ap = "LIGADO" if _autopost_on() else "modo seguro (preview)"
     logger.info(f"✅ Scheduler iniciado — notícias a cada {interval_minutes} min · ao vivo a cada 10 min · "
-                f"limpeza às 3h · Bom dia às 7h · distribuição 12h/18h · Reels às 19h · autopost {_ap}.")
+                f"limpeza às 3h · Bom dia às 7h · distribuição 12h/18h · Reels às 19h · "
+                f"marcas: Despachante 10h / 4kitem 14h / DL 16h · autopost {_ap}.")
     return _scheduler
 
 
