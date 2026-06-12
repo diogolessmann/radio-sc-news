@@ -666,6 +666,57 @@ def admin():
     return render_template('admin.html', news=news, media=media, ads=ads, stats=stats)
 
 
+# ──────────────────────────────────────────────
+# A REDAÇÃO — produção de post sob demanda (IA híbrida: Gemini/Groq/Claude)
+# ──────────────────────────────────────────────
+@app.route('/admin/redacao')
+@login_required
+def admin_redacao():
+    try:
+        import cerebro
+        brains = cerebro.disponiveis()
+    except Exception:
+        brains = {'gemini': False, 'groq': False, 'claude': False}
+    categorias = ['politica', 'policial', 'saude', 'esporte', 'economia',
+                  'clima', 'cultura', 'local', 'geral']
+    return render_template('redacao.html', brains=brains, categorias=categorias)
+
+
+@app.route('/admin/redacao/gerar', methods=['POST'])
+@login_required
+def admin_redacao_gerar():
+    """Recebe info bruta → redator (IA híbrida) → revisor → card. Não publica."""
+    import os as _os, shutil, time
+    data = request.get_json(force=True, silent=True) or {}
+    bruto = (data.get('bruto') or '').strip()
+    if not bruto:
+        return jsonify({'ok': False, 'erro': 'Cole a informação primeiro.'}), 400
+    cidade = (data.get('cidade') or 'Schroeder').strip()
+    categoria = (data.get('categoria') or 'geral').strip()
+    fonte = (data.get('fonte') or '').strip()
+    titulo_hint = (data.get('titulo') or '').strip()
+    brain = (data.get('brain') or 'auto').strip()
+    try:
+        import cerebro, redator
+        titulo, corpo, usado = cerebro.gerar_texto(bruto, cidade, fonte, titulo_hint, brain)
+        legenda = redator.legenda(titulo, corpo, cidade, categoria)
+        alertas = redator.revisar(titulo, corpo, fonte)
+        # gera os slides (reusa o motor oficial) e copia a CAPA p/ static/redacao (preview)
+        slug = redator._slug(titulo)
+        outdir, paths = redator.gerar_arte(titulo, corpo, cidade, categoria, slug)
+        prev_dir = _os.path.join('static', 'redacao')
+        _os.makedirs(prev_dir, exist_ok=True)
+        fname = f"{slug}_{int(time.time())}.png"
+        shutil.copyfile(paths[0], _os.path.join(prev_dir, fname))
+        return jsonify({'ok': True, 'titulo': titulo, 'corpo': corpo,
+                        'legenda': legenda, 'alertas': alertas, 'cerebro': usado,
+                        'card_url': f"/static/redacao/{fname}", 'n_slides': len(paths),
+                        'pasta_slides': _os.path.abspath(outdir)})
+    except Exception as e:
+        logger.error(f"Redacao gerar falhou: {e}")
+        return jsonify({'ok': False, 'erro': str(e)}), 500
+
+
 @app.route('/admin/collect', methods=['POST'])
 @login_required
 def admin_collect():

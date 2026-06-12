@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A Redação — Rádio SC News</title>
+<style>
+  :root{--bg:#111218;--card:#181a22;--red:#e74c3c;--gold:#f5c518;--txt:#f2f3f5;--mut:#9aa0ab;--ok:#27ae60;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+  header{display:flex;align-items:center;gap:12px;padding:16px 22px;border-bottom:1px solid #23262f}
+  header .pill{background:var(--red);color:#fff;font-weight:700;padding:6px 14px;border-radius:20px;font-size:14px}
+  header h1{font-size:18px;margin:0;font-weight:600}
+  header a{margin-left:auto;color:var(--mut);text-decoration:none;font-size:14px}
+  .wrap{max-width:1100px;margin:0 auto;padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:22px}
+  @media(max-width:860px){.wrap{grid-template-columns:1fr}}
+  .box{background:var(--card);border:1px solid #23262f;border-radius:14px;padding:18px}
+  label{display:block;font-size:13px;color:var(--mut);margin:12px 0 6px}
+  textarea,input,select{width:100%;background:#0f1015;border:1px solid #2a2e3a;color:var(--txt);
+    border-radius:9px;padding:11px;font-size:14px;font-family:inherit}
+  textarea{min-height:150px;resize:vertical}
+  .row{display:flex;gap:10px}.row>div{flex:1}
+  .brains{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .brain{flex:1;min-width:90px;text-align:center;border:1px solid #2a2e3a;border-radius:9px;
+    padding:10px 6px;cursor:pointer;font-size:13px;user-select:none}
+  .brain.on{border-color:var(--gold);background:#221f10;color:var(--gold)}
+  .brain.off{opacity:.4;cursor:not-allowed}
+  .brain small{display:block;color:var(--mut);font-size:11px;margin-top:2px}
+  button.go{margin-top:16px;width:100%;background:var(--red);color:#fff;border:0;border-radius:10px;
+    padding:14px;font-size:16px;font-weight:700;cursor:pointer}
+  button.go:disabled{opacity:.6;cursor:wait}
+  .res .card-img{width:100%;border-radius:12px;border:1px solid #23262f;display:block;margin-bottom:14px}
+  .field{margin-bottom:12px}.field h4{margin:0 0 4px;font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.5px}
+  .field .v{background:#0f1015;border:1px solid #23262f;border-radius:9px;padding:10px;font-size:14px;white-space:pre-wrap}
+  .alert{background:#2a1d10;border:1px solid #5a4012;border-radius:8px;padding:9px 11px;font-size:13px;margin:6px 0;color:#ffd98a}
+  .alert.ok{background:#10240f;border-color:#1d4d1a;color:#9be59b}
+  .btns{display:flex;gap:8px;margin-top:10px}
+  .btns button{flex:1;background:#23262f;color:var(--txt);border:0;border-radius:9px;padding:11px;cursor:pointer;font-size:14px}
+  .btns button.copy{background:var(--gold);color:#111}
+  .tag{display:inline-block;background:#23262f;color:var(--mut);border-radius:20px;padding:3px 10px;font-size:12px;margin-top:8px}
+  .hint{color:var(--mut);font-size:13px;margin-top:6px}
+  .empty{color:var(--mut);text-align:center;padding:40px 10px}
+</style>
+</head>
+<body>
+<header>
+  <span class="pill">RÁDIO SC NEWS</span>
+  <h1>🗞️ A Redação <small style="color:var(--mut);font-weight:400">— produção de post (não publica)</small></h1>
+  <a href="/admin">← voltar ao painel</a>
+</header>
+
+<div class="wrap">
+  <!-- ENTRADA -->
+  <div class="box">
+    <label>Informação bruta (cole o WhatsApp, release, ou a ideia)</label>
+    <textarea id="bruto" placeholder="Ex: O presidente do PT de Schroeder garantiu R$ 700 mil para a saúde..."></textarea>
+
+    <div class="row">
+      <div><label>Cidade</label><input id="cidade" value="Schroeder"></div>
+      <div><label>Categoria</label>
+        <select id="categoria">
+          {% for c in categorias %}<option value="{{c}}" {% if c=='politica' %}selected{% endif %}>{{c}}</option>{% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <label>Fonte (pra atribuir — opcional)</label>
+    <input id="fonte" placeholder="Ex: o gabinete do vereador X">
+    <label>Manchete (deixe vazio que a IA decide)</label>
+    <input id="titulo" placeholder="(opcional)">
+
+    <label>Cérebro</label>
+    <div class="brains" id="brains">
+      <div class="brain on" data-b="auto">🤖 Auto<small>melhor disponível</small></div>
+      <div class="brain {{'' if brains.gemini else 'off'}}" data-b="gemini">👁️ Gemini<small>{{'pronto' if brains.gemini else 'sem chave'}}</small></div>
+      <div class="brain {{'' if brains.groq else 'off'}}" data-b="groq">⚡ Groq<small>{{'pronto' if brains.groq else 'sem chave'}}</small></div>
+      <div class="brain {{'' if brains.claude else 'off'}}" data-b="claude">🧠 Claude<small>{{'pronto' if brains.claude else 'sem chave'}}</small></div>
+    </div>
+    <p class="hint" id="brainhint"></p>
+
+    <button class="go" id="go" onclick="gerar()">✍️ Gerar matéria</button>
+  </div>
+
+  <!-- RESULTADO -->
+  <div class="box res">
+    <div id="empty" class="empty">O post gerado aparece aqui — com card, legenda e alertas do revisor.</div>
+    <div id="out" style="display:none">
+      <img id="card" class="card-img" alt="card">
+      <div class="field"><h4>Manchete</h4><div class="v" id="r_titulo"></div></div>
+      <div class="field"><h4>Corpo</h4><div class="v" id="r_corpo"></div></div>
+      <div class="field"><h4>🔎 Revisor</h4><div id="r_alertas"></div></div>
+      <div class="field"><h4>Legenda (pronta pra colar)</h4><div class="v" id="r_legenda"></div></div>
+      <div class="btns">
+        <button class="copy" onclick="copiar()">📋 Copiar legenda</button>
+        <button onclick="gerar()">🔄 Refazer</button>
+      </div>
+      <span class="tag" id="r_cerebro"></span>
+      <span class="tag" id="r_slides"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+let brain = 'auto';
+const hints = {auto:'Tenta Gemini → Groq automaticamente, com fallback local.',
+  gemini:'Padrão recomendado: bom em PT-BR, já pago.', groq:'Grátis e rápido — bom pra volume.',
+  claude:'Premium: use pra texto sensível/estratégico.'};
+document.querySelectorAll('.brain').forEach(el=>{
+  el.onclick=()=>{ if(el.classList.contains('off'))return;
+    document.querySelectorAll('.brain').forEach(b=>b.classList.remove('on'));
+    el.classList.add('on'); brain=el.dataset.b; document.getElementById('brainhint').textContent=hints[brain]; };
+});
+document.getElementById('brainhint').textContent=hints.auto;
+
+async function gerar(){
+  const bruto=document.getElementById('bruto').value.trim();
+  if(!bruto){alert('Cole a informação primeiro.');return;}
+  const go=document.getElementById('go'); go.disabled=true; go.textContent='⏳ Gerando...';
+  try{
+    const r=await fetch('/admin/redacao/gerar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({bruto,cidade:cidade.value,categoria:categoria.value,
+        fonte:fonte.value,titulo:titulo.value,brain})});
+    const d=await r.json();
+    if(!d.ok){alert('Erro: '+(d.erro||'falhou'));return;}
+    document.getElementById('empty').style.display='none';
+    document.getElementById('out').style.display='block';
+    document.getElementById('card').src=d.card_url+'?t='+Date.now();
+    document.getElementById('r_titulo').textContent=d.titulo;
+    document.getElementById('r_corpo').textContent=d.corpo;
+    document.getElementById('r_legenda').textContent=d.legenda;
+    const al=document.getElementById('r_alertas'); al.innerHTML='';
+    (d.alertas||[]).forEach(a=>{const x=document.createElement('div');
+      x.className='alert'+(a.startsWith('✓')?' ok':''); x.textContent=a; al.appendChild(x);});
+    document.getElementById('r_cerebro').textContent='🧠 cérebro: '+d.cerebro;
+    document.getElementById('r_slides').textContent='🖼️ '+d.n_slides+' slides gerados';
+  }catch(e){alert('Falha: '+e);}
+  finally{go.disabled=false; go.textContent='✍️ Gerar matéria';}
+}
+function copiar(){navigator.clipboard.writeText(document.getElementById('r_legenda').textContent)
+  .then(()=>{const b=event.target;const t=b.textContent;b.textContent='✅ Copiado!';setTimeout(()=>b.textContent=t,1500);});}
+</script>
+</body>
+</html>
