@@ -27,7 +27,7 @@ GROQ_MODEL = _env("GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 GEMINI_API_KEY = _env("GEMINI_API_KEY") or _env("GOOGLE_API_KEY")
-GEMINI_MODEL = _env("GEMINI_MODEL", "gemini-1.5-flash")  # troque p/ o modelo do seu plano
+GEMINI_MODEL = _env("GEMINI_MODEL", "gemini-2.5-flash")  # modelo atual; troque via env se quiser
 
 ANTHROPIC_API_KEY = _env("ANTHROPIC_API_KEY")
 CLAUDE_MODEL = _env("CLAUDE_MODEL", "claude-opus-4-8")  # p/ economizar: claude-haiku-4-5
@@ -126,6 +126,18 @@ def _claude(prompt):
 
 
 _BACKENDS = {"groq": _groq, "gemini": _gemini, "claude": _claude}
+
+
+def completar(prompt, brain="auto"):
+    """Roteia um PROMPT qualquer pro melhor cérebro e devolve o TEXTO cru.
+    auto = Gemini -> Groq. None se nenhum responder (quem chama trata o fallback).
+    Usado pelo autopost (distribuidor/marcas) p/ reusar os mesmos cérebros da Redação."""
+    ordem = [brain] if brain in _BACKENDS else ["gemini", "groq"]
+    for nome in ordem:
+        out = _BACKENDS[nome](prompt)
+        if out:
+            return out.strip()
+    return None
 
 
 # ----------------------------------------------------------------- roteador

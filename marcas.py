@@ -469,9 +469,6 @@ def build_caption(t, item):
 
 def groq_caption(t, item):
     """Reescreve a legenda na voz da marca (Groq, se houver chave). Fallback: base."""
-    if not dist.GROQ_API_KEY:
-        return build_caption(t, item)
-    import requests, json
     bullets = " | ".join(item["bullets"])
     prompt = (
         f"{t['voz']}\n\n"
@@ -482,20 +479,14 @@ def groq_caption(t, item):
         f"TEMA: {item['titulo']}\nPONTOS: {bullets}"
     )
     try:
-        r = requests.post(
-            dist.GROQ_URL,
-            headers={"Authorization": f"Bearer {dist.GROQ_API_KEY}",
-                     "Content-Type": "application/json"},
-            json={"model": dist.GROQ_MODEL,
-                  "messages": [{"role": "user", "content": prompt}],
-                  "temperature": 0.5, "max_tokens": 300},
-            timeout=30,
-        )
-        r.raise_for_status()
-        txt = r.json()["choices"][0]["message"]["content"].strip().strip('"')
-        return f"{txt}\n\n📲 WhatsApp: {t['whats']}  ·  🌐 {t['site']}\n\n" + " ".join(t["hashtags"])
+        import cerebro
+        txt = cerebro.completar(prompt)          # Gemini -> Groq
+        if txt:
+            txt = txt.strip().strip('"')
+            return f"{txt}\n\n📲 WhatsApp: {t['whats']}  ·  🌐 {t['site']}\n\n" + " ".join(t["hashtags"])
     except Exception:
-        return build_caption(t, item)
+        pass
+    return build_caption(t, item)
 
 
 # ----------------------------------------------------------------- seleção do dia

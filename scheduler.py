@@ -235,14 +235,16 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
-    # 🎬 Reels (vídeo vertical narrado) — 1x por dia às 19h (horário nobre)
-    _scheduler.add_job(
-        func=reels_job,
-        trigger=CronTrigger(hour=19, minute=0, timezone='America/Sao_Paulo'),
-        id='reels_news',
-        name='Reels diário (vídeo narrado IG+FB)',
-        replace_existing=True
-    )
+    # 🎬 Reels (vídeo vertical narrado) — 2x/dia (13h e 19h). Reels = motor de ALCANCE.
+    # ⚠️ o render roda no worker web; manter modesto (2/dia) até mover o render p/ fora.
+    for _h in (13, 19):
+        _scheduler.add_job(
+            func=reels_job,
+            trigger=CronTrigger(hour=_h, minute=0, timezone='America/Sao_Paulo'),
+            id=f'reels_news_{_h}',
+            name=f'Reels {_h}h (vídeo narrado IG+FB)',
+            replace_existing=True
+        )
 
     # ⚡ Plantão: notícia urgente em tempo real — checa a cada 20 min
     _scheduler.add_job(

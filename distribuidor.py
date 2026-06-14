@@ -321,10 +321,7 @@ def _fallback_summary(news):
 
 
 def groq_summary(news):
-    """Resume a materia em ~5 linhas com pegada de rede social. Usa Groq se houver chave."""
-    if not GROQ_API_KEY:
-        return _fallback_summary(news)
-
+    """Reescreve em ~5 linhas com pegada de rede social. HÍBRIDO: Gemini -> Groq -> local."""
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip()
     body = re.sub(r"\s+", " ", (news["summary"] or "")).strip()
     prompt = (
@@ -340,26 +337,13 @@ def groq_summary(news):
         f"TITULO: {title}\nTEXTO: {body}"
     )
     try:
-        r = requests.post(
-            GROQ_URL,
-            headers={"Authorization": f"Bearer {GROQ_API_KEY}",
-                     "Content-Type": "application/json"},
-            json={
-                "model": GROQ_MODEL,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.4,
-                "max_tokens": 320,
-            },
-            timeout=30,
-        )
-        r.raise_for_status()
-        txt = r.json()["choices"][0]["message"]["content"].strip()
-        # limpa aspas/explicacoes acidentais
-        txt = txt.strip('"').strip()
-        return txt or _fallback_summary(news)
+        import cerebro
+        txt = cerebro.completar(prompt)          # Gemini -> Groq
+        if txt:
+            return txt.strip('"').strip() or _fallback_summary(news)
     except Exception as e:
-        print(f"   ! Groq indisponivel ({e}) — usando resumo local")
-        return _fallback_summary(news)
+        print(f"   ! IA indisponivel ({e}) — usando resumo local")
+    return _fallback_summary(news)
 
 
 # ---------------------------------------------------------------- links
@@ -409,16 +393,17 @@ def social_caption(news, resumo):
             seen.add(t)
             uniq.append(t)
 
-    cta_zap = (f"📲 Receba em 1º lugar no nosso Canal do WhatsApp:\n{WHATSAPP_CHANNEL}\n\n"
+    cta_zap = (f"📲 Receba em 1º lugar no Canal do WhatsApp: {WHATSAPP_CHANNEL}\n"
                if WHATSAPP_CHANNEL else "")
+    # CTA de ENGAJAMENTO (in-feed) — a notícia se basta aqui; site/áudio viram secundário.
     return (
         f"{resumo}\n\n"
-        f"📲 Leia a materia completa e OUCA em audio no site (link na bio)\n"
-        f"📍 {city}  ·  🔗 {SITE}\n\n"
+        f"💬 Você concorda? Comenta aqui 👇\n"
+        f"🔖 Salva pra não esquecer  ·  🔁 Marca um amigo do Vale\n"
+        f"➕ Segue @radioscnews — o Norte de SC em 1 minuto\n\n"
         f"{cta_zap}"
-        f"👀 Viu algo na sua cidade? Manda no nosso direct ou WhatsApp — a proxima "
-        f"noticia pode ser sua.\n"
-        f"Siga @radioscnews — tudo do Norte de SC em 1 minuto.\n\n"
+        f"👀 Viu algo na sua cidade? Manda no direct — a próxima notícia pode ser sua.\n"
+        f"🎧 Versão em áudio no site (link na bio)  ·  📍 {city}\n\n"
         + " ".join(uniq)
     )
 
