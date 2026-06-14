@@ -225,6 +225,17 @@ def footer_site(draw):
 # ---------------------------------------------------------------- slides
 def slide_cover(news, outdir):
     bg = cover_image(news["image_url"], news["admin_image"])
+    if not bg:
+        # Sem foto real -> tenta imagem IA (Nano Banana: seletivo, capado, ilustrativo).
+        # Devolve None se desligado (NANOBANANA_ON!=1)/sem billing/cap estourado/categoria
+        # sensível -> cai no card escuro normal. NUNCA quebra o post.
+        try:
+            import nanobanana
+            _nb = nanobanana.gerar_capa(news["title"], news["category"], news["city"], outdir)
+            if _nb:
+                bg = Image.open(_nb).convert("RGB")
+        except Exception:
+            pass
     if bg:
         canvas = gradient_overlay(bg)
     else:
