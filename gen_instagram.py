@@ -332,40 +332,53 @@ def slide_text(text, idx, total_body, outdir, n):
 
 
 def slide_cta(news, outdir, n):
+    """Slide final de ENGAJAMENTO (2026: saves/shares/comments > likes).
+    Pede a interação que o algoritmo premia, em vez de 'vá ao site'."""
     canvas = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(canvas)
     brand_header(d)
 
-    cy = H // 2 - 140
+    city = news["city"] if (news["city"] and news["city"] in NORTE_SC) else "o Vale"
+    cy = H // 2 - 200
 
-    # selo audio
-    seal = "OUÇA ESTA NOTÍCIA"
-    fs = font(40)
+    # selo topo
+    seal = "GOSTOU? AJUDA A ESPALHAR:"
+    fs = font(36)
     sw = d.textlength(seal, font=fs)
-    d.rounded_rectangle([(W - sw) // 2 - 34, cy - 90, (W + sw) // 2 + 34, cy - 20],
-                        radius=35, fill=GOLD)
-    d.text(((W - sw) // 2, cy - 78), seal, font=fs, fill=BLACK)
+    d.rounded_rectangle([(W - sw) // 2 - 32, cy - 84, (W + sw) // 2 + 32, cy - 16],
+                        radius=34, fill=GOLD)
+    d.text(((W - sw) // 2, cy - 74), seal, font=fs, fill=BLACK)
 
-    big = ["LEIA E OUÇA", "A NOTÍCIA", "COMPLETA"]
-    fbig = font(86, impact=True)
-    y = cy + 20
+    # as 3 ações que o algoritmo recompensa
+    big = ["SALVA", "COMENTA", "COMPARTILHA"]
+    fbig = font(92, impact=True)
+    y = cy + 30
     for ln in big:
         w = d.textlength(ln, font=fbig)
-        d.text(((W - w) // 2, y), ln, font=fbig, fill=WHITE)
-        y += int(fbig.size * 1.04)
+        d.text(((W - w) // 2, y), ln, font=fbig, fill=WHITE, stroke_width=2, stroke_fill=BLACK)
+        y += int(fbig.size * 1.06)
 
-    y += 40
-    site_f = font(52)
-    w = d.textlength(SITE, font=site_f)
-    d.rounded_rectangle([(W - w) // 2 - 40, y - 16, (W + w) // 2 + 40, y + 74],
+    # marca um amigo (puxa comentário + alcance)
+    y += 64
+    mark = f"MARCA UM AMIGO DE {city.upper()}"
+    fm = font(40)
+    w = d.textlength(mark, font=fm)
+    d.rounded_rectangle([(W - w) // 2 - 36, y - 14, (W + w) // 2 + 36, y + 64],
                         radius=20, fill=RED)
-    d.text(((W - w) // 2, y), SITE, font=site_f, fill=WHITE)
+    d.text(((W - w) // 2, y), mark, font=fm, fill=WHITE)
 
-    link = "LINK NA BIO"
-    lf = font(38)
-    w = d.textlength(link, font=lf)
-    d.text(((W - w) // 2, y + 130), link, font=lf, fill=GOLD)
+    # handle + posicionamento
+    y += 128
+    handle = "@radioscnews"
+    fh = font(50)
+    w = d.textlength(handle, font=fh)
+    d.text(((W - w) // 2, y), handle, font=fh, fill=GOLD)
+    sub = "o Norte de SC em 1 minuto"
+    fsub = font(32, bold=False)
+    w = d.textlength(sub, font=fsub)
+    d.text(((W - w) // 2, y + 66), sub, font=fsub, fill=MUTED)
 
+    footer_site(d)
     path = os.path.join(outdir, f"slide_{n}.png")
     canvas.save(path, quality=92)
     return path
