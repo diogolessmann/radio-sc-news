@@ -109,13 +109,14 @@ def build_reel(image_paths, audio_path, out_mp4, min_seconds=6.0):
 
 
 # ---------------------------------------------------------------- publicação Meta
-def post_instagram_reel(video_url, caption, poll_tries=40, poll_wait=6):
-    """Publica um Reels no Instagram. Vídeo precisa estar em URL pública (https)."""
-    container = dist._graph_post(
-        f"{GRAPH}/{dist.META_IG_USER_ID}/media",
-        {"media_type": "REELS", "video_url": video_url, "caption": caption,
-         "share_to_feed": "true", "access_token": dist.META_PAGE_TOKEN},
-    )["id"]
+def post_instagram_reel(video_url, caption, poll_tries=40, poll_wait=6, location_id=None):
+    """Publica um Reels no Instagram. Vídeo precisa estar em URL pública (https).
+    location_id (opcional): geotag da cidade (sinal forte de busca hiperlocal)."""
+    cont_data = {"media_type": "REELS", "video_url": video_url, "caption": caption,
+                 "share_to_feed": "true", "access_token": dist.META_PAGE_TOKEN}
+    if location_id:
+        cont_data["location_id"] = location_id
+    container = dist._graph_post(f"{GRAPH}/{dist.META_IG_USER_ID}/media", cont_data)["id"]
 
     # Reels processa de forma assíncrona — espera ficar FINISHED antes de publicar
     for _ in range(poll_tries):
@@ -191,8 +192,16 @@ def make_reel_for(news, day_dir, do_post=False):
         return {"mp4": mp4_path, "zap": zap, "media_url": media_url}
 
     video_url = f"{dist.PUBLIC_BASE_URL}/static/social/r{nid}.mp4"
+    loc = None
+    try:
+        import geo
+        loc = geo.location_id(news["city"])
+    except Exception:
+        loc = None
     print("   > publicando Reels no Instagram...")
-    ig = post_instagram_reel(video_url, caption)
+    ig = post_instagram_reel(video_url, caption, location_id=loc)
+    if loc:
+        print(f"     📍 geotag: {loc}")
     print(f"     IG Reels ok: {ig}")
     print("   > publicando vídeo no Facebook...")
     try:

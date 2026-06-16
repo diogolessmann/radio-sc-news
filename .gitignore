@@ -10,3 +10,6 @@ radio_sc/
 .env
 instagram_posts/
 static/social/
+static/redacao/
+static/.geo_cache.json
+static/redacao/.nb_*

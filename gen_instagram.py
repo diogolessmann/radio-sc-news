@@ -223,7 +223,7 @@ def footer_site(draw):
 
 
 # ---------------------------------------------------------------- slides
-def slide_cover(news, outdir):
+def slide_cover(news, outdir, hook=None):
     bg = cover_image(news["image_url"], news["admin_image"])
     foto_credito = None
     if not bg:
@@ -287,6 +287,16 @@ def slide_cover(news, outdir):
 
     # pills acima do titulo
     py = y0 - 80
+
+    # gancho/kicker SOBRIO (opcional, acima dos pills) — so se o chamador mandar e couber.
+    # Fica em dourado, curto; some se a manchete for alta demais (evita colidir com a marca).
+    if hook:
+        hk = re.sub(r"\s+", " ", str(hook)).strip().upper()[:42]
+        ky = py - 56
+        if hk and ky > 150:
+            fk = font(36, impact=True)
+            d.text((56, ky), hk, font=fk, fill=GOLD, stroke_width=3, stroke_fill=BLACK)
+
     xend = pill(d, 56, py, city.upper(), font(32), RED, WHITE)
     pill(d, xend + 16, py, cat, font(32), GOLD, BLACK)
 

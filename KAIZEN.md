@@ -27,20 +27,24 @@ A cada sessão, a gente tira 1-2 itens daqui. Foco regional: Jaraguá · Schroed
       erros no log, qual categoria bomba. Sem medir, kaizen é chute.
 
 ### 🔍 Da AUDITORIA MONSTRO (skill auditing-instagram-engine, jun/2026) — placar 6.2/10
-- [ ] **🔴 Geotag por cidade (location_id)** — hoje NENHUM post tem geotag (grep: 0 ocorrências).
-      É o sinal nº1 de busca "perto de mim"/cidade e é o nosso maior eixo (hiperlocal). Buscar o
-      FB Place id de cada cidade e mandar `location_id` no container IG. + front-load de keyword
-      (cidade+tema) na 1ª linha da legenda (legenda virou conteúdo de busca em 2026).
-- [ ] **🔴 Gancho VISUAL na capa** — slide_1 usa o título cru do RSS (gen_instagram.py:281). A capa
-      é ~80% do peso. Gerar um gancho curto (reusa cerebro) pra capa, não só pra legenda.
-- [ ] **🟡 Slide CTA visual desatualizado** — slide_cta ainda diz "LEIA E OUÇA / LINK NA BIO"
-      (gen_instagram.py:334-371), contradizendo o CTA de engajamento da legenda. Trocar p/
-      salvar/comentar/marcar.
-- [ ] **🟡 Carrossel raso (4 slides)** — capa+2+CTA. Ótimo de 2026 é 8-10 slides. Aumentar
-      profundidade (ex: slide "o que muda pra você", contexto) — carrossel é o formato de maior
-      engajamento.
+- [x] **🔴 Geotag por cidade (location_id)** — FEITO. `geo.py` resolve env GEO_LOCATIONS → cache
+      → busca Graph → None (sem geotag). Ligado no carrossel e no Reels. ⏳ falta o dono pôr os
+      Place ids: GEO_LOCATIONS="Schroeder=ID,Jaragua do Sul=ID,..." no Railway (ou deixar a busca
+      automática tentar). Trava GEO_ON.
+- [x] **🔴 Gancho VISUAL na capa** — FEITO. `distribuidor.cover_hook()` gera gancho sóbrio (≤5
+      palavras, trava anti-clickbait) via cerebro; renderizado em dourado acima dos pills
+      (gen_instagram.slide_cover hook=). None se IA off/suspeito (capa = manchete real).
+- [x] **🟡 Slide CTA visual de engajamento** — FEITO. slide_cta agora pede SALVA/COMENTA/
+      COMPARTILHA + marca amigo da cidade (commit 0030e32).
+- [x] **🟡 Carrossel mais fundo** — FEITO. generate_images adaptativo: ~200 chars/slide, até 5 de
+      corpo. Notícia rica → 7 slides; curta → enxuto. (achado: 15% das notícias têm summary vazio
+      → carrossel raso; melhorar enriquecimento de texto é o próximo passo.)
+- [x] **Health check** — FEITO. `metricas.py` + rota `/admin/saude` (posts/dia, % foto, % por
+      cidade/categoria, fila, % sem texto, stock disponível). Agora dá pra guiar por dado.
 - [ ] **🔴 Render de Reels no worker web** — moviepy roda no gunicorn 1-worker/120s (reels.py:93).
       Risco de travar/timeout o site. Mover render p/ fora quando escalar vídeo (já no backlog infra).
+- [ ] **Enriquecer texto da notícia** — 15% sem summary = carrossel de 2 slides. Buscar corpo na
+      página da matéria (já temos fetch_og_image; dá pra pegar parágrafos junto) p/ encher o carrossel.
 
 ---
 

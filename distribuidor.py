@@ -346,6 +346,34 @@ def groq_summary(news):
     return _fallback_summary(news)
 
 
+# ---------------------------------------------------------------- gancho da capa
+def cover_hook(news):
+    """Gancho SOBRIO pra CAPA (a capa carrega ~80% do peso). On-brand: jornal de bairro
+    serio, NUNCA sensacionalista. Usa cerebro; se indisponivel OU se vier com cara de
+    clickbait, devolve None (a capa fica so com a manchete real — comportamento seguro)."""
+    title = re.sub(r"\s+", " ", (news["title"] or "")).strip()
+    if not title:
+        return None
+    prompt = (
+        "Voce e editor do RadioSC News (Norte de SC). Crie um GANCHO curto pra capa do "
+        "post no Instagram da noticia abaixo. REGRAS RIGIDAS: no maximo 5 palavras; "
+        "factual e sobrio (jornal de bairro serio); o angulo local de preferencia "
+        "(ex: 'O que muda em Schroeder'); PROIBIDO sensacionalismo, clickbait, ponto de "
+        "exclamacao e 'voce nao vai acreditar'. Responda SO o gancho, sem aspas.\n\n"
+        f"TITULO: {title}"
+    )
+    try:
+        import cerebro
+        h = (cerebro.completar(prompt) or "").strip().strip('"').strip()
+        h = re.sub(r"\s+", " ", h)
+        # guarda-corpo anti-clickbait: descarta exclamacao, longo demais ou vazio.
+        if not h or "!" in h or len(h.split()) > 6 or len(h) > 42:
+            return None
+        return h
+    except Exception:
+        return None
+
+
 # ---------------------------------------------------------------- links
 def news_permalink(news):
     """Link compartilhavel da materia no proprio site (rota /noticia/<id> com OpenGraph)."""
@@ -409,13 +437,17 @@ def social_caption(news, resumo):
 
 
 # ---------------------------------------------------------------- imagens (reusa gen_instagram)
-def generate_images(news, outdir):
+def generate_images(news, outdir, hook=None):
+    """Carrossel ADAPTATIVO. 2026: o ideal sao 8-10 slides (mais swipes = sinal forte),
+    mas sem encher linguica: quebra o resumo em pedacos menores (mais slides quando ha
+    conteudo) e respeita materia curta (menos slides). cover -> ate 5 de corpo -> CTA."""
     os.makedirs(outdir, exist_ok=True)
-    paths = [gi.slide_cover(news, outdir)]
+    paths = [gi.slide_cover(news, outdir, hook=hook)]
     summary = re.sub(r"\s+", " ", (news["summary"] or "")).strip()
     n = 2
     if summary:
-        chunks = textwrap.wrap(summary, 320, break_long_words=False)[:2]
+        # ~200 chars/slide (antes 320) -> uma materia decente vira 4-6 slides
+        chunks = textwrap.wrap(summary, 200, break_long_words=False)[:5]
         for i, ch in enumerate(chunks, 1):
             paths.append(gi.slide_text(ch, i, len(chunks), outdir, n))
             n += 1
@@ -481,8 +513,9 @@ def post_instagram_story(image_url):
     )
 
 
-def post_instagram_carousel(public_urls, caption):
-    """Posta carrossel no Instagram. ATENCAO: IG exige image_url PUBLICA (https) em JPG."""
+def post_instagram_carousel(public_urls, caption, location_id=None):
+    """Posta carrossel no Instagram. ATENCAO: IG exige image_url PUBLICA (https) em JPG.
+    location_id (opcional): geotag da cidade (sinal forte de busca hiperlocal)."""
     children = []
     for u in public_urls:
         res = _graph_post(
@@ -492,11 +525,11 @@ def post_instagram_carousel(public_urls, caption):
         children.append(res["id"])
         time.sleep(2)
 
-    container = _graph_post(
-        f"{GRAPH}/{META_IG_USER_ID}/media",
-        {"media_type": "CAROUSEL", "children": ",".join(children),
-         "caption": caption, "access_token": META_PAGE_TOKEN},
-    )["id"]
+    cont_data = {"media_type": "CAROUSEL", "children": ",".join(children),
+                 "caption": caption, "access_token": META_PAGE_TOKEN}
+    if location_id:
+        cont_data["location_id"] = location_id
+    container = _graph_post(f"{GRAPH}/{META_IG_USER_ID}/media", cont_data)["id"]
     time.sleep(3)
 
     return _graph_post(
@@ -505,9 +538,10 @@ def post_instagram_carousel(public_urls, caption):
     )
 
 
-def publish_images(prefix, image_paths, caption):
+def publish_images(prefix, image_paths, caption, location_id=None):
     """Copia imagens p/ static/social (servidas publicamente) e posta carrossel IG + foto FB.
-    Generico: serve tanto p/ noticia quanto p/ Bom dia Vale."""
+    Generico: serve tanto p/ noticia quanto p/ Bom dia Vale.
+    location_id (opcional): geotag da cidade no carrossel."""
     if not _meta_ready():
         raise RuntimeError(
             "Tokens Meta ausentes. Configure META_PAGE_TOKEN, META_IG_USER_ID e "
@@ -524,7 +558,9 @@ def publish_images(prefix, image_paths, caption):
         public_urls.append(f"{PUBLIC_BASE_URL}/static/social/{fname}")
 
     print("   > publicando no Instagram...")
-    ig = post_instagram_carousel(public_urls, caption)
+    ig = post_instagram_carousel(public_urls, caption, location_id=location_id)
+    if location_id:
+        print(f"     📍 geotag: {location_id}")
     print(f"     IG ok: {ig}")
     print("   > publicando no Facebook...")
     fb = post_facebook(public_urls[0], caption)
@@ -545,8 +581,14 @@ def publish_images(prefix, image_paths, caption):
 
 
 def publish_real(news, image_paths, caption):
-    """Posta uma NOTICIA (carrossel) no IG + FB."""
-    return publish_images(f"n{news['id']}", image_paths, caption)
+    """Posta uma NOTICIA (carrossel) no IG + FB, com geotag da cidade quando resolvivel."""
+    loc = None
+    try:
+        import geo
+        loc = geo.location_id(news["city"])
+    except Exception:
+        loc = None
+    return publish_images(f"n{news['id']}", image_paths, caption, location_id=loc)
 
 
 # ---------------------------------------------------------------- ponto de entrada p/ scheduler
@@ -670,9 +712,10 @@ def process_one(conn, news, do_post, day_dir):
     resumo = groq_summary(news)
     caption = social_caption(news, resumo)
     zap = whatsapp_message(news, resumo)
+    hook = cover_hook(news)  # gancho sobrio da capa (None se IA off/suspeito)
 
     outdir = os.path.join(day_dir, str(nid))
-    imgs = generate_images(news, outdir)
+    imgs = generate_images(news, outdir, hook=hook)
     print(f"   {len(imgs)} imagens geradas em {outdir}")
 
     # salva previews (Instagram/Facebook + WhatsApp Canal)

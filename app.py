@@ -11,7 +11,7 @@ from functools import wraps
 
 from flask import (Flask, render_template, request, jsonify,
                    redirect, url_for, session, send_from_directory,
-                   flash, abort)
+                   flash, abort, render_template_string)
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -715,6 +715,57 @@ def admin_redacao_gerar():
     except Exception as e:
         logger.error(f"Redacao gerar falhou: {e}")
         return jsonify({'ok': False, 'erro': str(e)}), 500
+
+
+@app.route('/admin/saude')
+@login_required
+def admin_saude():
+    """Health check do motor — guia o kaizen com dado, não achismo (posts/dia, % foto,
+    distribuição por cidade/categoria, fila). SQL puro, sem IA."""
+    try:
+        import metricas
+        m = metricas.coletar()
+    except Exception as e:
+        logger.error(f"Health check falhou: {e}")
+        return f"<pre>health check falhou: {e}</pre>", 500
+    return render_template_string(_SAUDE_HTML, m=m)
+
+
+_SAUDE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Saúde do Motor · Rádio SC News</title>
+<style>
+ body{background:#11121a;color:#eee;font-family:system-ui,Segoe UI,Arial;margin:0;padding:24px}
+ h1{font-size:20px;margin:0 0 4px} .sub{color:#9a9cab;font-size:13px;margin-bottom:20px}
+ .grid{display:flex;flex-wrap:wrap;gap:14px;margin-bottom:22px}
+ .card{background:#181a22;border:1px solid #262838;border-radius:14px;padding:16px 20px;min-width:130px}
+ .num{font-size:30px;font-weight:800} .lbl{color:#9a9cab;font-size:12px;margin-top:4px}
+ .ok{color:#46d27e} .warn{color:#f5c518} .bad{color:#e74c3c}
+ h2{font-size:15px;margin:18px 0 8px;color:#cfd0db}
+ .bar{background:#222433;border-radius:8px;height:22px;margin:5px 0;position:relative;overflow:hidden}
+ .bar > i{display:block;height:100%;background:#e74c3c}
+ .bar > span{position:absolute;left:10px;top:2px;font-size:12px;color:#fff}
+ a{color:#f5c518}
+</style></head><body>
+<h1>🩺 Saúde do Motor — Rádio SC News</h1>
+<div class=sub>Sem medir, kaizen é chute. (atualiza a cada refresh)</div>
+<div class=grid>
+ <div class=card><div class=num>{{m.postados_hoje}}</div><div class=lbl>posts hoje</div></div>
+ <div class=card><div class=num>{{m.postados_7d}}</div><div class=lbl>posts 7 dias</div></div>
+ <div class=card><div class="num {{'ok' if m.pct_foto>=70 else 'warn'}}">{{m.pct_foto}}%</div><div class=lbl>com foto</div></div>
+ <div class=card><div class="num {{'ok' if m.pct_norte>=50 else 'warn'}}">{{m.pct_norte}}%</div><div class=lbl>Norte de SC</div></div>
+ <div class=card><div class=num>{{m.pendentes}}</div><div class=lbl>na fila</div></div>
+ <div class=card><div class="num {{'warn' if m.seguradas else ''}}">{{m.seguradas}}</div><div class=lbl>seguradas (revisão)</div></div>
+ <div class=card><div class="num {{'warn' if m.pct_sem_summary>20 else ''}}">{{m.pct_sem_summary}}%</div><div class=lbl>sem texto (carrossel raso)</div></div>
+</div>
+<h2>Por cidade</h2>
+{% for c,n,p in m.cidades %}<div class=bar><i style="width:{{p}}%"></i><span>{{c}} — {{n}} ({{p}}%)</span></div>{% endfor %}
+<h2>Por categoria</h2>
+{% for c,n,p in m.categorias %}<div class=bar><i style="width:{{p}}%;background:#3a7"></i><span>{{c}} — {{n}} ({{p}}%)</span></div>{% endfor %}
+<h2>Fotos de stock regional ({{m.stock_fotos|length}})</h2>
+<div class=sub>{% if m.stock_fotos %}{{m.stock_fotos|join(' · ')}}{% else %}nenhuma ainda — põe fotos das cidades em static/stock/ (schroeder.jpg, jaragua-do-sul.jpg...){% endif %}</div>
+<p style="margin-top:24px"><a href="/admin">← voltar ao painel</a></p>
+</body></html>"""
 
 
 @app.route('/admin/collect', methods=['POST'])
