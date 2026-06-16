@@ -246,12 +246,16 @@ def detect_city(text):
 
 
 def detect_category(text):
+    """Categoria por PALAVRA INTEIRA (\\b) — evita 'preso' casar dentro de 'Caropreso' (sobrenome)
+    e marcar política/saúde como POLICIAL. Escolhe a categoria com MAIS acertos (não a 1ª que casa)."""
     text_lower = text.lower()
+    best, best_score = 'geral', 0
     for category, keywords in CATEGORY_KEYWORDS.items():
-        for kw in keywords:
-            if kw in text_lower:
-                return category
-    return 'geral'
+        score = sum(1 for kw in keywords
+                    if re.search(r'\b' + re.escape(kw) + r'\b', text_lower))
+        if score > best_score:
+            best, best_score = category, score
+    return best
 
 
 def clean_html(text):

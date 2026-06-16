@@ -27,6 +27,11 @@
 
 ---
 
+## ✅ FASE 1 — LOOP DE INSIGHTS — FEITA E NO AR (commit e8e683c, 16/jun)
+> Salva ig_media_id no post · insights.py puxa reach/saved/shares · job 23h30 · bloco "Top posts"
+> no /admin/saude. Quick win categoria também fechado (match por palavra inteira, 6/6). FALTA SÓ:
+> os posts NOVOS rodarem na prod (autopost) p/ popular o painel. Detalhe original abaixo. ↓
+
 ## 🔥 FASE 1 — LOOP DE INSIGHTS (a pedrada — faz isso PRIMEIRO)
 **Por que:** vale mais que os 6 fixes juntos. Sem saber o que performa, todo kaizen é chute.
 Usa a Graph API que já temos (mesmo token), custo zero.

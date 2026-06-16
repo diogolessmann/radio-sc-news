@@ -19,8 +19,8 @@ A cada sessão, a gente tira 1-2 itens daqui. Foco regional: Jaraguá · Schroed
       ⏳ FALTA O DONO pôr as fotos das cidades em static/stock/ (schroeder.jpg, jaragua-do-sul.jpg,
       guaramirim.jpg, joinville.jpg, sc.jpg) — ver README lá. Até lá, cai no card preto.
 - [x] fotobusca (gêmea no banco, matching estrito) — FEITO.
-- [ ] **Categoria errada** — vi "Caropreso convênio hospital" marcado como POLICIAL. Afinar
-      detect_category (palavras-chave) — pequeno, mas melhora a precisão das pills.
+- [x] **Categoria errada** — FEITO. detect_category agora casa por PALAVRA INTEIRA (\b) e pega a
+      categoria com MAIS acertos. Bug era substring: "preso" casava dentro de "Caropreso". Testado 6/6.
 
 ### Medir pra guiar o kaizen
 - [ ] **Health check / métricas** — relatório simples: posts/dia, % com foto, % por cidade,
