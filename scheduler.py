@@ -106,6 +106,18 @@ def insights_job():
         logger.error(f"❌ Insights falhou: {e}")
 
 
+def comunidade_job():
+    """Franquia de COMUNIDADE ('Diz Aí, Vale' — pergunta da semana). Puxa comentário.
+    Só posta se autopost ligado; senão gera só o preview."""
+    try:
+        import comunidade
+        r = comunidade.run(post=_autopost_on())
+        logger.info("🗣️ Comunidade '%s' %s — %s",
+                    r['franquia'], "POSTADA" if r['postado'] else "preview", r['pergunta'])
+    except Exception as e:
+        logger.error(f"❌ Comunidade falhou: {e}")
+
+
 def collect_job():
     """Coleta notícias de todos os feeds RSS."""
     try:
@@ -273,6 +285,15 @@ def start_scheduler(interval_minutes=60):
         trigger=CronTrigger(hour=23, minute=30, timezone='America/Sao_Paulo'),
         id='insights_loop',
         name='Loop de Insights (alcance/saves/seguidor por post)',
+        replace_existing=True
+    )
+
+    # 🗣️ COMUNIDADE — franquia "Diz Aí, Vale" (pergunta da semana) toda quarta 18h. Puxa comentário.
+    _scheduler.add_job(
+        func=comunidade_job,
+        trigger=CronTrigger(day_of_week='wed', hour=18, minute=0, timezone='America/Sao_Paulo'),
+        id='comunidade_diz_ai',
+        name='Comunidade: Diz Aí, Vale (pergunta semanal, quarta 18h)',
         replace_existing=True
     )
 

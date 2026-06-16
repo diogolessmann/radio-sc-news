@@ -349,7 +349,7 @@ def slide_cta(news, outdir, n):
     d = ImageDraw.Draw(canvas)
     brand_header(d)
 
-    city = news["city"] if (news["city"] and news["city"] in NORTE_SC) else "o Vale"
+    city = news["city"] if (news["city"] and news["city"] in NORTE_SC) else None
     cy = H // 2 - 200
 
     # selo topo
@@ -371,7 +371,7 @@ def slide_cta(news, outdir, n):
 
     # marca um amigo (puxa comentário + alcance)
     y += 64
-    mark = f"MARCA UM AMIGO DE {city.upper()}"
+    mark = f"MARCA UM AMIGO DE {city.upper()}" if city else "MARCA UM AMIGO DO VALE"
     fm = font(40)
     w = d.textlength(mark, font=fm)
     d.rounded_rectangle([(W - w) // 2 - 36, y - 14, (W + w) // 2 + 36, y + 64],
