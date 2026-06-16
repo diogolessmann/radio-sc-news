@@ -225,10 +225,25 @@ def footer_site(draw):
 # ---------------------------------------------------------------- slides
 def slide_cover(news, outdir):
     bg = cover_image(news["image_url"], news["admin_image"])
+    foto_credito = None
     if not bg:
-        # Sem foto real -> tenta imagem IA (Nano Banana: seletivo, capado, ilustrativo).
-        # Devolve None se desligado (NANOBANANA_ON!=1)/sem billing/cap estourado/categoria
-        # sensível -> cai no card escuro normal. NUNCA quebra o post.
+        # 1) FOTO REAL: a MESMA notícia em outro portal (do nosso banco) que tenha foto.
+        #    Usa a foto de lá COM crédito. Melhor que IA p/ notícia (foto real e relevante).
+        try:
+            import fotobusca
+            try:
+                _nid = news["id"]
+            except Exception:
+                _nid = 0
+            _url, _src = fotobusca.achar_foto(news["title"], _nid)
+            if _url:
+                bg = cover_image(_url, None)
+                if bg:
+                    foto_credito = _src
+        except Exception:
+            pass
+    if not bg:
+        # 2) Fallback IA (Nano Banana: seletivo, capado). Off por padrão (NANOBANANA_ON).
         try:
             import nanobanana
             _nb = nanobanana.gerar_capa(news["title"], news["category"], news["city"], outdir)
@@ -265,6 +280,13 @@ def slide_cover(news, outdir):
 
     # hint arrastar
     d.text((56, H - 110), "ARRASTA PARA O LADO  ->", font=font(34), fill=GOLD)
+
+    # crédito da foto emprestada de outro portal (atribuição)
+    if foto_credito:
+        ftxt = f"Foto: {foto_credito}"
+        fc = font(26, bold=False)
+        cw = d.textlength(ftxt, font=fc)
+        d.text((W - 56 - cw, H - 104), ftxt, font=fc, fill=MUTED)
 
     path = os.path.join(outdir, "slide_1.png")
     canvas.save(path, quality=92)
