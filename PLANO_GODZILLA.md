@@ -96,6 +96,42 @@ Usa a Graph API que já temos (mesmo token), custo zero.
 
 ---
 
+## 🔧 EXECUÇÃO DETALHADA — FASE 1 (passo a passo, pra mandar sem pensar)
+
+**Passo 1 — migração do banco (salvar o id do Instagram).**
+- Em `distribuidor.ensure_column`: adicionar colunas `ig_media_id TEXT` e `ig_permalink TEXT`.
+- Em `process_one` (carrossel) e `make_reel_for` (reels): no sucesso do `media_publish`, o retorno
+  traz `{"id": "<media-id>"}`. Salvar: `UPDATE news SET ig_media_id=? WHERE id=?`.
+- ✅ Critério: depois de 1 post, a coluna `ig_media_id` vem preenchida.
+
+**Passo 2 — `insights.py` (puxa as métricas).**
+- `coletar_post(media_id, token)` → `GET {GRAPH}/{media_id}/insights`
+  `?metric=reach,saved,shares,likes,comments,total_interactions&access_token=...`
+  (Reels também: `ig_reels_video_view_total,ig_reels_avg_watch_time`). Devolve dict {metric: valor}.
+- `coletar_conta(ig_user_id, token)` → `GET {GRAPH}/{ig_user_id}/insights`
+  `?metric=follower_count,reach,profile_views&period=day`.
+- Tabela nova `post_insights(news_id, reach, saved, shares, interactions, plays, coletado_em)`
+  (criar no próprio módulo, `CREATE TABLE IF NOT EXISTS`).
+- `atualizar_recentes(dias=3)`: pega news com `ig_media_id` dos últimos N dias, puxa e faz UPSERT.
+- ✅ Critério: rodar `python insights.py` e ver linhas em `post_insights` com reach/saves reais.
+
+**Passo 3 — job no scheduler.**
+- `add_job(insights_job, CronTrigger(hour=23, minute=30))` → chama `insights.atualizar_recentes()`.
+- Métrica amadurece com o tempo → puxar posts dos últimos 3 dias todo dia às 23h30.
+- ✅ Critério: job aparece no `/admin` (status do scheduler) com próximo run.
+
+**Passo 4 — mostrar no `/admin/saude`.**
+- `metricas.coletar()` ganha: `top_posts` (ORDER BY saved+shares DESC LIMIT 5, JOIN news p/ título/cidade),
+  `alcance_por_cidade`, `melhor_formato` (foto vs carrossel vs reels por média de saves).
+- Bloco "🏆 Top da semana" + "📈 cidade que mais alcança" no template `_SAUDE_HTML`.
+- ✅ Critério: abro /admin/saude e vejo o RANKING real — qual post/cidade/formato performou.
+
+**Cuidados:** métricas de conta (`follower_count`) exigem a conta como Business/Creator (já é).
+Alguns metrics mudam de nome por versão da API — se vier erro, logar o `error` da Graph e ajustar
+o metric. Tudo via `requests` (zero dep). Não quebra post se o insights falhar (try/except + log).
+
+---
+
 ## 🧭 ORDEM DE EXECUÇÃO AMANHÃ
 1. **FASE 1 inteira** (Insights) — é a alavanca-mãe. Começa por 1a (salvar media id).
 2. **Quick win categoria** (rápido, melhora o targeting que o Insights vai medir).
