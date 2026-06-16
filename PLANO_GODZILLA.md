@@ -72,6 +72,11 @@ Usa a Graph API que já temos (mesmo token), custo zero.
 
 ---
 
+## ✅ FASE 3 — AUDIÊNCIA PRÓPRIA — FEITA (commit 0cd812c, 16/jun)
+> Legenda: engajamento in-feed 1º, depois Canal do WhatsApp em destaque com FOMO, site no rodapé.
+> Slide final ganhou pill VERDE do WhatsApp ("recebe 1º · link na bio"). FALTA: story com figurinha
+> de link (API de Stories não expõe link sticker fácil — fica manual por ora) + medir Canal manual.
+
 ## 📲 FASE 3 — AUDIÊNCIA PRÓPRIA (Canal WhatsApp como destino nº1)
 **Por que:** terra nossa, à prova de bloqueio do IG.
 - CTA do Canal WhatsApp mais forte e em TODO formato (carrossel, Reels, story).
