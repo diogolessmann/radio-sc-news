@@ -76,19 +76,69 @@ def _narration_script(news, resumo):
     return " ".join(partes)
 
 
+# ---------------------------------------------------------------- legendas na tela (retenção)
+def _caption_images(script, total, capdir):
+    """Gera PNGs de legenda (estilo CapCut) ~sincronizados ao áudio: agrupa o texto narrado em
+    frases de até 3 palavras e dá a cada uma um tempo proporcional ao tamanho. SEM dependência
+    nova: PIL desenha (transparente), o moviepy só sobrepõe — evita o ImageMagick do TextClip.
+    Devolve [(png, inicio_seg, duracao_seg)]."""
+    from PIL import Image, ImageDraw
+    words = [w for w in re.sub(r"\s+", " ", (script or "")).strip().split(" ") if w]
+    if not words:
+        return []
+    grupos = [" ".join(words[i:i + 3]) for i in range(0, len(words), 3)]
+    total_chars = sum(len(g) for g in grupos) or 1
+    os.makedirs(capdir, exist_ok=True)
+    fnt = gi.font(66, impact=True)
+    out, t = [], 0.0
+    for i, g in enumerate(grupos):
+        dur = max(0.6, total * len(g) / total_chars)
+        img = Image.new("RGBA", (REEL_W, 320), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        lines = gi.wrap(d, g.upper(), fnt, REEL_W - 140)
+        lh = int(fnt.size * 1.12)
+        y = (320 - lh * len(lines)) // 2
+        for ln in lines:
+            w = d.textlength(ln, font=fnt)
+            d.text(((REEL_W - w) // 2, y), ln, font=fnt, fill=(255, 255, 255, 255),
+                   stroke_width=7, stroke_fill=(0, 0, 0, 255))
+            y += lh
+        p = os.path.join(capdir, f"cap_{i:03d}.png")
+        img.save(p)
+        out.append((p, t, dur))
+        t += dur
+    return out
+
+
 # ---------------------------------------------------------------- montagem do vídeo
-def build_reel(image_paths, audio_path, out_mp4, min_seconds=6.0):
-    """Monta o mp4 vertical: slides em sequência com a narração por cima.
-    Usa moviepy (ffmpeg empacotado via imageio-ffmpeg — não depende de ffmpeg do sistema)."""
-    from moviepy.editor import ImageClip, concatenate_videoclips, AudioFileClip
+def build_reel(image_paths, audio_path, out_mp4, min_seconds=6.0, caption_script=None, capdir=None):
+    """Monta o mp4 vertical: slides em sequência + narração + LEGENDA palavra-a-palavra na tela
+    (retenção). Usa moviepy (ffmpeg empacotado via imageio-ffmpeg). As legendas são opcionais e
+    defensivas: se algo falhar, cai pro vídeo sem legenda (nunca quebra o post)."""
+    from moviepy.editor import (ImageClip, concatenate_videoclips, AudioFileClip,
+                                CompositeVideoClip)
 
     audio = AudioFileClip(audio_path)
     total = max(float(audio.duration or 0), min_seconds)
     per = total / max(len(image_paths), 1)
 
     clips = [ImageClip(p).set_duration(per) for p in image_paths]
-    video = concatenate_videoclips(clips, method="chain").set_audio(audio)
-    video = video.set_duration(total)
+    base = concatenate_videoclips(clips, method="chain").set_duration(total)
+
+    layers = [base]
+    ligado = dist._env("REELS_CAPTIONS", "1") != "0"
+    if ligado and caption_script and capdir:
+        try:
+            for png, start, dur in _caption_images(caption_script, total, capdir):
+                cap = (ImageClip(png, transparent=True)
+                       .set_start(start).set_duration(dur)
+                       .set_position(("center", REEL_H - 560)))
+                layers.append(cap)
+        except Exception as e:
+            print(f"   ! legenda na tela falhou (segue sem): {e}")
+            layers = [base]
+
+    video = CompositeVideoClip(layers, size=(REEL_W, REEL_H)).set_audio(audio).set_duration(total)
 
     video.write_videofile(
         out_mp4,
@@ -180,10 +230,11 @@ def make_reel_for(news, day_dir, do_post=False):
     if not audio:
         raise RuntimeError("não consegui gerar a narração (TTS).")
 
-    # 4) monta o mp4
+    # 4) monta o mp4 (com legenda palavra-a-palavra na tela = retenção)
     os.makedirs(REELS_DIR, exist_ok=True)
     mp4_path = os.path.join(REELS_DIR, f"r{nid}.mp4")
-    build_reel(vslides, narr_path, mp4_path)
+    build_reel(vslides, narr_path, mp4_path,
+               caption_script=script, capdir=os.path.join(outdir, "caps"))
     size_mb = os.path.getsize(mp4_path) / (1024 * 1024)
     print(f"   🎬 mp4 gerado: {mp4_path} ({size_mb:.1f} MB)")
 
