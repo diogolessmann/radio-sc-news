@@ -444,17 +444,21 @@ def social_caption(news, resumo):
             seen.add(t)
             uniq.append(t)
 
-    cta_zap = (f"📲 Receba em 1º lugar no Canal do WhatsApp: {WHATSAPP_CHANNEL}\n"
-               if WHATSAPP_CHANNEL else "")
-    # CTA de ENGAJAMENTO (in-feed) — a notícia se basta aqui; site/áudio viram secundário.
+    # AUDIÊNCIA PRÓPRIA: o Canal do WhatsApp é o destino nº1 (terra nossa, à prova de bloqueio do
+    # IG). Engajamento in-feed vem primeiro (o algoritmo premia), o Canal logo em seguida em
+    # destaque com FOMO, e site/áudio viram um rodapé pequeno.
+    bloco_canal = (
+        f"🔔 Recebe a notícia ANTES de todo mundo no nosso Canal do WhatsApp:\n"
+        f"👉 {WHATSAPP_CHANNEL}\n\n"
+        if WHATSAPP_CHANNEL else ""
+    )
     return (
         f"{resumo}\n\n"
-        f"💬 Você concorda? Comenta aqui 👇\n"
-        f"🔖 Salva pra não esquecer  ·  🔁 Marca um amigo do Vale\n"
+        f"💬 Concorda? Comenta aqui 👇  ·  🔖 Salva  ·  🔁 Marca um amigo do Vale\n"
         f"➕ Segue @radioscnews — o Norte de SC em 1 minuto\n\n"
-        f"{cta_zap}"
+        f"{bloco_canal}"
         f"👀 Viu algo na sua cidade? Manda no direct — a próxima notícia pode ser sua.\n"
-        f"🎧 Versão em áudio no site (link na bio)  ·  📍 {city}\n\n"
+        f"📍 {city}  ·  🎧 áudio + matéria completa no site (link na bio)\n\n"
         + " ".join(uniq)
     )
 

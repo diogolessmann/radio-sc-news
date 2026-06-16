@@ -42,6 +42,7 @@ BG = (17, 18, 24)
 CARD = (24, 26, 34)
 RED = (231, 76, 60)
 GOLD = (245, 197, 24)
+WHATS = (37, 211, 102)   # verde do WhatsApp (CTA do Canal — audiência própria)
 WHITE = (245, 245, 247)
 MUTED = (168, 170, 180)
 BLACK = (0, 0, 0)
@@ -377,16 +378,25 @@ def slide_cta(news, outdir, n):
                         radius=20, fill=RED)
     d.text(((W - w) // 2, y), mark, font=fm, fill=WHITE)
 
-    # handle + posicionamento
-    y += 128
+    # handle + CTA do Canal do WhatsApp (audiência própria — destino nº1)
+    y += 120
     handle = "@radioscnews"
     fh = font(50)
     w = d.textlength(handle, font=fh)
     d.text(((W - w) // 2, y), handle, font=fh, fill=GOLD)
-    sub = "o Norte de SC em 1 minuto"
-    fsub = font(32, bold=False)
-    w = d.textlength(sub, font=fsub)
-    d.text(((W - w) // 2, y + 66), sub, font=fsub, fill=MUTED)
+
+    # pill verde do Canal do WhatsApp
+    y += 92
+    zap = "NO CANAL DO WHATSAPP VOCÊ RECEBE 1º"
+    fz = font(33)
+    zw = d.textlength(zap, font=fz)
+    d.rounded_rectangle([(W - zw) // 2 - 30, y - 12, (W + zw) // 2 + 30, y + 58],
+                        radius=20, fill=WHATS)
+    d.text(((W - zw) // 2, y), zap, font=fz, fill=BLACK)
+    link = "link na bio"
+    fl = font(28, bold=False)
+    w = d.textlength(link, font=fl)
+    d.text(((W - w) // 2, y + 74), link, font=fl, fill=MUTED)
 
     footer_site(d)
     path = os.path.join(outdir, f"slide_{n}.png")
