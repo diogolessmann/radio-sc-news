@@ -762,6 +762,17 @@ _SAUDE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 {% for c,n,p in m.cidades %}<div class=bar><i style="width:{{p}}%"></i><span>{{c}} — {{n}} ({{p}}%)</span></div>{% endfor %}
 <h2>Por categoria</h2>
 {% for c,n,p in m.categorias %}<div class=bar><i style="width:{{p}}%;background:#3a7"></i><span>{{c}} — {{n}} ({{p}}%)</span></div>{% endfor %}
+<h2>🏆 Top posts — o que o Vale salvou + compartilhou</h2>
+{% if m.top_posts %}
+ {% for t,c,reach,saved,shares in m.top_posts %}
+  <div style="background:#181a22;border:1px solid #262838;border-radius:10px;padding:8px 12px;margin:5px 0">
+   <span style="color:#46d27e;font-weight:800">{{saved+shares}}</span>
+   <span style="color:#9a9cab;font-size:12px"> 💾{{saved}} · 🔁{{shares}} · alcance {{reach}}</span><br>
+   <span style="font-size:13px">{{c}} — {{t[:64]}}</span></div>
+ {% endfor %}
+{% else %}
+ <div class=sub>Ainda sem dados de Insights — aparece após o 1º post novo (que salva o id) + o job das 23h30. Coletados até agora: {{m.com_insights}}.</div>
+{% endif %}
 <h2>Fotos de stock regional ({{m.stock_fotos|length}})</h2>
 <div class=sub>{% if m.stock_fotos %}{{m.stock_fotos|join(' · ')}}{% else %}nenhuma ainda — põe fotos das cidades em static/stock/ (schroeder.jpg, jaragua-do-sul.jpg...){% endif %}</div>
 <p style="margin-top:24px"><a href="/admin">← voltar ao painel</a></p>

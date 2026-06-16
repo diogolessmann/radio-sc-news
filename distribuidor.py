@@ -231,6 +231,11 @@ def ensure_column(conn):
         conn.execute("ALTER TABLE news ADD COLUMN social_media TEXT")
     if "channel_posted_at" not in cols:
         conn.execute("ALTER TABLE news ADD COLUMN channel_posted_at TEXT")
+    # Loop de Insights: guarda o id do post no Instagram p/ puxar metricas depois
+    if "ig_media_id" not in cols:
+        conn.execute("ALTER TABLE news ADD COLUMN ig_media_id TEXT")
+    if "ig_permalink" not in cols:
+        conn.execute("ALTER TABLE news ADD COLUMN ig_permalink TEXT")
     conn.commit()
 
 
@@ -295,6 +300,24 @@ def mark_posted(conn, news_id):
         (datetime.now().isoformat(timespec="seconds"), news_id),
     )
     conn.commit()
+
+
+def mark_media(conn, news_id, ig_media_id, permalink=None):
+    """Guarda o id (e permalink) do post no Instagram — chave pro Loop de Insights."""
+    if not ig_media_id:
+        return
+    conn.execute("UPDATE news SET ig_media_id=?, ig_permalink=? WHERE id=?",
+                 (str(ig_media_id), permalink, news_id))
+    conn.commit()
+
+
+def _extract_ig_id(res):
+    """Tira o id do post do retorno do publish (carrossel ou reels). None se nao achar."""
+    if isinstance(res, dict):
+        ig = res.get("instagram")
+        if isinstance(ig, dict):
+            return ig.get("id")
+    return None
 
 
 def mark_hold(conn, news_id, reason):
@@ -734,9 +757,14 @@ def process_one(conn, news, do_post, day_dir):
     print(f"   Resumo via: {'GROQ (voz RadioSC)' if GROQ_API_KEY else 'FALLBACK LOCAL (sem chave Groq)'}")
 
     if do_post:
-        publish_real(news, imgs, caption)
+        res = publish_real(news, imgs, caption)
         mark_posted(conn, nid)
         mark_cluster(conn, news)  # blindagem: segura todas as irmas do mesmo fato
+        # Loop de Insights: salva o id do post no IG (p/ puxar alcance/saves depois)
+        try:
+            mark_media(conn, nid, _extract_ig_id(res))
+        except Exception:
+            pass
         # guarda a mensagem pronta do WhatsApp + 1a imagem p/ a Central do Canal
         media_url = f"{PUBLIC_BASE_URL}/static/social/n{nid}_s1.jpg"
         save_channel_payload(conn, nid, zap, media_url)

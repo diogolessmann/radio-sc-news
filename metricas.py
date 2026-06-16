@@ -59,6 +59,20 @@ def coletar(db_path=None):
             stock = [f for f in os.listdir(STOCK_DIR)
                      if f.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))]
 
+        # 🏆 Loop de Insights: top posts por (saves+shares). Tabela pode não existir ainda.
+        top_posts, com_insights = [], 0
+        try:
+            tp = conn.execute(
+                "SELECT n.title, n.city, p.reach, p.saved, p.shares, "
+                "(COALESCE(p.saved,0)+COALESCE(p.shares,0)) AS score "
+                "FROM post_insights p JOIN news n ON n.id=p.news_id "
+                "ORDER BY score DESC, p.reach DESC LIMIT 5").fetchall()
+            top_posts = [(r["title"], r["city"], r["reach"] or 0, r["saved"] or 0, r["shares"] or 0)
+                         for r in tp]
+            com_insights = _scalar(conn, "SELECT COUNT(*) FROM post_insights")
+        except Exception:
+            top_posts, com_insights = [], 0
+
         return {
             "ativas": ativas,
             "com_foto": com_foto, "pct_foto": _pct(com_foto, ativas),
@@ -69,6 +83,7 @@ def coletar(db_path=None):
             "cidades": [(r["c"], r["n"], _pct(r["n"], ativas)) for r in cidades],
             "categorias": [(r["cat"], r["n"], _pct(r["n"], ativas)) for r in categorias],
             "stock_fotos": sorted(stock),
+            "top_posts": top_posts, "com_insights": com_insights,
         }
     finally:
         conn.close()

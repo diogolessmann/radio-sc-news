@@ -255,6 +255,11 @@ def run_reel(post=False, limit=1):
             if post:
                 dist.mark_posted(conn, news["id"])
                 dist.mark_cluster(conn, news)  # blindagem cross-engine (carrossel x reels)
+                # Loop de Insights: salva o id do Reels no IG
+                try:
+                    dist.mark_media(conn, news["id"], dist._extract_ig_id(res))
+                except Exception:
+                    pass
                 dist.save_channel_payload(conn, news["id"],
                                           res.get("zap", ""), res.get("media_url", ""))
                 vistos.append(news)

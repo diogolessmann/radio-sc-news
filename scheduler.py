@@ -94,6 +94,18 @@ def marca_job(brand_key):
         logger.error(f"❌ Marca '{brand_key}' falhou: {e}")
 
 
+def insights_job():
+    """Loop de Insights: puxa alcance/saves/seguidor real dos posts recentes (1x/dia).
+    Não depende de autopost — lê métricas, não publica. Precisa dos tokens Meta."""
+    try:
+        import insights
+        n = insights.atualizar_recentes()
+        conta = insights.coletar_conta()
+        logger.info(f"📈 Insights: {n} post(s) atualizado(s). Conta: {conta}")
+    except Exception as e:
+        logger.error(f"❌ Insights falhou: {e}")
+
+
 def collect_job():
     """Coleta notícias de todos os feeds RSS."""
     try:
@@ -252,6 +264,15 @@ def start_scheduler(interval_minutes=60):
         trigger=IntervalTrigger(minutes=20),
         id='urgent_news',
         name='Plantão de notícia urgente (tempo real)',
+        replace_existing=True
+    )
+
+    # 📈 Loop de Insights — puxa o resultado real dos posts 1x/dia às 23h30 (métrica amadurece).
+    _scheduler.add_job(
+        func=insights_job,
+        trigger=CronTrigger(hour=23, minute=30, timezone='America/Sao_Paulo'),
+        id='insights_loop',
+        name='Loop de Insights (alcance/saves/seguidor por post)',
         replace_existing=True
     )
 
