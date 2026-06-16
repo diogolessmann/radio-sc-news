@@ -118,6 +118,21 @@ def comunidade_job():
         logger.error(f"❌ Comunidade falhou: {e}")
 
 
+def publipost_job():
+    """Publipost do parceiro da semana (produto pago). Só posta se autopost ligado E houver
+    parceiro ativo; senão gera preview / pula sem erro."""
+    try:
+        import sponsors
+        r = sponsors.run_publipost(post=_autopost_on())
+        if r.get("ok"):
+            logger.info("💙 Publipost '%s' %s.", r["sponsor"],
+                        "POSTADO" if r["postado"] else "preview")
+        else:
+            logger.info("💤 Publipost pulado — %s.", r.get("motivo"))
+    except Exception as e:
+        logger.error(f"❌ Publipost falhou: {e}")
+
+
 def collect_job():
     """Coleta notícias de todos os feeds RSS."""
     try:
@@ -294,6 +309,15 @@ def start_scheduler(interval_minutes=60):
         trigger=CronTrigger(day_of_week='wed', hour=18, minute=0, timezone='America/Sao_Paulo'),
         id='comunidade_diz_ai',
         name='Comunidade: Diz Aí, Vale (pergunta semanal, quarta 18h)',
+        replace_existing=True
+    )
+
+    # 💙 PUBLIPOST — parceiro da semana (produto pago) toda sexta 19h. Pula sozinho se não há parceiro.
+    _scheduler.add_job(
+        func=publipost_job,
+        trigger=CronTrigger(day_of_week='fri', hour=19, minute=0, timezone='America/Sao_Paulo'),
+        id='publipost_parceiro',
+        name='Publipost do parceiro da semana (sexta 19h)',
         replace_existing=True
     )
 

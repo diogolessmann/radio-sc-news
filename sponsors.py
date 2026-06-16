@@ -141,3 +141,109 @@ def fetch_logo(url, max_side=180):
         return im
     except Exception:
         return None
+
+
+# ---------------------------------------------------------------- PUBLIPOST (produto premium)
+def slide_publipost(sponsor, outdir):
+    """Card dedicado do parceiro (1 imagem) — o post pago. Logo (se tiver) + nome + @ + telefone."""
+    import gen_instagram as gi
+    from PIL import Image, ImageDraw
+    W, H = gi.W, gi.H
+    canvas = Image.new("RGB", (W, H), gi.BG)
+    d = ImageDraw.Draw(canvas)
+    gi.brand_header(d)
+
+    # selo dourado no topo
+    selo = "PARCEIRO DO VALE"
+    fs = gi.font(38)
+    sw = d.textlength(selo, font=fs)
+    py = 250
+    d.rounded_rectangle([(W - sw) // 2 - 28, py - 12, (W + sw) // 2 + 28, py + 58],
+                        radius=28, fill=gi.GOLD)
+    d.text(((W - sw) // 2, py), selo, font=fs, fill=gi.BLACK)
+
+    # logo centralizado (se houver)
+    logo = fetch_logo(sponsor.get("logo_url"), max_side=420)
+    y = 380
+    if logo:
+        canvas.paste(logo, ((W - logo.width) // 2, y), logo)
+        y += logo.height + 40
+    else:
+        y += 60
+
+    # nome do parceiro (grande)
+    nome = (sponsor.get("name") or "").upper()
+    fn = gi.font(76, impact=True)
+    for ln in gi.wrap(d, nome, fn, W - 140):
+        w = d.textlength(ln, font=fn)
+        d.text(((W - w) // 2, y), ln, font=fn, fill=gi.WHITE, stroke_width=3, stroke_fill=gi.BLACK)
+        y += int(fn.size * 1.05)
+
+    # contato: @instagram + telefone
+    y += 24
+    insta = (sponsor.get("instagram") or "").strip()
+    fone = (sponsor.get("phone") or "").strip()
+    fi = gi.font(46)
+    if insta:
+        w = d.textlength(insta, font=fi)
+        d.text(((W - w) // 2, y), insta, font=fi, fill=gi.GOLD)
+        y += 70
+    if fone:
+        txt = f"Contato: {fone}"
+        w = d.textlength(txt, font=fi)
+        d.text(((W - w) // 2, y), txt, font=fi, fill=gi.WHITE)
+        y += 70
+
+    # rodapé de posicionamento
+    rod = "Quem apoia a informação do Vale"
+    fr = gi.font(34, bold=False)
+    w = d.textlength(rod, font=fr)
+    d.text(((W - w) // 2, H - 150), rod, font=fr, fill=gi.MUTED)
+    gi.footer_site(d)
+
+    path = os.path.join(outdir, "publipost.png")
+    canvas.save(path, quality=92)
+    return path
+
+
+def publipost_caption(sponsor):
+    nome = sponsor.get("name") or "nosso parceiro"
+    insta = (sponsor.get("instagram") or "").strip()
+    fone = (sponsor.get("phone") or "").strip()
+    linhas = [f"💙 PARCEIRO DO VALE: {nome}",
+              "Quem mantém a informação do Norte de SC de pé é o comércio da nossa região. 🙌", ""]
+    if insta:
+        linhas.append(f"📲 Segue lá: {insta}")
+    if fone:
+        linhas.append(f"📱 Contato: {fone}")
+    linhas += ["", "Prestigie quem é daqui. 💚", "",
+               "Sua marca aqui também? Chama a gente no direct.", "",
+               "#comercio #vale #valedoitapocu #apoieocomerciolocal #radioscnews #nortedesc"]
+    return "\n".join(linhas)
+
+
+def run_publipost(post=False, sponsor=None):
+    """Gera (e opcionalmente posta) o publipost do parceiro da semana. None se não há parceiro."""
+    sponsor = sponsor or sponsor_of_the_week()
+    if not sponsor:
+        return {"ok": False, "motivo": "sem parceiro ativo"}
+    day = datetime.now().strftime("%Y-%m-%d")
+    outdir = os.path.join("instagram_posts", day + "_publipost")
+    os.makedirs(outdir, exist_ok=True)
+    img = slide_publipost(sponsor, outdir)
+    cap = publipost_caption(sponsor)
+    with open(os.path.join(outdir, "legenda.txt"), "w", encoding="utf-8") as f:
+        f.write(cap)
+    if post:
+        import distribuidor as dist
+        dist.publish_single(f"publi_{sponsor['id']}", img, cap)
+    return {"ok": True, "sponsor": sponsor["name"], "img": img, "outdir": outdir, "postado": bool(post)}
+
+
+def sponsor_of_the_week(conn=None):
+    """Parceiro da semana: rotaciona entre os ativos pela semana do ano. None se não houver."""
+    ativos = active_sponsors(conn)
+    if not ativos:
+        return None
+    idx = datetime.now().isocalendar()[1] % len(ativos)
+    return ativos[idx]

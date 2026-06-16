@@ -837,6 +837,95 @@ _GEO_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 </body></html>"""
 
 
+@app.route('/admin/patrocinadores', methods=['GET', 'POST'])
+@login_required
+def admin_patrocinadores():
+    """Gestão dos parceiros (Selo Patrocinador + publipost). Cadastra/liga/remove fácil."""
+    import sponsors as sp
+    msg = ""
+    if request.method == 'POST':
+        acao = request.form.get('acao')
+        try:
+            if acao == 'add':
+                nome = (request.form.get('name') or '').strip()
+                if nome:
+                    sp.add_sponsor(nome, request.form.get('logo', ''),
+                                   request.form.get('phone', ''), request.form.get('instagram', ''))
+                    msg = f"✅ Parceiro '{nome}' cadastrado e ATIVO!"
+                else:
+                    msg = "⚠️ Informe o nome do parceiro."
+            elif acao == 'toggle':
+                sp.set_active(request.form.get('id'), 0 if request.form.get('active') == '1' else 1)
+            elif acao == 'remove':
+                sp.remove_sponsor(request.form.get('id'))
+                msg = "🗑️ Parceiro removido."
+        except Exception as e:
+            logger.error(f"admin_patrocinadores: {e}")
+            msg = f"erro: {e}"
+    try:
+        lista = sp.list_sponsors()
+        semana = sp.sponsor_of_the_week()
+    except Exception:
+        lista, semana = [], None
+    return render_template_string(_PATRO_HTML, lista=lista, msg=msg, semana=semana)
+
+
+_PATRO_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Parceiros · Rádio SC News</title>
+<style>
+ body{background:#11121a;color:#eee;font-family:system-ui,Segoe UI,Arial;margin:0;padding:24px;line-height:1.5}
+ h1{font-size:20px} h2{font-size:15px;margin:18px 0 8px;color:#cfd0db}
+ input{background:#181a22;border:1px solid #2a2c3c;color:#eee;border-radius:8px;padding:10px;margin:4px 0;width:100%;max-width:420px;box-sizing:border-box}
+ button{background:#e74c3c;color:#fff;border:0;border-radius:8px;padding:9px 16px;cursor:pointer;font-weight:700}
+ button.alt{background:#2a2c3c} .msg{background:#16321f;border:1px solid #2e7d4e;border-radius:8px;padding:10px;margin:10px 0}
+ table{border-collapse:collapse;width:100%;max-width:760px;margin-top:8px}
+ td,th{border-bottom:1px solid #262838;padding:8px 10px;text-align:left;font-size:14px}
+ .on{color:#46d27e;font-weight:700} .off{color:#e74c3c} a{color:#f5c518}
+ .card{background:#181a22;border:1px solid #262838;border-radius:12px;padding:16px;max-width:460px}
+</style></head><body>
+<h1>💙 Parceiros — Selo + Publipost</h1>
+<p class=sub style="color:#9a9cab">O parceiro aparece TODO dia no "Bom dia, Vale" (selo + legenda) e ganha 1 publipost por semana (sexta 19h). Vários parceiros rotacionam.</p>
+{% if msg %}<div class=msg>{{msg}}</div>{% endif %}
+{% if semana %}<p>⭐ Parceiro DESTA semana no publipost: <b>{{semana.name}}</b></p>{% endif %}
+
+<div class=card>
+ <h2>Cadastrar parceiro</h2>
+ <form method=post>
+  <input type=hidden name=acao value=add>
+  <input name=name placeholder="Nome do comércio (ex: Padaria do Zé)" required><br>
+  <input name=instagram placeholder="@instagram (ou link)"><br>
+  <input name=phone placeholder="Telefone / WhatsApp"><br>
+  <input name=logo placeholder="URL do logo (opcional, https://...)"><br>
+  <button type=submit>Cadastrar parceiro</button>
+ </form>
+</div>
+
+<h2>Parceiros cadastrados ({{lista|length}})</h2>
+<table>
+ <tr><th>#</th><th>Nome</th><th>@ / Fone</th><th>Status</th><th></th></tr>
+ {% for s in lista %}
+ <tr>
+  <td>{{s.id}}</td>
+  <td>{{s.name}}</td>
+  <td>{{s.instagram or ''}} {{('· '+s.phone) if s.phone else ''}}</td>
+  <td>{% if s.active %}<span class=on>ATIVO</span>{% else %}<span class=off>pausado</span>{% endif %}</td>
+  <td>
+   <form method=post style="display:inline">
+    <input type=hidden name=acao value=toggle><input type=hidden name=id value={{s.id}}>
+    <input type=hidden name=active value="{{s.active}}">
+    <button class=alt type=submit>{{'pausar' if s.active else 'ativar'}}</button></form>
+   <form method=post style="display:inline" onsubmit="return confirm('Remover {{s.name}}?')">
+    <input type=hidden name=acao value=remove><input type=hidden name=id value={{s.id}}>
+    <button type=submit>remover</button></form>
+  </td>
+ </tr>
+ {% endfor %}
+</table>
+<p style="margin-top:22px"><a href="/admin/saude">→ saúde</a> · <a href="/admin">← painel</a></p>
+</body></html>"""
+
+
 @app.route('/admin/collect', methods=['POST'])
 @login_required
 def admin_collect():

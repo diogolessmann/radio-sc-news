@@ -607,6 +607,31 @@ def publish_images(prefix, image_paths, caption, location_id=None):
     return {"instagram": ig, "facebook": fb, "story": story}
 
 
+def post_instagram_single(image_url, caption, location_id=None):
+    """Posta UMA imagem no Instagram (feed). Usado por publipost/selo do patrocinador."""
+    data = {"image_url": image_url, "caption": caption, "access_token": META_PAGE_TOKEN}
+    if location_id:
+        data["location_id"] = location_id
+    cont = _graph_post(f"{GRAPH}/{META_IG_USER_ID}/media", data)["id"]
+    time.sleep(2)
+    return _graph_post(f"{GRAPH}/{META_IG_USER_ID}/media_publish",
+                       {"creation_id": cont, "access_token": META_PAGE_TOKEN})
+
+
+def publish_single(prefix, image_path, caption):
+    """Posta UMA imagem (IG feed + foto FB). Genérico: publipost, selo, etc."""
+    if not _meta_ready():
+        raise RuntimeError("Tokens Meta ausentes (META_PAGE_TOKEN/META_IG_USER_ID/META_PAGE_ID).")
+    from PIL import Image
+    os.makedirs(PUBLIC_IMG_DIR, exist_ok=True)
+    dest = os.path.join(PUBLIC_IMG_DIR, f"{prefix}.jpg")
+    Image.open(image_path).convert("RGB").save(dest, "JPEG", quality=90)
+    url = f"{PUBLIC_BASE_URL}/static/social/{prefix}.jpg"
+    ig = post_instagram_single(url, caption)
+    fb = post_facebook(url, caption)
+    return {"instagram": ig, "facebook": fb}
+
+
 def publish_real(news, image_paths, caption):
     """Posta uma NOTICIA (carrossel) no IG + FB, com geotag da cidade quando resolvivel."""
     loc = None
