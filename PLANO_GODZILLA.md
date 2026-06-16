@@ -86,6 +86,12 @@ Usa a Graph API que já temos (mesmo token), custo zero.
 
 ---
 
+## ✅ FASE 4 — ENGINE DE COMUNIDADE — FEITA (commit 9628d07, 16/jun)
+> `comunidade.py` franquia "DIZ AÍ, VALE" (pergunta da semana, 12 perguntas rotativas) agendada
+> quarta 18h. Mini-carrossel pergunta+CTA, puxa comentário. FALTA (próximo): stories interativos
+> (enquete/caixinha — API de figurinha é limitada) e UGC ("manda teu flagra" → fila → repost).
+> Dá p/ adicionar +franquias em FRANQUIAS (ex: "Quinta da Saudade" foto antiga). Detalhe abaixo ↓
+
 ## 🤝 FASE 4 — ENGINE DE COMUNIDADE (fura o teto da commodity)
 **Por que:** o que explode conta hiperlocal.
 - **Franquias com nome + dia fixo:** "Quinta da Saudade" (foto antiga do Vale), "Sexta do Flagra"
