@@ -56,6 +56,12 @@ Usa a Graph API que já temos (mesmo token), custo zero.
 
 ---
 
+## ✅ FASE 2 — REELS QUE RETÉM — FEITA (commit d6aa2ef, 16/jun)
+> `build_reel` sobrepõe legenda palavra-a-palavra (PIL desenha transparente, moviepy compõe —
+> sem ImageMagick). Toggle REELS_CAPTIONS. Verificado no frame; render real só na Railway (moviepy
+> 1.0.3, não está no venv local). FALTA ver num Reels real e julgar se fica busy demais sobre os
+> slides de texto (se sim, REELS_CAPTIONS=0 ou simplificar os slides). Detalhe original abaixo ↓
+
 ## 🎬 FASE 2 — REELS QUE RETÉM (legenda na tela)
 **Por que:** Reels é o motor de alcance; retenção nos 3s e legenda na tela é o sinal nº1.
 - Adicionar legenda **palavra-por-palavra sincronizada** (estilo CapCut) no `reels.py` — já
