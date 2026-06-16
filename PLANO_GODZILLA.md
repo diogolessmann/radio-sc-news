@@ -1,6 +1,14 @@
 # 🦖 PLANO GODZILLA — Rádio SC News (próxima sessão)
 
-> Frankenstein → **Monstrão** (hoje, 15/jun/2026) → **GODZILLA** (amanhã).
+# 🦖🏆 GODZILLA COMPLETO — as 5 fases FEITAS E NO AR (16/jun/2026)
+> Fase 1 Insights (e8e683c) · Fase 2 Reels legenda (d6aa2ef) · Fase 3 Canal WhatsApp (0cd812c) ·
+> Fase 4 Comunidade (9628d07) · Fase 5 Monetização (d0b5d57) + quick win categoria (099df52).
+> Próximo nível (pós-Godzilla): cross-post Shorts/TikTok, render Reels fora do worker web 🔴,
+> stories interativos + UGC, mais franquias, story link sticker, backfill 44 sem-summary na prod.
+
+---
+
+> Frankenstein → **Monstrão** (15/jun/2026) → **GODZILLA** (16/jun/2026).
 > Hoje a gente fez a FÁBRICA produzir lindo. Amanhã ela vira VOLANTE (flywheel): aprende
 > com cada post e gira sozinha. E começa a furar o teto da "notícia-commodity".
 
