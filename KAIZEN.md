@@ -43,8 +43,12 @@ A cada sessão, a gente tira 1-2 itens daqui. Foco regional: Jaraguá · Schroed
       cidade/categoria, fila, % sem texto, stock disponível). Agora dá pra guiar por dado.
 - [ ] **🔴 Render de Reels no worker web** — moviepy roda no gunicorn 1-worker/120s (reels.py:93).
       Risco de travar/timeout o site. Mover render p/ fora quando escalar vídeo (já no backlog infra).
-- [ ] **Enriquecer texto da notícia** — 15% sem summary = carrossel de 2 slides. Buscar corpo na
-      página da matéria (já temos fetch_og_image; dá pra pegar parágrafos junto) p/ encher o carrossel.
+- [x] **Enriquecer texto da notícia** — FEITO. `scraper.fetch_article_text()` puxa o corpo da
+      matéria (stripped_strings, filtra boilerplate) quando o RSS vem sem resumo; ligado no
+      save_articles (notícia nova c/ summary <180 chars). Achado/fix: portais regionais (SchPost)
+      davam 403 p/ UA de bot → `_BROWSER_HEADERS` (Accept-Language pt-BR + Referer Google) resolve.
+      Testado: 8/10 vazias enriquecidas (500-1400 chars, acentos OK). Só vale p/ coleta nova.
+      ⏳ opcional: backfill das 44 antigas vazias (rodar na PROD/Railway, não no snapshot local).
 
 ---
 

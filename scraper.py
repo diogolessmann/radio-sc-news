@@ -11,6 +11,14 @@ import logging
 import re
 import os
 import unicodedata
+import warnings
+
+# Alguns portais servem HTML com declaração <?xml ...?> no topo -> bs4 avisa. Silencia o ruído.
+try:
+    from bs4 import XMLParsedAsHTMLWarning
+    warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
+except Exception:
+    pass
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -253,6 +261,19 @@ def clean_html(text):
     return soup.get_text(separator=' ').strip()
 
 
+# Cabeçalhos de navegador real — portais regionais (ex: SchPost) devolvem 403 p/ UA de bot.
+# Accept-Language pt-BR + Referer do Google + Upgrade-Insecure-Requests passam pelo bloqueio.
+_BROWSER_HEADERS = {
+    'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                   '(KHTML, like Gecko) Chrome/124.0 Safari/537.36'),
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'pt-BR,pt;q=0.9',
+    'Referer': 'https://www.google.com/',
+    'Upgrade-Insecure-Requests': '1',
+    'Connection': 'keep-alive',
+}
+
+
 def fetch_og_image(link):
     """Foto da PÁGINA da matéria (og:image / twitter:image). Resolve o buraco dos feeds
     locais que não trazem foto no RSS mas têm na página. Devolve URL ou None.
@@ -260,9 +281,7 @@ def fetch_og_image(link):
     if not link or not link.startswith(('http://', 'https://')):
         return None
     try:
-        headers = {'User-Agent': 'Mozilla/5.0 (compatible; RadioSCBot/1.0)',
-                   'Accept': 'text/html'}
-        r = requests.get(link, headers=headers, timeout=8, verify=True)
+        r = requests.get(link, headers=_BROWSER_HEADERS, timeout=8, verify=True)
         r.raise_for_status()
         soup = BeautifulSoup(r.content, 'lxml')
         for attrs in ({'property': 'og:image'}, {'property': 'og:image:url'},
@@ -272,6 +291,56 @@ def fetch_og_image(link):
                 return tag['content'].strip()
     except Exception as e:
         logger.info(f"og:image falhou ({link[:50]}): {e}")
+    return None
+
+
+_TEXT_LIXO = re.compile(
+    r"leia (mais|tamb[eé]m)|compartilh|publicidade|continua ap[oó]s|aceit[ae].*cookies|"
+    r"(siga|participe|receba).*(instagram|whatsapp|telegram|grupo|not[ií]cias)|"
+    r"fale conosco|grupo no whatsapp|todos os direitos|clique aqui|"
+    r"\bfoto:|\bfonte:|inscreva-se|newsletter", re.IGNORECASE)
+
+
+def fetch_article_text(link, min_total=180, max_total=1400):
+    """Puxa o CORPO da matéria da página, p/ encher o carrossel quando o RSS vem sem resumo
+    (15% das notícias). Funciona com texto em <p> OU solto dentro do <article>: usa
+    stripped_strings (cada fragmento de texto), filtra boilerplate (leia mais, WhatsApp,
+    cookies) e junta. Devolve texto corrido ou None (best-effort, nunca quebra a coleta)."""
+    if not link or not link.startswith(('http://', 'https://')):
+        return None
+    try:
+        r = requests.get(link, headers=_BROWSER_HEADERS, timeout=8, verify=True)
+        r.raise_for_status()
+        # html.parser evita o modo XML (portais com <?xml?> no topo) e acha o <article>.
+        soup = BeautifulSoup(r.content, 'html.parser')
+        for tag in soup(['script', 'style', 'nav', 'aside', 'footer', 'header', 'form', 'figure']):
+            tag.decompose()
+
+        # escopo: o <article> (ou o container com mais texto); senão a página toda
+        scope = soup.find('article')
+        if scope is None:
+            best, best_len = None, 0
+            for cont in soup.find_all(['div', 'section', 'main']):
+                tlen = len(cont.get_text(strip=True))
+                if tlen > best_len:
+                    best, best_len = cont, tlen
+            scope = best or soup
+
+        partes, total, seen = [], 0, set()
+        for frag in scope.stripped_strings:
+            t = re.sub(r'\s+', ' ', frag).strip()
+            if len(t) < 40 or t in seen or _TEXT_LIXO.search(t):
+                continue
+            seen.add(t)
+            partes.append(t)
+            total += len(t)
+            if total >= max_total:
+                break
+        corpo = ' '.join(partes).strip()
+        if len(corpo) >= min_total:
+            return corpo[:max_total]
+    except Exception as e:
+        logger.info(f"corpo da matéria falhou ({link[:50]}): {e}")
     return None
 
 
@@ -395,6 +464,13 @@ def save_articles(articles):
                 art['image_url'] = fetch_og_image(art['link'])
                 if art['image_url']:
                     logger.info(f"📷 og:image achada p/ '{art['title'][:45]}'")
+
+            # TEXTO: resumo vazio/curto -> puxa o corpo da matéria (carrossel deixa de ser raso)
+            if len((art.get('summary') or '').strip()) < 180 and art.get('link'):
+                corpo = fetch_article_text(art['link'])
+                if corpo and len(corpo) > len((art.get('summary') or '').strip()):
+                    art['summary'] = corpo[:2000]
+                    logger.info(f"📝 texto enriquecido p/ '{art['title'][:45]}' ({len(corpo)} chars)")
 
             cur = conn.execute('''
                 INSERT INTO news (title, summary, link, source, city, category,
