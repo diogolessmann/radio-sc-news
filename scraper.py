@@ -357,39 +357,46 @@ def fetch_feed(feed_config):
 
 
 def save_articles(articles):
-    """Salva notícias no banco, ignorando duplicatas (link exato E mesmo fato/conteúdo)."""
+    """Salva notícias, ignorando duplicatas. ENRIQUECE (Fase 2): se a duplicata trouxer foto
+    e a versão já salva estiver SEM foto, preenche a foto (não joga a foto fora)."""
     conn = get_db()
     saved = 0
-    # base de comparação p/ dedup de conteúdo: títulos dos últimos 3 dias
+    # base de comparação: registros recentes (id, título, foto) — p/ dedup E enriquecimento
     try:
         recent = conn.execute(
-            "SELECT title FROM news WHERE created_at > datetime('now','-3 days')"
+            "SELECT id, title, image_url FROM news WHERE created_at > datetime('now','-3 days')"
         ).fetchall()
-        seen_titles = [r['title'] for r in recent if r['title']]
+        vistos = [{'id': r['id'], 'title': r['title'], 'image_url': r['image_url']}
+                  for r in recent if r['title']]
     except Exception:
-        seen_titles = []
+        vistos = []
 
     for art in articles:
         try:
-            existing = conn.execute(
-                'SELECT id FROM news WHERE link = ?', (art['link'],)
-            ).fetchone()
-            if existing:
+            if conn.execute('SELECT id FROM news WHERE link = ?', (art['link'],)).fetchone():
                 continue
 
-            # dedup por conteúdo: mesma notícia de outra fonte (título parecido)
-            if _is_similar(art['title'], seen_titles, thresh=0.6):
+            # acha a gêmea (mesmo fato) já salva
+            gemea = next((v for v in vistos if _overlap(art['title'], v['title']) >= 0.6), None)
+
+            if gemea:
+                # FOTO (Fase 2): se a salva está SEM foto e dá pra achar uma, preenche
+                if not gemea.get('image_url'):
+                    foto = art.get('image_url') or (fetch_og_image(art['link']) if art.get('link') else None)
+                    if foto:
+                        conn.execute('UPDATE news SET image_url=? WHERE id=?', (foto, gemea['id']))
+                        gemea['image_url'] = foto
+                        logger.info(f"📷 enriqueci gêmea #{gemea['id']} com foto de '{art['title'][:40]}'")
                 logger.info(f"♻ Duplicada (mesmo fato) ignorada: {art['title'][:60]}")
-                seen_titles.append(art['title'])
                 continue
 
-            # FOTO (Fase 1): sem imagem no RSS -> busca a og:image da página da matéria
+            # NOVA notícia -> og:image se vier sem foto (Fase 1), depois insere
             if not art.get('image_url') and art.get('link'):
                 art['image_url'] = fetch_og_image(art['link'])
                 if art['image_url']:
                     logger.info(f"📷 og:image achada p/ '{art['title'][:45]}'")
 
-            conn.execute('''
+            cur = conn.execute('''
                 INSERT INTO news (title, summary, link, source, city, category,
                                   published_at, image_url, priority, audio_file, created_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
@@ -399,13 +406,12 @@ def save_articles(articles):
                 art['published_at'], art.get('image_url'), int(art.get('priority', False)),
                 datetime.now().isoformat()
             ))
-            seen_titles.append(art['title'])
+            vistos.append({'id': cur.lastrowid, 'title': art['title'], 'image_url': art.get('image_url')})
             saved += 1
         except Exception as e:
             logger.error(f"Erro ao salvar notícia: {e}")
 
-    if saved:
-        conn.commit()
+    conn.commit()  # commita inserts E enriquecimentos
     conn.close()
     logger.info(f"Salvas {saved} novas notícias.")
     return saved
