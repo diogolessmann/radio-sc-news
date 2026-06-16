@@ -768,6 +768,64 @@ _SAUDE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 </body></html>"""
 
 
+@app.route('/admin/geo')
+@login_required
+def admin_geo():
+    """Descobre os Place ids do Facebook das cidades (pro geotag) usando o token Meta.
+    Mostra candidatos p/ o dono copiar o GEO_LOCATIONS certo no Railway."""
+    cidades = ['Schroeder', 'Jaragua do Sul', 'Guaramirim', 'Joinville', 'Corupa']
+    try:
+        import geo, distribuidor
+        tem_token = bool(distribuidor.META_PAGE_TOKEN)
+        resultados = [(c, geo.candidatos(c)) for c in cidades] if tem_token else []
+    except Exception as e:
+        logger.error(f"admin_geo falhou: {e}")
+        tem_token, resultados = False, []
+    return render_template_string(_GEO_HTML, resultados=resultados, tem_token=tem_token)
+
+
+_GEO_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Geotag · Place ids</title>
+<style>
+ body{background:#11121a;color:#eee;font-family:system-ui,Segoe UI,Arial;margin:0;padding:24px;line-height:1.5}
+ h1{font-size:20px} h2{font-size:15px;margin:18px 0 6px;color:#f5c518}
+ code{background:#222433;padding:2px 7px;border-radius:6px;color:#9fe} a{color:#f5c518}
+ .cand{background:#181a22;border:1px solid #262838;border-radius:10px;padding:10px 14px;margin:6px 0}
+ .id{color:#46d27e;font-weight:700} .warn{color:#f5c518}
+ .box{background:#181a22;border:1px solid #262838;border-radius:10px;padding:14px;margin-top:18px}
+</style></head><body>
+<h1>📍 Geotag — achar os Place ids das cidades</h1>
+{% if not tem_token %}
+ <p class=warn>Sem META_PAGE_TOKEN no ambiente — não dá pra buscar. (Confere o token no Railway.)</p>
+{% elif not resultados or resultados|map(attribute=1)|select|list|length == 0 %}
+ <p class=warn>O token não retornou lugares (o /pages/search do Facebook é restrito a apps aprovados).</p>
+ <div class=box>
+  <b>Plano B — pega o id na mão (2 min):</b>
+  <ol>
+   <li>Abre <a href="https://www.facebook.com/" target=_blank>facebook.com</a> e busca a cidade (ex: "Schroeder, Santa Catarina").</li>
+   <li>Entra na página do LUGAR (cidade), e na URL/sobre pega o número do id.</li>
+   <li>Ou deixa o geotag desligado por enquanto (apaga a variável GEO_LOCATIONS) — nada quebra.</li>
+  </ol>
+ </div>
+{% else %}
+ <p>Escolhe o lugar certo de cada cidade e monta a variável <code>GEO_LOCATIONS</code> no Railway:</p>
+ {% for cidade, cands in resultados %}
+  <h2>{{cidade}}</h2>
+  {% if cands %}
+   {% for c in cands[:5] %}
+    <div class=cand><span class=id>{{c.id}}</span> — {{c.name}}{% if c.local %} <span style="color:#9a9cab">({{c.local}})</span>{% endif %}</div>
+   {% endfor %}
+  {% else %}<div class=cand class=warn>nada encontrado</div>{% endif %}
+ {% endfor %}
+ <div class=box>Depois monta assim (cola no Railway, sem espaços a mais):<br><br>
+  <code>GEO_LOCATIONS=Schroeder=ID1,Jaragua do Sul=ID2,Guaramirim=ID3,Joinville=ID4</code><br><br>
+  trocando ID1..ID4 pelos números <span class=id>verdes</span> acima.</div>
+{% endif %}
+<p style="margin-top:22px"><a href="/admin/saude">→ painel de saúde</a> · <a href="/admin">← painel</a></p>
+</body></html>"""
+
+
 @app.route('/admin/collect', methods=['POST'])
 @login_required
 def admin_collect():

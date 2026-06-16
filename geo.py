@@ -32,16 +32,53 @@ def _norm(city):
     return (city or "").strip().lower()
 
 
+def _valid_id(v):
+    """Place id do FB é NUMÉRICO e longo. Rejeita placeholder ('ID'), vazio ou texto —
+    blindagem p/ um valor errado no env NUNCA quebrar o post (vira 'sem geotag')."""
+    v = (v or "").strip()
+    return v.isdigit() and len(v) >= 5
+
+
 def _manual_map():
-    """Mapa cidade->id vindo do env GEO_LOCATIONS (o jeito confiável)."""
+    """Mapa cidade->id vindo do env GEO_LOCATIONS (o jeito confiável).
+    Ex: GEO_LOCATIONS="Schroeder=11122233,Jaragua do Sul=44455566". Ignora ids inválidos."""
     raw = os.environ.get("GEO_LOCATIONS", "").strip()
     out = {}
     for part in raw.split(","):
         if "=" in part:
             k, v = part.split("=", 1)
-            if k.strip() and v.strip():
+            if k.strip() and _valid_id(v):     # ignora 'ID' e qualquer coisa não-numérica
                 out[_norm(k)] = v.strip()
     return out
+
+
+def candidatos(city, token=None):
+    """Lista candidatos de Place id pra uma cidade (id, nome, local) via Graph /pages/search.
+    Pra alimentar a página /admin/geo (o dono escolhe o certo). [] se token/permite falhar."""
+    if token is None:
+        try:
+            import distribuidor as dist
+            token, graph = dist.META_PAGE_TOKEN, dist.GRAPH
+        except Exception:
+            token, graph = "", "https://graph.facebook.com/v21.0"
+    else:
+        graph = "https://graph.facebook.com/v21.0"
+    if not token:
+        return []
+    try:
+        r = requests.get(
+            f"{graph}/pages/search",
+            params={"q": f"{city} SC", "fields": "id,name,location", "access_token": token},
+            timeout=20,
+        )
+        out = []
+        for p in (r.json().get("data", []) if r.ok else []):
+            loc = p.get("location") or {}
+            cidade_uf = ", ".join(x for x in (loc.get("city"), loc.get("state")) if x)
+            out.append({"id": p.get("id", ""), "name": p.get("name", ""), "local": cidade_uf})
+        return out
+    except Exception:
+        return []
 
 
 def _load_cache():
