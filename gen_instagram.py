@@ -243,7 +243,21 @@ def slide_cover(news, outdir):
         except Exception:
             pass
     if not bg:
-        # 2) Fallback IA (Nano Banana: seletivo, capado). Off por padrão (NANOBANANA_ON).
+        # 2) STOCK REGIONAL: foto do banco próprio por cidade (Jaraguá/Schroeder/...).
+        #    Fallback bonito e 100% legal (foto do dono) — cara do Vale, sem card preto.
+        try:
+            import stockfoto
+            _sp = stockfoto.achar_stock(news["city"])
+            if _sp:
+                _si = Image.open(_sp).convert("RGB")
+                _sc = max(W / _si.width, H / _si.height)
+                _si = _si.resize((int(_si.width * _sc), int(_si.height * _sc)))
+                bg = _si.crop(((_si.width - W) // 2, (_si.height - H) // 2,
+                               (_si.width - W) // 2 + W, (_si.height - H) // 2 + H))
+        except Exception:
+            pass
+    if not bg:
+        # 3) Fallback IA (Nano Banana: seletivo, capado). Off por padrão (NANOBANANA_ON).
         try:
             import nanobanana
             _nb = nanobanana.gerar_capa(news["title"], news["category"], news["city"], outdir)
