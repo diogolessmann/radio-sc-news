@@ -253,6 +253,28 @@ def clean_html(text):
     return soup.get_text(separator=' ').strip()
 
 
+def fetch_og_image(link):
+    """Foto da PÁGINA da matéria (og:image / twitter:image). Resolve o buraco dos feeds
+    locais que não trazem foto no RSS mas têm na página. Devolve URL ou None.
+    É a foto do PRÓPRIO portal da notícia que estamos reportando (uso jornalístico)."""
+    if not link or not link.startswith(('http://', 'https://')):
+        return None
+    try:
+        headers = {'User-Agent': 'Mozilla/5.0 (compatible; RadioSCBot/1.0)',
+                   'Accept': 'text/html'}
+        r = requests.get(link, headers=headers, timeout=8, verify=True)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.content, 'lxml')
+        for attrs in ({'property': 'og:image'}, {'property': 'og:image:url'},
+                      {'name': 'twitter:image'}, {'name': 'twitter:image:src'}):
+            tag = soup.find('meta', attrs=attrs)
+            if tag and tag.get('content', '').strip().startswith(('http://', 'https://')):
+                return tag['content'].strip()
+    except Exception as e:
+        logger.info(f"og:image falhou ({link[:50]}): {e}")
+    return None
+
+
 def fetch_feed(feed_config):
     """Coleta notícias de um feed RSS."""
     url = feed_config['url']
@@ -360,6 +382,12 @@ def save_articles(articles):
                 logger.info(f"♻ Duplicada (mesmo fato) ignorada: {art['title'][:60]}")
                 seen_titles.append(art['title'])
                 continue
+
+            # FOTO (Fase 1): sem imagem no RSS -> busca a og:image da página da matéria
+            if not art.get('image_url') and art.get('link'):
+                art['image_url'] = fetch_og_image(art['link'])
+                if art['image_url']:
+                    logger.info(f"📷 og:image achada p/ '{art['title'][:45]}'")
 
             conn.execute('''
                 INSERT INTO news (title, summary, link, source, city, category,
