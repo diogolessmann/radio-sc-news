@@ -33,6 +33,15 @@ ANTHROPIC_API_KEY = _env("ANTHROPIC_API_KEY")
 CLAUDE_MODEL = _env("CLAUDE_MODEL", "claude-opus-4-8")  # p/ economizar: claude-haiku-4-5
 
 
+def _mask(msg):
+    """Tira chave/token de mensagens de erro antes de logar (a chave vinha na URL ?key=...)."""
+    s = str(msg)
+    s = re.sub(r"(key=)[\w.\-]+", r"\1***", s)
+    s = re.sub(r"(Bearer\s+)[\w.\-]+", r"\1***", s)
+    s = re.sub(r"(AIza|sk-|gsk_)[\w.\-]+", r"\1***", s)
+    return s
+
+
 def disponiveis():
     """Quais cérebros têm chave configurada (a UI usa pra mostrar os botões)."""
     return {"gemini": bool(GEMINI_API_KEY), "groq": bool(GROQ_API_KEY),
@@ -75,7 +84,7 @@ def _groq(prompt):
         r.raise_for_status()
         return r.json()["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        print(f"[cerebro] Groq falhou: {e}")
+        print(f"[cerebro] Groq falhou: {_mask(e)}")
         return None
 
 
@@ -101,7 +110,7 @@ def _gemini(prompt):
             if txt:
                 return txt
         except Exception as e:
-            print(f"[cerebro] Gemini tentativa falhou: {e}")
+            print(f"[cerebro] Gemini tentativa falhou: {_mask(e)}")
     return None
 
 
@@ -121,7 +130,7 @@ def _claude(prompt):
                 return b["text"].strip()
         return None
     except Exception as e:
-        print(f"[cerebro] Claude falhou: {e}")
+        print(f"[cerebro] Claude falhou: {_mask(e)}")
         return None
 
 

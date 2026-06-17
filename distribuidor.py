@@ -331,13 +331,18 @@ def mark_hold(conn, news_id, reason):
 
 
 # ---------------------------------------------------------------- resumo (Groq + fallback)
+# ---------------------------------------------------------------- MOTOR DE EMOÇÃO
+# A emoção (orgulho/atenção/torcida) vem da IA, que LÊ o conteúdo e aplica o sentimento CERTO
+# (morte = luto, NUNCA "boa notícia"). Moldura por categoria seria cega e perigosa — não usar.
+# Sem IA, o fallback é NEUTRO e seguro (só marca urgência por emoji).
 def _fallback_summary(news):
-    """Sem Groq: monta um resumo local — gancho do titulo + primeiras frases."""
+    """Sem IA: resumo local NEUTRO e seguro (não arrisca emoção sem entender o conteúdo)."""
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip().rstrip(".")
     body = re.sub(r"\s+", " ", (news["summary"] or "")).strip()
     frases = re.split(r"(?<=[.!?])\s+", body)
     resumo = " ".join(frases[:3])[:300].strip()
-    hook = f"🚨 {title}" if (news["category"] or "") in ("policial", "clima") else f"📰 {title}"
+    selo = "🚨" if (news["category"] or "").lower() in ("policial", "clima") else "📰"
+    hook = f"{selo} {title}"
     if resumo:
         return f"{hook}\n\n{resumo}"
     return hook
@@ -347,17 +352,25 @@ def groq_summary(news):
     """Reescreve em ~5 linhas com pegada de rede social. HÍBRIDO: Gemini -> Groq -> local."""
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip()
     body = re.sub(r"\s+", " ", (news["summary"] or "")).strip()
+    cidade = news["city"] or "o Vale"
     prompt = (
-        "Voce e o editor do RadioSC News, portal de noticias do Vale do Itapocu "
-        "(Norte de SC: Schroeder, Jaragua do Sul, Guaramirim, Corupa). Sua VOZ e a de "
-        "um vizinho bem informado: humano, direto e acolhedor, com leve simpatia "
-        "regional — nunca robotico, nunca sensacionalista barato. "
-        "Reescreva a noticia abaixo como legenda de Instagram em portugues do Brasil. "
-        "Regras: a PRIMEIRA linha e um gancho curto que faca a pessoa parar de rolar "
-        "(no maximo 1 emoji). Depois, 3 a 4 linhas curtas com o fato. No maximo 5 "
-        "linhas no total. Nao invente nada alem do texto fornecido. NAO use hashtags "
-        "nem 'clique aqui'. Seja direto e com personalidade.\n\n"
-        f"TITULO: {title}\nTEXTO: {body}"
+        "Voce e o editor do RadioSC News, do Vale do Itapocu (Norte de SC: Jaragua do Sul, "
+        "Schroeder, Guaramirim, Corupa, Joinville). Sua voz e a de um VIZINHO ORGULHOSO e "
+        "bem informado: caloroso, humano, regional. Reescreva a noticia abaixo como legenda "
+        "de Instagram (portugues do Brasil) que faca a pessoa SENTIR e querer COMPARTILHAR "
+        "com alguem da cidade.\n"
+        "REGRAS:\n"
+        "1) A 1a linha e um GANCHO EMOCIONAL curto (no max 1 emoji), usando o sentimento "
+        "certo da noticia: conquista/boa nova -> ORGULHO ('Que orgulho do Vale', 'Boa noticia "
+        "pra...'); alerta/acidente/clima -> ATENCAO/URGENCIA ('Atencao, " + cidade + "', "
+        "'Acontece agora'); esporte -> TORCIDA; curiosidade -> SURPRESA.\n"
+        "2) Faca o leitor pensar 'isso e a MINHA cidade' — toque no pertencimento e cite "
+        + cidade + " quando fizer sentido.\n"
+        "3) Depois, 3 a 4 linhas curtas com o fato, do jeito que o vizinho contaria.\n"
+        "4) Maximo 5 linhas. NAO invente nada alem do texto. PROIBIDO clickbait barato "
+        "('voce nao vai acreditar'), sensacionalismo e mais de um '!'. Sem hashtags, sem "
+        "'clique aqui'.\n\n"
+        f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
     )
     try:
         import cerebro
@@ -379,10 +392,10 @@ def cover_hook(news):
         return None
     prompt = (
         "Voce e editor do RadioSC News (Norte de SC). Crie um GANCHO curto pra capa do "
-        "post no Instagram da noticia abaixo. REGRAS RIGIDAS: no maximo 5 palavras; "
-        "factual e sobrio (jornal de bairro serio); o angulo local de preferencia "
-        "(ex: 'O que muda em Schroeder'); PROIBIDO sensacionalismo, clickbait, ponto de "
-        "exclamacao e 'voce nao vai acreditar'. Responda SO o gancho, sem aspas.\n\n"
+        "post no Instagram da noticia abaixo. REGRAS: no maximo 5 palavras; factual MAS com "
+        "EMOCAO e angulo local — orgulho se for conquista ('Orgulho de Schroeder'), atencao "
+        "se for alerta ('Atencao em Jaragua'), torcida se for esporte. PROIBIDO clickbait, "
+        "mentira, ponto de exclamacao e 'voce nao vai acreditar'. Responda SO o gancho, sem aspas.\n\n"
         f"TITULO: {title}"
     )
     try:
@@ -452,9 +465,11 @@ def social_caption(news, resumo):
         f"👉 {WHATSAPP_CHANNEL}\n\n"
         if WHATSAPP_CHANNEL else ""
     )
+    # gatilho de pertencimento: marcar alguém DA CIDADE (não genérico) = mais compartilhamento
+    marca = f"Marca quem é de {city}" if city in gi.NORTE_SC else "Marca um amigo do Vale"
     return (
         f"{resumo}\n\n"
-        f"💬 Concorda? Comenta aqui 👇  ·  🔖 Salva  ·  🔁 Marca um amigo do Vale\n"
+        f"💬 Concorda? Comenta aqui 👇  ·  🔖 Salva  ·  🔁 {marca}\n"
         f"➕ Segue @radioscnews — o Norte de SC em 1 minuto\n\n"
         f"{bloco_canal}"
         f"👀 Viu algo na sua cidade? Manda no direct — a próxima notícia pode ser sua.\n"
