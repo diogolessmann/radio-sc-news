@@ -23,9 +23,22 @@ def _pct(part, total):
     return round(100 * part / total) if total else 0
 
 
+def _ensure_cols(conn):
+    """Garante as colunas sociais (a PROD pode não ter rodado a migração ainda)."""
+    try:
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(news)")]
+        for c in ("social_posted_at", "social_hold", "ig_media_id", "ig_permalink"):
+            if c not in cols:
+                conn.execute(f"ALTER TABLE news ADD COLUMN {c} TEXT")
+        conn.commit()
+    except Exception:
+        pass
+
+
 def coletar(db_path=None):
     conn = sqlite3.connect(db_path or DB_PATH)
     conn.row_factory = sqlite3.Row
+    _ensure_cols(conn)
     try:
         ativas = _scalar(conn, "SELECT COUNT(*) FROM news WHERE active=1")
         com_foto = _scalar(conn, "SELECT COUNT(*) FROM news WHERE active=1 "
