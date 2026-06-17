@@ -62,6 +62,15 @@
   .stat-card.blue   .num { color:var(--blue); }
   .stat-card.orange .num { color:var(--accent2); }
 
+  /* CENTRAL DE COMANDO (atalhos pros painéis) */
+  .tools-label { font-size:12px; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin:4px 0 12px; }
+  .tools-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(165px,1fr)); gap:14px; margin-bottom:28px; }
+  .tool-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:18px; text-decoration:none; color:var(--text); display:block; transition:all .2s; }
+  .tool-card:hover { border-color:var(--accent); transform:translateY(-2px); background:var(--surface2); }
+  .tool-card .tc-ico { font-size:26px; }
+  .tool-card .tc-title { font-weight:700; margin-top:6px; }
+  .tool-card .tc-sub { font-size:12px; color:var(--text2); margin-top:2px; }
+
   /* TABS */
   .tab-nav { display:flex; gap:4px; margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:0; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
   .tab-nav::-webkit-scrollbar { display:none; }
@@ -193,12 +202,23 @@
 
 <div class="container">
 
+  <!-- CENTRAL DE COMANDO -->
+  <div class="tools-label">🛠️ Central de Comando</div>
+  <div class="tools-grid">
+    <a class="tool-card" href="/admin/saude"><div class="tc-ico">📊</div><div class="tc-title">Saúde &amp; Insights</div><div class="tc-sub">alcance · saves · por cidade</div></a>
+    <a class="tool-card" href="/admin/agenda"><div class="tc-ico">📅</div><div class="tc-title">Agenda do Vale</div><div class="tc-sub">cadastrar eventos</div></a>
+    <a class="tool-card" href="/admin/patrocinadores"><div class="tc-ico">💙</div><div class="tc-title">Parceiros</div><div class="tc-sub">selo · publipost · caixa</div></a>
+    <a class="tool-card" href="/admin/geo"><div class="tc-ico">📍</div><div class="tc-title">Geotag</div><div class="tc-sub">localização das cidades</div></a>
+    <a class="tool-card" href="/admin/redacao"><div class="tc-ico">✍️</div><div class="tc-title">Redação IA</div><div class="tc-sub">produzir post na hora</div></a>
+  </div>
+
   <!-- STATS -->
   <div class="stats-grid">
     <div class="stat-card accent"><div class="num" id="stat-news">{{ stats.total_news }}</div><div class="lbl">📰 Notícias</div></div>
-    <div class="stat-card green"><div class="num" id="stat-audio">{{ stats.with_audio }}</div><div class="lbl">🎧 Com Áudio</div></div>
-    <div class="stat-card orange"><div class="num" id="stat-ads">{{ stats.total_ads }}</div><div class="lbl">📢 Propagandas</div></div>
-    <div class="stat-card blue"><div class="num" id="stat-media">{{ stats.total_media }}</div><div class="lbl">🖼️ Mídias</div></div>
+    <div class="stat-card green"><div class="num">{{ stats.posts_hoje }}</div><div class="lbl">📣 Posts hoje</div></div>
+    <div class="stat-card blue"><div class="num">{{ stats.pct_foto }}%</div><div class="lbl">📷 Com foto</div></div>
+    <div class="stat-card orange"><div class="num">{{ stats.eventos }}</div><div class="lbl">📅 Eventos na agenda</div></div>
+    <div class="stat-card accent"><div class="num">{{ stats.parceiros }}</div><div class="lbl">💙 Parceiros</div></div>
   </div>
 
   <!-- TAB NAV -->

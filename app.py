@@ -662,6 +662,25 @@ def admin():
         'total_ads':  conn.execute('SELECT COUNT(*) FROM ads').fetchone()[0],
         'total_media': conn.execute('SELECT COUNT(*) FROM media').fetchone()[0],
     }
+    # métricas úteis do motor (substituem os zeros): posts hoje, % com foto, eventos, parceiros
+    try:
+        import metricas
+        m = metricas.coletar()
+        stats['posts_hoje'] = m['postados_hoje']
+        stats['pct_foto'] = m['pct_foto']
+    except Exception:
+        stats['posts_hoje'] = stats.get('posts_hoje', 0)
+        stats['pct_foto'] = stats.get('pct_foto', 0)
+    try:
+        import agenda
+        stats['eventos'] = len(agenda.eventos_proximos())
+    except Exception:
+        stats['eventos'] = 0
+    try:
+        import sponsors
+        stats['parceiros'] = len(sponsors.active_sponsors())
+    except Exception:
+        stats['parceiros'] = 0
     conn.close()
     return render_template('admin.html', news=news, media=media, ads=ads, stats=stats)
 
