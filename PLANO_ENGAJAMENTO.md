@@ -1,90 +1,92 @@
-# 🎮 PLANO MOTOR DE BRINCADEIRA — Enquetes & Jogos (Rádio SC News)
+# 🎮 MOTOR DE BRINCADEIRA — v2.0 (Rádio SC News)
 
-> Transformar AUDIÊNCIA (que assiste) em COMUNIDADE (que joga junto). Brincar = comentário +
-> marcação + retorno = exatamente o que o algoritmo premia → conserta o vazamento de engajamento
-> E traz mais alcance. Página que a cidade BRINCA junto vira "A página do Vale".
-
----
-
-## 🧱 A REALIDADE TÉCNICA (2 trilhas)
-A API do Instagram **NÃO** posta figurinha interativa (enquete/quiz/caixinha) no Stories.
-Então o motor trabalha em 2 trilhas:
-
-| Trilha | O que | Automatiza? |
-|--------|-------|-------------|
-| **A — FEED (comentário)** | Palpite do Vale, Diz Aí Vale A/B, enquete "vota A ou B nos comentários" | ✅ 100% pelo motor |
-| **B — STORIES (figurinha nativa)** | enquete/quiz/caixinha — o ímã do algoritmo | ⚠️ o motor GERA o card+pergunta, o dono põe a figurinha (30s) |
-
-**Regra de ouro de toda enquete** (já validada): *"dois amigos brigariam por isso? alguém marcaria outro pra provar que tá certo?"* Se não → não posta. Sem política partidária, sem crime.
+> Transformar quem ASSISTE em quem JOGA junto. Brincar = comentário + marcação + retorno =
+> o que o algoritmo premia. Conserta o vazamento de engajamento E traz alcance.
+> **v2.0 = o pulo de "enquete" pra "JOGO que a cidade não larga":** placar + amarrar na
+> notícia + grade de programação + jogos copyright-safe.
 
 ---
 
-## 🗺️ AS PEÇAS (o que já temos × o que falta)
-- ✅ `palpite.py` — card "QUEM LEVA?" (vota) FEITO.
-- ✅ `comunidade.py` — "Diz Aí, Vale" (pergunta semanal) FEITO.
-- ✅ `sponsors.py` — base pro "Palpite Premiado por patrocinador".
-- ✅ Loop de Insights — pra medir qual brincadeira bomba.
-- ⏳ FALTA: revelação/resultado, banco de enquetes, modo A/B, Hall da Fama, Stories de apoio, dados.
+## 🧠 A tese refinada (o que faltava no v1)
+Enquete prende pela pergunta; **JOGO prende pelo PLACAR** (a chase). 4 peças que faltavam:
+1. **PLACAR/score** — quem acerta vira "Mestre do Palpite do Vale", tem sequência, sobe no ranking. *Sem placar = enquete. Com placar = vício.*
+2. **AMARRAR NA NOTÍCIA** — palpite sobre a obra/evento real = jornalismo, não enfeite (e fonte infinita).
+3. **LOOP DE VOLTA** — vota → volta pra ver se ganhou (Stories "saiu o resultado", resposta auto "acertou!").
+4. **GRADE DE PROGRAMAÇÃO** — dia fixo que a cidade decora (igual grade de TV).
+
+## 🧱 2 trilhas
+| Trilha | Automatiza? |
+|--------|-------------|
+| **FEED** (Palpite, Diz Aí A/B, Onde é Isso, "vota A ou B nos comentários") | ✅ 100% pelo motor |
+| **STORIES** (figurinha enquete/quiz nativa — ímã do algoritmo) | ⚠️ motor gera o card, dono põe a figurinha (30s) |
 
 ---
 
-## 🔥 FASE 1 — BANCO DE ENQUETES (a munição)
-`enquetes.py`: banco curado de dezenas de enquetes nos 6 tipos que bombam, cada uma passando na
-régua, dividido em **Story (manual)** e **Feed (auto)**, com rotação (não repete).
-- 6 tipos: rixa boa · opinião sobre notícia real · decisão da comunidade · orgulho/identidade ·
-  palpite · quiz de conhecimento local.
-- Por cidade quando fizer sentido ("o que SÓ quem é de Schroeder entende?").
-- Função `proxima(tipo, surface)` → devolve a próxima enquete não-usada.
-- **Feito quando:** dá pra puxar uma enquete boa de qualquer tipo, sem repetir.
+## 📅 A GRADE DE PROGRAMAÇÃO (os jogos com nome + dia)
+A cidade aprende o ritmo. Sugestão:
+- **Seg/dia de jogo — 🏆 PALPITE DO VALE** (esporte ou evento): vota → conta votos reais → revela → placar.
+- **Quarta — 🗳️ DIZ AÍ, VALE (modo A/B)**: opinião/rixa boa, fácil de votar.
+- **Quinta — 🧠 QUIZ DA QUINTA** (Stories): "você sabia?" de conhecimento local (orgulho + ensina).
+- **Sexta — 📍 ONDE É ISSO NO VALE?**: foto de um cantinho → "que lugar é esse? 1º acerta ganha shoutout".
+- **Domingo — 🏅 CAMPEÃO DA SEMANA**: reconhece quem mais jogou/acertou (alimenta o placar).
 
-## 🏆 FASE 2 — PALPITE DO VALE COMPLETO (vota → revela → Hall da Fama)
-O loop do "EU FALEI". Extensão do `palpite.py`:
+---
+
+## 🆕 OS JOGOS (detalhe)
+
+### 🏆 Palpite do Vale (completo: vota → revela → placar)
 - Tabela `palpites(id, evento, opcao_a, opcao_b, data_evento, resultado, posted_vota, posted_revela)`.
-- **Card VOTA** (já existe) + **Card REVELA** ("DEU PORTUGAL 🇵🇹 — quem votou A, ACERTOU! Joga o
-  print, campeões do Vale 👇").
-- `/admin/palpite`: cria o palpite + depois do evento informa o **RESULTADO** (fato verificado — IA
-  NUNCA chuta placar; entra na mão ou de feed esportivo confiável).
-- Scheduler: posta o VOTA na véspera/manhã; quando o resultado é setado, posta a REVELA.
-- **Feito quando:** crio um palpite, posta o vota, informo o resultado, posta a revela sozinho.
+- Card VOTA (✅ existe) → **conta os comentários A vs B pela API** → Card REVELA com **% real**
+  ("65% cravaram Portugal — e DEU PORTUGAL! campeões 👇").
+- `/admin/palpite`: cria + confirma o **resultado em 1 clique** (FATO nunca pela IA).
+- **Amarra na notícia:** todo fato incerto vira palpite (obra no prazo? recorde de público?).
 
-## 🅰️🅱️ FASE 3 — "DIZ AÍ, VALE" MODO A/B
-Turbinar `comunidade.py`: além da pergunta aberta, **opção binária A/B** ("vota A ou B nos
-comentários") — mais fácil de votar = mais gente joga. Reusa o card de pergunta + 2 opções.
-- **Feito quando:** o Diz Aí Vale sai como enquete A/B do banco (Fase 1).
+### 📍 Onde é Isso no Vale? (a jogada de OURO — 3 problemas resolvidos)
+- Foto de um lugar do Vale (cortada/zoom) → "que lugar é esse?".
+- ✅ **engajamento** (corrida pra acertar) · ✅ **UGC** (galera manda fotos = conteúdo grátis) ·
+  ✅ **copyright ZERO** (foto sua/da comunidade — mata o medo de strike) · ✅ **orgulho local**.
+- Banco de fotos-mistério (reusa static/stock + envios) + card "QUE LUGAR É ESSE?" + revela depois.
 
-## 📲 FASE 4 — STORIES DE ENQUETE (apoio ao manual)
-O motor gera o **card de fundo + a pergunta pronta** (do banco) pra o dono só colar a figurinha
-nativa no app. Um lembrete diário/semanal com a enquete do dia já montada.
-- **Feito quando:** todo dia tem 1 enquete de Story pronta pra postar em 30s.
+### 🅰️🅱️ Diz Aí, Vale — modo A/B
+- Turbinar comunidade.py: além da pergunta aberta, **opção binária** (mais fácil votar = mais joga).
 
-## 🎖️ FASE 5 — GAMIFICAÇÃO + MONETIZAÇÃO
-- **Hall da Fama:** post recorrente que celebra os que acertaram ("os campeões do palpite da
-  semana"). v1 social (a galera joga o print); evoluir pra ranking depois.
-- **💰 PALPITE PREMIADO POR PATROCINADOR:** comércio dá um brinde (café/pizza) pro vencedor da
-  semana → engaja + valor pro patrocinador + leva gente na loja. Liga no `sponsors.py`
-  ("Palpite do Vale apresentado por X · prêmio cortesia da Padaria Y").
-- **Streaks/ranking** (futuro): exige rastrear quem votou certo (parse de comentário) — fica pra
-  quando valer o esforço.
-- **Feito quando:** 1 Hall da Fama postado + 1 palpite com prêmio de patrocinador.
+### 🧠 Quiz da Quinta (Stories) + ❓ caixinha
+- Motor gera a pergunta+card; dono põe a figurinha de quiz/enquete. Banco curado.
 
-## 📈 FASE 6 — MEDIR E APRENDER (fecha com o Insights)
-- O Loop de Insights marca os posts de brincadeira → relatório "qual TIPO de enquete mais engaja"
-  e "qual cidade mais joga" no `/admin/saude`.
-- Dobra a aposta no que o Vale ama jogar. Mata o que é tosco.
-- **Feito quando:** o /admin/saude mostra o ranking de engajamento por tipo de brincadeira.
+### 🏅 Campeão da Semana
+- Post recorrente que celebra os campeões → vira o **placar/hall da fama** que a galera persegue.
 
 ---
 
-## 🧭 ORDEM DE EXECUÇÃO
-1. **FASE 2 (Palpite completo)** — já tem o card vota + o jogo Portugal x Congo estreando; fechar o
-   loop (revela + admin + tabela) é o maior impacto imediato.
-2. **FASE 1 (Banco de Enquetes)** — a munição que abastece tudo.
-3. **FASE 3 (Diz Aí A/B)** — turbina o que já roda.
-4. **FASE 4 (Stories)** + **FASE 5 (gamificação/monetização)** + **FASE 6 (medir)**.
+## 🎖️ CAMADA DE GAMIFICAÇÃO (o vício)
+- **Placar/título:** "Mestre do Palpite do Vale", sequência (streak), ranking.
+- **v1 viável:** auto-contagem de votos (API) + reconhecimento manual dos campeões.
+- **v2 (evoluir):** rastrear quem acerta (parse de comentário) → ranking real. Só quando valer o esforço.
+- **Loop de volta:** resposta automática ao votante ("acertou! 👏") + Stories "saiu o resultado".
 
-## 🛡️ GUARDRAILS
-- Régua em TODA enquete (briga de amigo? sim/não). Sem política partidária, sem crime.
-- FATO (placar/data) é SEMPRE conferido — IA dá o tom, nunca inventa (lição do Portugal x Congo).
-- Reusa o motor (publish_single / publish_images / comunidade / sponsors / Insights). Zero dep nova.
-- Validar nas 4 cidades (Jaraguá/Schroeder/Guaramirim/Joinville): medir engajamento por cidade →
-  prova do modelo antes de replicar.
+## 💰 MONETIZAÇÃO
+- **Palpite Premiado por patrocinador** (liga no sponsors.py): comércio dá brinde pro campeão da
+  semana = engaja + valor pro patrocinador + leva gente na loja. "Palpite apresentado por X".
+- **Jogo patrocinado:** "Onde é Isso apresentado por [loja]" / prêmio cortesia.
+- ⚖️ Se virar sorteio formal com prêmio → estruturar dentro da lei (regra de promoção/sorteio).
+
+## 📈 MEDIR E APRENDER (fecha com o Insights)
+- Insights marca os posts de jogo → "qual JOGO e qual CIDADE mais engaja" no /admin/saude.
+- Auto-contagem de votos por opção (dado real). Dobra no que o Vale ama; mata o tosco.
+
+---
+
+## 🛡️ GUARDRAILS (cravados)
+- **Régua** em TODA enquete ("dois amigos brigariam?") · sem política partidária, sem crime.
+- **FATO sempre conferido** — IA dá o tom, NUNCA inventa placar/data (lição Portugal x Congo 😅).
+- **Preferir jogos copyright-safe** (Onde é Isso, Quiz, Palpite com texto) — conteúdo 100% original.
+- **Nunca enquadrar como aposta** (palpite é grátis, diversão).
+- Reusa o motor todo (publish_single/images, comunidade, sponsors, Insights) — zero dependência nova.
+- **Validar nas 4 cidades** (Jaraguá/Schroeder/Guaramirim/Joinville): medir engajamento por cidade =
+  a prova antes de replicar.
+
+## 🧭 ORDEM DE EXECUÇÃO (v2.0)
+1. **📍 Onde é Isso no Vale?** — a jogada de ouro (engajamento + UGC + zero copyright). Começo seguro e forte.
+2. **🏆 Palpite completo** (vota → conta votos → revela → /admin) — fecha o loop, estreia com jogo real.
+3. **🅰️🅱️ Diz Aí A/B** + **🧠 Quiz da Quinta** + **🏅 Campeão da Semana** (a grade).
+4. **🎖️ Placar/gamificação** + **💰 Palpite premiado** + **📈 medir**.
