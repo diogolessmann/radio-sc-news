@@ -22,6 +22,17 @@ logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s %(levelname)s %(message)s')
 logger = logging.getLogger(__name__)
 
+# ──────────────────────────────────────────────
+# PERSISTÊNCIA: se a Railway montou um VOLUME e DB_PATH não foi setado, usa o volume.
+# Sem isso o SQLite fica no diretório efêmero e ZERA a cada deploy (perde parceiros,
+# eventos, histórico de posts, insights). Todos os módulos leem DB_PATH do ambiente,
+# então setar aqui (cedo) vale pra todos.
+# ──────────────────────────────────────────────
+_vol = os.environ.get('RAILWAY_VOLUME_MOUNT_PATH')
+if _vol and not os.environ.get('DB_PATH'):
+    os.environ['DB_PATH'] = os.path.join(_vol, 'radio_sc.db')
+    logging.getLogger(__name__).info("💾 DB no volume persistente: %s", os.environ['DB_PATH'])
+
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'radio-sc-secret-2024-xk91')
 
