@@ -30,6 +30,44 @@ def _slug(cidade):
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-")
 
 
+# Landmarks por ASSUNTO: foto PRÓPRIA do ponto do Vale (prefeitura, hospital, BR-280...).
+# Foto sua = real + local + legal. Procura static/stock/<cidade>-<landmark> e, senão, <landmark>.
+_LANDMARKS = [
+    (re.compile(r"prefeitura|c[âa]mara|vereador|prefeit[oa]|secretaria municipal", re.I), "prefeitura"),
+    (re.compile(r"hospital|\bubs\b|posto de sa[úu]de|pronto.?socorro", re.I), "hospital"),
+    (re.compile(r"\bescola|col[ée]gio|creche|educa[çc][ãa]o", re.I), "escola"),
+    (re.compile(r"br-?\s?280", re.I), "br280"),
+    (re.compile(r"igreja|par[óo]quia|matriz|\bmissa\b|capela", re.I), "igreja"),
+    (re.compile(r"\bpra[çc]a\b", re.I), "praca"),
+    (re.compile(r"rodovi[áa]ria|terminal", re.I), "rodoviaria"),
+]
+
+
+def achar_landmark(news):
+    """Foto própria de um ponto do Vale pelo ASSUNTO da notícia. Procura
+    static/stock/<cidade>-<landmark>.<ext> e, senão, o genérico <landmark>.<ext>. None se nada."""
+    if not LIGADO or not os.path.isdir(STOCK_DIR):
+        return None
+    try:
+        blob = f"{news['title'] or ''} {news['summary'] or ''}"
+        cidade = _slug(news['city'] or "")
+    except Exception:
+        return None
+    yday = datetime.now().timetuple().tm_yday
+    for rx, land in _LANDMARKS:
+        if rx.search(blob):
+            for base in ([f"{cidade}-{land}", land] if cidade else [land]):
+                cands = []
+                for ext in EXTS:
+                    cands += glob.glob(os.path.join(STOCK_DIR, f"{base}.{ext}"))
+                    cands += glob.glob(os.path.join(STOCK_DIR, f"{base}-*.{ext}"))
+                cands = sorted(cands)
+                if cands:
+                    return cands[yday % len(cands)]
+            break
+    return None
+
+
 def achar_stock(cidade):
     """Devolve o caminho de uma foto regional p/ a cidade (com fallback genérico), ou None."""
     if not LIGADO or not os.path.isdir(STOCK_DIR):

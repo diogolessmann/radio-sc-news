@@ -252,7 +252,8 @@ def slide_cover(news, outdir, hook=None, manchete=None):
         #    Fallback bonito e 100% legal (foto do dono) — cara do Vale, sem card preto.
         try:
             import stockfoto
-            _sp = stockfoto.achar_stock(news["city"])
+            # foto PRÓPRIA: landmark por assunto (prefeitura/hospital/BR-280...) -> foto da cidade
+            _sp = stockfoto.achar_landmark(news) or stockfoto.achar_stock(news["city"])
             if _sp:
                 _si = Image.open(_sp).convert("RGB")
                 _sc = max(W / _si.width, H / _si.height)
