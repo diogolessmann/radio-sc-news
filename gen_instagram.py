@@ -320,6 +320,21 @@ def slide_cover(news, outdir, manchete=None):
     bg = cover_image(None if anti else news["image_url"], news["admin_image"])
     foto_credito = None
     ilustrativa = False
+    # 0) ARSENAL PRÓPRIO: a NOSSA imagem (cidade/situação/categoria) em static/bg/. Prioridade
+    #    máxima depois da foto do admin — é nossa (legal), on-brand e relevante por tema.
+    if not bg:
+        try:
+            import genericbg
+            _bp = genericbg.buscar(news)
+            if _bp:
+                _bi = Image.open(_bp).convert("RGB")
+                _sc = max(W / _bi.width, H / _bi.height)
+                _bi = _bi.resize((int(_bi.width * _sc), int(_bi.height * _sc)))
+                bg = _bi.crop(((_bi.width - W) // 2, (_bi.height - H) // 2,
+                               (_bi.width - W) // 2 + W, (_bi.height - H) // 2 + H))
+                ilustrativa = True
+        except Exception:
+            pass
     if not bg and not anti:
         # fotobusca (foto de OUTRO portal, com crédito) — só FORA do modo anti-strike
         try:

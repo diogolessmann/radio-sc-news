@@ -1,0 +1,48 @@
+ARSENAL PRÓPRIO DE IMAGENS — static/bg/
+========================================
+
+Joga aqui as NOSSAS imagens (geradas por nós / Nano Banana). O motor escolhe sozinho
+a certa pelo TEMA da notícia. Formato ideal: 1080x1350 (4:5), SEM TEXTO (o motor
+escreve a manchete por cima), terço de baixo mais escuro pra dar contraste.
+
+>>> IMPORTANTE: as imagens têm que ser SEM TEXTO/LETRAS. Se o Nano Banana cravar texto,
+    gera de novo reforçando "NO text, NO letters". Texto na imagem briga com a manchete.
+
+COMO O MOTOR ESCOLHE (nesta ordem):
+  1) SITUAÇÃO achada no título   2) CIDADE da notícia   3) CATEGORIA   4) genérico
+
+Pode ter VARIAÇÕES pra rotacionar (o motor alterna pela notícia):
+  policial.jpg   policial-1.jpg   policial-2.jpg ...
+
+------------------------------------------------------------
+NOMES EXATOS DOS ARQUIVOS (.jpg, .jpeg, .png ou .webp):
+
+CIDADES (a do título da notícia):
+  cidade_schroeder.jpg
+  cidade_guaramirim.jpg
+  cidade_jaragua_do_sul.jpg
+  cidade_joinville.jpg
+  cidade_corupa.jpg
+  cidade_geral.jpg            (fallback "Vale", quando a cidade não tem imagem)
+
+SITUAÇÕES (achadas no título):
+  acidente_carro.jpg          (batida, colisão, capotamento)
+  acidente_rodovia.jpg        (BR-280, SC-108, caminhão, acostamento)
+  incendio.jpg                (incêndio, fogo, bombeiros)
+  policial.jpg                (polícia, preso, furto, roubo, apreensão)
+  temporal.jpg                (temporal, tempestade, chuva, vendaval)
+  alagamento.jpg              (enchente, alagamento)
+  neblina_frio.jpg            (neblina, geada, frio)
+  obra.jpg                    (obra, asfalto, pavimentação)
+  prefeitura.jpg              (prefeitura, prefeito) — serve tb p/ categoria política
+  camara.jpg                  (câmara, vereador, sessão)
+  saude.jpg                   (hospital, posto, saúde, vacina)
+  escola.jpg                  (escola, colégio, educação, creche)
+  economia.jpg                (emprego, vaga, indústria, empresa)
+  comercio.jpg                (loja, feira, mercado)
+  evento.jpg                  (festa, show, cultura, festival)
+  esporte.jpg                 (futebol, jogo, campeonato)
+
+------------------------------------------------------------
+Trava: BG_ON=0 desliga tudo. Enquanto não tiver imagem, o motor segue pro Street View
+e depois pro card de marca (nada quebra).
