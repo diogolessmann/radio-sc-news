@@ -956,6 +956,72 @@ _PATRO_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 </body></html>"""
 
 
+@app.route('/anuncie')
+def anuncie():
+    """Página pública de vendas (mídia kit + pacotes) — o 'outdoor 24h' pra fechar patrocinador local."""
+    wpp = os.environ.get('ANUNCIE_WHATSAPP', '5547999999999')  # SEU número (set no Railway)
+    msg = 'Olá! Quero anunciar no Rádio SC News.'
+    wa = f"https://wa.me/{wpp}?text={msg.replace(' ', '%20')}"
+    return render_template_string(_ANUNCIE_HTML, wa=wa)
+
+
+_ANUNCIE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Anuncie no Rádio SC News — o Norte de SC em 1 minuto</title>
+<style>
+ body{background:#0f0f13;color:#eee;font-family:system-ui,Segoe UI,Arial;margin:0;line-height:1.55}
+ .wrap{max-width:840px;margin:0 auto;padding:28px 22px}
+ .pill{display:inline-block;background:#e74c3c;color:#fff;padding:4px 14px;border-radius:20px;font-size:13px;font-weight:700}
+ h1{font-size:30px;margin:14px 0 6px;line-height:1.15}
+ .sub{color:#9a9cab;font-size:16px;margin-bottom:24px}
+ .stats{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 28px}
+ .stat{background:#181a22;border:1px solid #262838;border-radius:14px;padding:16px 20px;flex:1;min-width:150px;text-align:center}
+ .stat b{display:block;font-size:28px;color:#f5a623} .stat span{font-size:13px;color:#9a9cab}
+ h2{font-size:20px;margin:30px 0 14px}
+ .planos{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}
+ .plano{background:#181a22;border:1px solid #262838;border-radius:16px;padding:22px}
+ .plano.dest{border-color:#f5a623;box-shadow:0 0 0 1px #f5a623}
+ .plano h3{margin:0 0 4px;font-size:18px} .plano .preco{font-size:30px;font-weight:800;color:#27ae60;margin:6px 0 12px}
+ .plano .preco small{font-size:14px;color:#9a9cab;font-weight:400}
+ .plano ul{list-style:none;padding:0;margin:0;font-size:14px} .plano li{padding:5px 0;border-bottom:1px solid #20222e}
+ .plano li:before{content:"✓ ";color:#27ae60;font-weight:700}
+ .cta{display:block;text-align:center;background:#27ae60;color:#fff;text-decoration:none;font-weight:800;font-size:18px;padding:16px;border-radius:14px;margin:30px 0 10px}
+ .obs{color:#6f7180;font-size:13px;text-align:center}
+</style></head><body><div class=wrap>
+<span class=pill>📻 Rádio SC News</span>
+<h1>Coloque sua marca na frente do Vale.</h1>
+<div class=sub>O portal que o Norte de SC acompanha todo dia — Jaraguá do Sul · Schroeder · Guaramirim · Joinville · Corupá.</div>
+
+<div class=stats>
+ <div class=stat><b>+99 mil</b><span>visualizações por mês</span></div>
+ <div class=stat><b>Norte de SC</b><span>público 100% local</span></div>
+ <div class=stat><b>Diário</b><span>notícia, agenda e bom dia</span></div>
+</div>
+
+<h2>Escolha seu plano</h2>
+<div class=planos>
+ <div class=plano>
+  <h3>🥉 Selo Patrocinador</h3>
+  <div class=preco>R$ 197<small>/mês</small></div>
+  <ul><li>Sua marca no "Bom dia, Vale" todo dia</li><li>Menção na legenda</li><li>Logo no rodapé</li></ul>
+ </div>
+ <div class="plano dest">
+  <h3>🥈 Parceiro do Vale</h3>
+  <div class=preco>R$ 397<small>/mês</small></div>
+  <ul><li>Tudo do Selo</li><li>2 publiposts no mês</li><li>1 story por semana</li><li>Rotação de destaque</li></ul>
+ </div>
+ <div class=plano>
+  <h3>🥇 Apresentador</h3>
+  <div class=preco>R$ 697<small>/mês</small></div>
+  <ul><li>Tudo do Parceiro</li><li>Publipost toda semana</li><li>"Agenda do Vale apresentada por você"</li><li>Prioridade total</li></ul>
+ </div>
+</div>
+
+<a class=cta href="{{wa}}">📲 Quero anunciar — falar agora</a>
+<div class=obs>Valores de lançamento. Pacotes personalizados sob consulta.</div>
+</div></body></html>"""
+
+
 @app.route('/admin/agenda', methods=['GET', 'POST'])
 @login_required
 def admin_agenda():
