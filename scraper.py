@@ -278,6 +278,18 @@ _BROWSER_HEADERS = {
 }
 
 
+# ── Fontes cujas IMAGENS NÃO usamos (litigiosas: OCP e Portal de Schroeder/Gabriel). Mantemos o
+#    TEXTO (o fato é livre; a gente reescreve). G1 fica liberado. Edite via env IMG_BLOCK_DOMAINS.
+_IMG_BLOCK = [d.strip().lower() for d in
+              os.environ.get("IMG_BLOCK_DOMAINS", "ocp.news,schpost.com.br").split(",") if d.strip()]
+
+
+def _image_blocked(link, source=""):
+    """True se a notícia vem de fonte com imagem bloqueada (não usar a foto, só o texto)."""
+    blob = f"{link or ''} {source or ''}".lower()
+    return any(d and d in blob for d in _IMG_BLOCK)
+
+
 def fetch_og_image(link):
     """Foto da PÁGINA da matéria (og:image / twitter:image). Resolve o buraco dos feeds
     locais que não trazem foto no RSS mas têm na página. Devolve URL ou None.
@@ -404,6 +416,10 @@ def fetch_feed(feed_config):
                     image_url = enc.get('href') or enc.get('url')
                     break
 
+        # 🚫 fonte de imagem bloqueada (OCP/Schroeder): descarta a foto, mantém o texto
+        if _image_blocked(link, feed_config.get('source', '')):
+            image_url = None
+
         # Valida que o link é uma URL real (http/https)
         if not title or not link or not link.startswith(('http://', 'https://')):
             continue
@@ -454,7 +470,7 @@ def save_articles(articles):
 
             if gemea:
                 # FOTO (Fase 2): se a salva está SEM foto e dá pra achar uma, preenche
-                if not gemea.get('image_url'):
+                if not gemea.get('image_url') and not _image_blocked(art.get('link'), art.get('source')):
                     foto = art.get('image_url') or (fetch_og_image(art['link']) if art.get('link') else None)
                     if foto:
                         conn.execute('UPDATE news SET image_url=? WHERE id=?', (foto, gemea['id']))
@@ -464,7 +480,7 @@ def save_articles(articles):
                 continue
 
             # NOVA notícia -> og:image se vier sem foto (Fase 1), depois insere
-            if not art.get('image_url') and art.get('link'):
+            if not art.get('image_url') and art.get('link') and not _image_blocked(art.get('link'), art.get('source')):
                 art['image_url'] = fetch_og_image(art['link'])
                 if art['image_url']:
                     logger.info(f"📷 og:image achada p/ '{art['title'][:45]}'")
@@ -497,8 +513,35 @@ def save_articles(articles):
     return saved
 
 
+def clear_blocked_images(conn):
+    """Apaga imagens JÁ salvas de fontes bloqueadas (OCP/Schroeder) — fica só o texto. Idempotente."""
+    try:
+        rows = conn.execute(
+            "SELECT id, link, source FROM news WHERE image_url IS NOT NULL AND image_url!=''"
+        ).fetchall()
+        n = 0
+        for r in rows:
+            if _image_blocked(r['link'], r['source']):
+                conn.execute("UPDATE news SET image_url=NULL WHERE id=?", (r['id'],))
+                n += 1
+        if n:
+            conn.commit()
+            logger.info(f"🧹 {n} imagem(ns) de fonte bloqueada (OCP/Schroeder) limpa(s).")
+        return n
+    except Exception as e:
+        logger.error(f"clear_blocked_images falhou: {e}")
+        return 0
+
+
 def collect_all():
     """Coleta de todos os feeds RSS configurados."""
+    # limpeza idempotente: tira imagem de OCP/Schroeder que tenha entrado antes do bloqueio
+    try:
+        _c = get_db()
+        clear_blocked_images(_c)
+        _c.close()
+    except Exception:
+        pass
     total = 0
     for feed_config in RSS_FEEDS:
         articles = fetch_feed(feed_config)
