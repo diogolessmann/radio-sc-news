@@ -103,6 +103,118 @@ def run(time_a, time_b, evento, post=False):
     return {"img": img, "outdir": outdir, "postado": bool(post)}
 
 
+# ---------------------------------------------------------------- REVELA (resultado) + AUTO
+def slide_revela(time_a, time_b, res, outdir):
+    """Card do RESULTADO: placar + quem acertou (Hall da Fama)."""
+    W, H = gi.W, gi.H
+    canvas = Image.new("RGB", (W, H), gi.BG)
+    d = ImageDraw.Draw(canvas)
+    gi.brand_header(d)
+    ga, gb, venc = res["gols_a"], res["gols_b"], res["vencedor"]
+
+    selo = "DEU O JOGO!"
+    fs = gi.font(40)
+    sw = d.textlength(selo, font=fs)
+    d.rounded_rectangle([(W - sw) // 2 - 28, 210, (W + sw) // 2 + 28, 278], radius=28, fill=gi.GOLD)
+    d.text(((W - sw) // 2, 220), selo, font=fs, fill=gi.BLACK)
+
+    # TIME A (dourado se venceu) / PLACAR / TIME B
+    fn = gi.font(56, impact=True)
+    for nome, cor, y in ((time_a.upper(), gi.GOLD if venc == "A" else gi.MUTED, 360),
+                         (time_b.upper(), gi.GOLD if venc == "B" else gi.MUTED, 760)):
+        for ln in gi.wrap(d, nome, fn, W - 140):
+            w = d.textlength(ln, font=fn)
+            d.text(((W - w) // 2, y), ln, font=fn, fill=cor)
+            y += int(fn.size * 1.02)
+    fnum = gi.font(150, impact=True)
+    placar = f"{ga} x {gb}"
+    pw = d.textlength(placar, font=fnum)
+    d.text(((W - pw) // 2, 480), placar, font=fnum, fill=gi.WHITE, stroke_width=3, stroke_fill=gi.BLACK)
+
+    msg = "DEU EMPATE!" if venc == "EMPATE" else f"QUEM VOTOU {'A' if venc == 'A' else 'B'} ACERTOU"
+    fm = gi.font(46)
+    mw = d.textlength(msg, font=fm)
+    d.rounded_rectangle([(W - mw) // 2 - 34, 940, (W + mw) // 2 + 34, 1022], radius=22, fill=gi.RED)
+    d.text(((W - mw) // 2, 952), msg, font=fm, fill=gi.WHITE)
+    call = "JOGA O PRINT, CAMPEOES DO VALE"
+    fc = gi.font(34)
+    cw = d.textlength(call, font=fc)
+    d.text(((W - cw) // 2, 1050), call, font=fc, fill=gi.GOLD)
+    gi.footer_site(d)
+    path = os.path.join(outdir, "revela.png")
+    canvas.save(path, quality=95)
+    return path
+
+
+def revela_caption(time_a, time_b, res):
+    ga, gb, venc = res["gols_a"], res["gols_b"], res["vencedor"]
+    linhas = ["🏆 PALPITE DO VALE — deu o resultado:", ""]
+    if venc == "EMPATE":
+        linhas += [f"🤝 {time_a} {ga} x {gb} {time_b} — DEU EMPATE!", "",
+                   "Quem cravou empate é vidente! 😏"]
+    else:
+        venc_nome = (time_a if venc == "A" else time_b).upper()
+        letra = "A" if venc == "A" else "B"
+        linhas += [f"🏆 {venc_nome}! ({time_a} {ga} x {gb} {time_b})", "",
+                   f"Quem votou {letra} ACERTOU! 😎 Joga o print aqui que entra no Hall da Fama do Vale 🏅"]
+    linhas += ["", "🔁 Marca o amigo que errou feio kkk", "➕ Segue @radiosc.news", "",
+               "#palpite #copadomundo #futebol #vale #valedoitapocu #radioscnews"]
+    return "\n".join(linhas)
+
+
+def _ensure_table(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS palpites_jogos (
+        match_id INTEGER PRIMARY KEY, time_a TEXT, time_b TEXT, data TEXT,
+        posted_vota TEXT, posted_revela TEXT)""")
+    conn.commit()
+
+
+def run_auto(post=False):
+    """Motor do Palpite: posta o VOTA do jogo do dia e a REVELA quando o jogo ACABA (FINISHED).
+    Tudo do fato livre (API oficial). Pula sozinho se não há jogo / sem chave."""
+    import sqlite3
+    import futebol
+    conn = sqlite3.connect(dist.DB_PATH)
+    conn.row_factory = sqlite3.Row
+    _ensure_table(conn)
+    feito = {"vota": None, "revela": None}
+
+    # 1) VOTA — jogo de destaque de hoje, se ainda não votado
+    jogo = futebol.jogo_destaque()
+    if jogo and jogo.get("id"):
+        if not conn.execute("SELECT 1 FROM palpites_jogos WHERE match_id=?", (jogo["id"],)).fetchone():
+            ev = f"Copa do Mundo · hoje {jogo['hora']}".strip().rstrip("·").strip()
+            run(jogo["time_a"], jogo["time_b"], ev, post=post)
+            conn.execute("INSERT INTO palpites_jogos(match_id,time_a,time_b,data,posted_vota) "
+                         "VALUES (?,?,?,?,?)",
+                         (jogo["id"], jogo["time_a"], jogo["time_b"],
+                          datetime.now().strftime("%Y-%m-%d"),
+                          datetime.now().isoformat(timespec="seconds") if post else "preview"))
+            conn.commit()
+            feito["vota"] = f"{jogo['time_a']} x {jogo['time_b']}"
+
+    # 2) REVELA — jogos votados, sem revela, já FINISHED
+    pend = conn.execute("SELECT * FROM palpites_jogos WHERE posted_vota IS NOT NULL "
+                        "AND posted_revela IS NULL").fetchall()
+    for r in pend:
+        res = futebol.resultado(r["match_id"])
+        if not res:
+            continue                      # ⏳ ainda não acabou
+        day = datetime.now().strftime("%Y-%m-%d")
+        outdir = os.path.join("instagram_posts", day + "_palpite_revela")
+        os.makedirs(outdir, exist_ok=True)
+        img = slide_revela(r["time_a"], r["time_b"], res, outdir)
+        cap = revela_caption(r["time_a"], r["time_b"], res)
+        if post:
+            dist.publish_single(f"revela_{r['match_id']}", img, cap)
+        conn.execute("UPDATE palpites_jogos SET posted_revela=? WHERE match_id=?",
+                     (datetime.now().isoformat(timespec="seconds") if post else "preview", r["match_id"]))
+        conn.commit()
+        feito["revela"] = f"{r['time_a']} {res['gols_a']}x{res['gols_b']} {r['time_b']}"
+
+    conn.close()
+    return feito
+
+
 if __name__ == "__main__":
-    r = run("Portugal", "Colômbia", "Hoje, 21h")
-    print("card:", r["img"])
+    print(run_auto(post=False))

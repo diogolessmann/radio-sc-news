@@ -158,6 +158,18 @@ def agenda_job():
         logger.error(f"❌ Agenda falhou: {e}")
 
 
+def palpite_job():
+    """Palpite do Vale (Copa): posta o VOTA do jogo do dia e a REVELA quando o jogo acaba.
+    Roda a cada 2h. Pula sozinho se não há jogo / sem chave da API. Só posta se autopost ligado."""
+    try:
+        import palpite
+        r = palpite.run_auto(post=_autopost_on())
+        if r.get("vota") or r.get("revela"):
+            logger.info("⚽ Palpite: vota=%s · revela=%s", r.get("vota"), r.get("revela"))
+    except Exception as e:
+        logger.error(f"❌ Palpite falhou: {e}")
+
+
 def collect_job():
     """Coleta notícias de todos os feeds RSS."""
     try:
@@ -309,6 +321,15 @@ def start_scheduler(interval_minutes=60):
             name=f'Reels {_h}h (vídeo narrado IG+FB)',
             replace_existing=True
         )
+
+    # ⚽ PALPITE DO VALE (Copa) — checa a cada 2h: posta o vota do jogo + a revela quando acaba.
+    _scheduler.add_job(
+        func=palpite_job,
+        trigger=IntervalTrigger(hours=2),
+        id='palpite_copa',
+        name='Palpite do Vale (Copa: vota + revela automático)',
+        replace_existing=True
+    )
 
     # ⚡ Plantão: notícia urgente em tempo real — checa a cada 20 min
     _scheduler.add_job(
