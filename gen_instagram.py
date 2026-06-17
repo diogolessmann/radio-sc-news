@@ -247,6 +247,71 @@ def footer_site(draw):
 
 
 # ---------------------------------------------------------------- slides
+def slide_cover_foto_faixa(news, img_path, outdir, manchete=None, credito=None):
+    """Capa LAYOUT FOTO+FAIXA: foto REAL do local em cima (mantém o '© Google' visível, exigência
+    da licença do Maps), faixa de marca embaixo com pills + manchete. Usada quando a imagem vem do
+    Street View / mapa do Google — o texto NÃO pode ir por cima do logo deles."""
+    BAND_TOP = 900
+    canvas = Image.new("RGB", (W, H), BG)
+    # foto no topo (0..BAND_TOP): cobre a largura e fica ALINHADA EMBAIXO (preserva a base da
+    # imagem, onde fica a atribuição do Google — nunca cortar nem tampar).
+    try:
+        im = Image.open(img_path).convert("RGB")
+        scale = max(W / im.width, BAND_TOP / im.height)
+        im = im.resize((int(im.width * scale), int(im.height * scale)), Image.LANCZOS)
+        left = (im.width - W) // 2
+        top = im.height - BAND_TOP          # bottom-align
+        im = im.crop((left, top, left + W, top + BAND_TOP))
+        canvas.paste(im, (0, 0))
+    except Exception:
+        pass
+    d = ImageDraw.Draw(canvas)
+
+    # leve sombra no topo da foto p/ o brand header ler bem
+    shade = Image.new("L", (1, 170))
+    for y in range(170):
+        shade.putpixel((0, y), int(175 * (1 - y / 170)))
+    sh = shade.resize((W, 170))
+    top_region = canvas.crop((0, 0, W, 170))
+    canvas.paste(Image.composite(Image.new("RGB", (W, 170), BLACK), top_region, sh), (0, 0))
+    d = ImageDraw.Draw(canvas)
+
+    brand_header(d)
+
+    # FAIXA de marca embaixo (sólida) + filete vermelho no topo dela
+    d.rectangle([0, BAND_TOP, W, H], fill=BG)
+    d.rectangle([0, BAND_TOP, W, BAND_TOP + 6], fill=RED)
+
+    city = news["city"] or "Santa Catarina"
+    cat = CAT_LABEL.get((news["category"] or "geral"), (news["category"] or "GERAL").upper())
+    py = BAND_TOP + 34
+    xend = pill(d, 56, py, city.upper(), font(30), RED, WHITE)
+    pill(d, xend + 14, py, cat, font(30), GOLD, BLACK)
+
+    # manchete (TikTok mode) — fonte adaptativa p/ caber na faixa
+    title = re.sub(r"\s+", " ", (manchete or news["title"])).strip().rstrip(".")
+    fh = font(56, impact=True)
+    lines = wrap(d, title.upper(), fh, W - 112)
+    for _sz in (50, 46, 42):
+        if len(lines) <= 4:
+            break
+        fh = font(_sz, impact=True)
+        lines = wrap(d, title.upper(), fh, W - 112)
+    line_h = int(fh.size * 1.06)
+    draw_lines(d, lines[:4], fh, 56, py + 78, WHITE, line_h)
+
+    # ARRASTA + crédito honesto da fonte da imagem
+    d.text((56, H - 68), "ARRASTA PARA O LADO  ->", font=font(30), fill=GOLD)
+    cr = credito or "Imagem: Google"
+    fc = font(24, bold=False)
+    cw = d.textlength(cr, font=fc)
+    d.text((W - 56 - cw, H - 62), cr, font=fc, fill=MUTED)
+
+    path = os.path.join(outdir, "slide_1.png")
+    canvas.save(path, quality=92)
+    return path
+
+
 def slide_cover(news, outdir, manchete=None):
     # 🛡️ ANTI-PROCESSO: por padrão NÃO usa foto de TERCEIRO (nem a og:image da fonte, nem foto de
     # outro portal). O FATO é livre; a FOTO deles não é. Só foto PRÓPRIA (admin), stock regional
@@ -285,6 +350,18 @@ def slide_cover(news, outdir, manchete=None):
                                (_si.width - W) // 2 + W, (_si.height - H) // 2 + H))
         except Exception:
             pass
+    if not bg:
+        # 2.4) GEO: foto REAL do local (Street View) ou mapa do Google. Layout FOTO+FAIXA (a
+        #      atribuição do Google fica visível; texto não vai por cima) → retorna direto aqui.
+        try:
+            import streetview
+            _gp, _tipo = streetview.buscar(news, outdir)
+            if _gp:
+                _cr = "Imagem: Google Street View" if _tipo == "streetview" else "Mapa: Google"
+                return slide_cover_foto_faixa(news, _gp, outdir, manchete=manchete, credito=_cr)
+        except Exception:
+            pass
+
     _cat = (news["category"] or "").strip().lower()
     if not bg and _cat in _ILUSTRA_CATS:
         # 2.5) IMAGEM LIVRE (Pexels): FOTO REAL ilustrativa SÓ nas categorias onde a imagem
