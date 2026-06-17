@@ -231,6 +231,7 @@ def slide_cover(news, outdir, hook=None):
     anti = os.environ.get("ANTI_STRIKE", "1").strip() != "0"
     bg = cover_image(None if anti else news["image_url"], news["admin_image"])
     foto_credito = None
+    ilustrativa = False
     if not bg and not anti:
         # fotobusca (foto de OUTRO portal, com crédito) — só FORA do modo anti-strike
         try:
@@ -258,6 +259,22 @@ def slide_cover(news, outdir, hook=None):
                 _si = _si.resize((int(_si.width * _sc), int(_si.height * _sc)))
                 bg = _si.crop(((_si.width - W) // 2, (_si.height - H) // 2,
                                (_si.width - W) // 2 + W, (_si.height - H) // 2 + H))
+        except Exception:
+            pass
+    if not bg:
+        # 2.5) IMAGEM LIVRE (Pexels): FOTO REAL ilustrativa por categoria. 100% legal (uso
+        #      comercial liberado, sem atribuição). Não é desenho — é foto de verdade.
+        try:
+            import imagemlivre
+            try:
+                _nid = news["id"]
+            except Exception:
+                _nid = 0
+            _il = imagemlivre.buscar(news["category"], news["title"], seed=_nid)
+            if _il:
+                bg = cover_image(_il, None)
+                if bg:
+                    ilustrativa = True
         except Exception:
             pass
     if not bg:
@@ -312,6 +329,12 @@ def slide_cover(news, outdir, hook=None):
     # crédito da foto emprestada de outro portal (atribuição)
     if foto_credito:
         ftxt = f"Foto: {foto_credito}"
+        fc = font(26, bold=False)
+        cw = d.textlength(ftxt, font=fc)
+        d.text((W - 56 - cw, H - 104), ftxt, font=fc, fill=MUTED)
+    # honestidade: foto ilustrativa (banco livre, não é a cena real)
+    elif ilustrativa:
+        ftxt = "Foto ilustrativa"
         fc = font(26, bold=False)
         cw = d.textlength(ftxt, font=fc)
         d.text((W - 56 - cw, H - 104), ftxt, font=fc, fill=MUTED)
