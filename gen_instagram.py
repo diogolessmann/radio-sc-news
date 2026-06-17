@@ -97,6 +97,15 @@ CAT_TAGS = {
 # ouro; aqui só região + marca (cortado #noticias/#sc genéricos, que não geram descoberta local).
 BASE_TAGS = ["#nortedesc", "#radioscnews", "#santacatarina"]
 
+# Foto ilustrativa do banco livre (Pexels) SÓ entra onde a imagem genérica COMBINA com o tema
+# (bola no esporte, céu no clima). Nas outras categorias, foto aleatória vira "gringa sem nexo"
+# (já saiu favela na notícia da Ana Castela, viatura dos EUA em acidente, igreja de MG em SC...)
+# → melhor o CARD DE MARCA. Configurável via env IMG_LIVRE_CATS (csv); "none"/vazio = nunca Pexels.
+_ILUSTRA_CATS = set(
+    c.strip().lower() for c in os.environ.get("IMG_LIVRE_CATS", "esporte,clima").split(",")
+    if c.strip() and c.strip().lower() != "none"
+)
+
 CAT_LABEL = {
     "policial": "POLICIAL", "politica": "POLITICA", "saude": "SAUDE",
     "esporte": "ESPORTE", "economia": "ECONOMIA", "clima": "CLIMA",
@@ -212,6 +221,18 @@ def gradient_overlay(img, top=0.35, bottom=0.92):
     return Image.composite(black, img, alpha)
 
 
+def brand_card_bg():
+    """Fundo do CARD DE MARCA (quando não há foto PRÓPRIA relevante): gradiente sóbrio
+    escuro→vinho leve, pra não ficar chapado. É 100% nosso (legal) e on-brand — melhor que
+    jogar uma foto ilustrativa sem nexo."""
+    grad = Image.new("RGB", (1, H))
+    top, bot = (14, 15, 20), (38, 18, 22)   # toque leve do vermelho de marca embaixo
+    for y in range(H):
+        t = y / H
+        grad.putpixel((0, y), tuple(int(top[i] + (bot[i] - top[i]) * t) for i in range(3)))
+    return grad.resize((W, H))
+
+
 def brand_header(draw, y=56):
     x = pill(draw, 56, y, "  " + BRAND + "  ", font(34), RED, WHITE)
     draw.ellipse([56 + 16, y + 22, 56 + 16 + 18, y + 22 + 18], fill=WHITE)
@@ -264,9 +285,10 @@ def slide_cover(news, outdir, manchete=None):
                                (_si.width - W) // 2 + W, (_si.height - H) // 2 + H))
         except Exception:
             pass
-    if not bg:
-        # 2.5) IMAGEM LIVRE (Pexels): FOTO REAL ilustrativa por categoria. 100% legal (uso
-        #      comercial liberado, sem atribuição). Não é desenho — é foto de verdade.
+    _cat = (news["category"] or "").strip().lower()
+    if not bg and _cat in _ILUSTRA_CATS:
+        # 2.5) IMAGEM LIVRE (Pexels): FOTO REAL ilustrativa SÓ nas categorias onde a imagem
+        #      genérica combina (esporte/clima). Fora disso, card de marca > foto sem nexo.
         try:
             import imagemlivre
             try:
@@ -292,7 +314,7 @@ def slide_cover(news, outdir, manchete=None):
     if bg:
         canvas = gradient_overlay(bg)
     else:
-        canvas = Image.new("RGB", (W, H), BG)
+        canvas = brand_card_bg()   # card de marca (gradiente sóbrio) — melhor que foto errada
     d = ImageDraw.Draw(canvas)
 
     brand_header(d)
