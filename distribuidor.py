@@ -28,7 +28,6 @@ VARIAVEIS DE AMBIENTE (Fase 1 — postagem real):
                           — o Instagram exige image_url PUBLICA; as imagens vao p/ static/social/
 """
 import argparse
-import json
 import os
 import re
 import sqlite3
@@ -382,34 +381,6 @@ def groq_summary(news):
     return _fallback_summary(news)
 
 
-# ---------------------------------------------------------------- gancho da capa
-def cover_hook(news):
-    """Gancho SOBRIO pra CAPA (a capa carrega ~80% do peso). On-brand: jornal de bairro
-    serio, NUNCA sensacionalista. Usa cerebro; se indisponivel OU se vier com cara de
-    clickbait, devolve None (a capa fica so com a manchete real — comportamento seguro)."""
-    title = re.sub(r"\s+", " ", (news["title"] or "")).strip()
-    if not title:
-        return None
-    prompt = (
-        "Voce e editor do RadioSC News (Norte de SC). Crie um GANCHO curto pra capa do "
-        "post no Instagram da noticia abaixo. REGRAS: no maximo 5 palavras; factual MAS com "
-        "EMOCAO e angulo local — orgulho se for conquista ('Orgulho de Schroeder'), atencao "
-        "se for alerta ('Atencao em Jaragua'), torcida se for esporte. PROIBIDO clickbait, "
-        "mentira, ponto de exclamacao e 'voce nao vai acreditar'. Responda SO o gancho, sem aspas.\n\n"
-        f"TITULO: {title}"
-    )
-    try:
-        import cerebro
-        h = (cerebro.completar(prompt) or "").strip().strip('"').strip()
-        h = re.sub(r"\s+", " ", h)
-        # guarda-corpo anti-clickbait: descarta exclamacao, longo demais ou vazio.
-        if not h or "!" in h or len(h.split()) > 6 or len(h) > 42:
-            return None
-        return h
-    except Exception:
-        return None
-
-
 # ---------------------------------------------------------------- TIKTOK MODE (notícia em 2 linhas)
 def flash_manchete(news):
     """A notícia INTEIRA em até 2 linhas punchy que SE BASTAM (estilo TikTok): a pessoa lê e já
@@ -516,12 +487,12 @@ _EMOJI_RE = re.compile(
     flags=re.UNICODE)
 
 
-def generate_images(news, outdir, hook=None, corpo=None, manchete=None):
+def generate_images(news, outdir, corpo=None, manchete=None):
     """Carrossel ADAPTATIVO. TIKTOK MODE: a CAPA usa a notícia em 2 linhas (manchete = nosso texto
     completo e punchy). 🛡️ ANTI-PROCESSO: os slides de CORPO usam o REWRITE (corpo, teu texto),
     NUNCA o texto cru da fonte. cover -> ate 5 de corpo -> CTA."""
     os.makedirs(outdir, exist_ok=True)
-    paths = [gi.slide_cover(news, outdir, hook=hook, manchete=manchete)]
+    paths = [gi.slide_cover(news, outdir, manchete=manchete)]
     base = corpo if corpo else (news["summary"] or "")        # teu rewrite > texto da fonte
     summary = _EMOJI_RE.sub("", re.sub(r"\s+", " ", base)).strip()
     n = 2

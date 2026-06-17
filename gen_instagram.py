@@ -27,7 +27,7 @@ from datetime import datetime
 from io import BytesIO
 
 import requests
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
 
 # ---------------------------------------------------------------- config
 DB_PATH = os.environ.get("DB_PATH", "radio_sc.db")
@@ -224,7 +224,7 @@ def footer_site(draw):
 
 
 # ---------------------------------------------------------------- slides
-def slide_cover(news, outdir, hook=None, manchete=None):
+def slide_cover(news, outdir, manchete=None):
     # 🛡️ ANTI-PROCESSO: por padrão NÃO usa foto de TERCEIRO (nem a og:image da fonte, nem foto de
     # outro portal). O FATO é livre; a FOTO deles não é. Só foto PRÓPRIA (admin), stock regional
     # (própria), arte de IA ou card de marca. Desliga com ANTI_STRIKE=0 (por sua conta e risco).
@@ -315,15 +315,6 @@ def slide_cover(news, outdir, hook=None, manchete=None):
 
     # pills acima do titulo
     py = y0 - 80
-
-    # gancho/kicker SOBRIO (opcional, acima dos pills) — so se o chamador mandar e couber.
-    # Fica em dourado, curto; some se a manchete for alta demais (evita colidir com a marca).
-    if hook:
-        hk = re.sub(r"\s+", " ", str(hook)).strip().upper()[:42]
-        ky = py - 56
-        if hk and ky > 150:
-            fk = font(36, impact=True)
-            d.text((56, ky), hk, font=fk, fill=GOLD, stroke_width=3, stroke_fill=BLACK)
 
     xend = pill(d, 56, py, city.upper(), font(32), RED, WHITE)
     pill(d, xend + 16, py, cat, font(32), GOLD, BLACK)

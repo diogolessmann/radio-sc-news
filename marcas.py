@@ -23,8 +23,6 @@ USO real (posta):
 import argparse
 import glob
 import os
-import re
-import textwrap
 from datetime import datetime
 
 import gen_instagram as gi

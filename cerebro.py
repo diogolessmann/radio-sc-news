@@ -13,7 +13,6 @@ Se um cérebro falha/sem chave, cai pro próximo sozinho (resiliência).
 """
 import os
 import re
-import json
 
 import requests
 

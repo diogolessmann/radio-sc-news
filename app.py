@@ -3,7 +3,6 @@ app.py — Backend principal Flask
 Rádio SC News — Portal de notícias com áudio e painel admin
 """
 import os
-import re as _re
 import sqlite3
 import logging
 from datetime import datetime, timedelta
@@ -11,7 +10,7 @@ from functools import wraps
 
 from flask import (Flask, render_template, request, jsonify,
                    redirect, url_for, session, send_from_directory,
-                   flash, abort, render_template_string)
+                   render_template_string)
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
