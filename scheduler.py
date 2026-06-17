@@ -133,6 +133,31 @@ def publipost_job():
         logger.error(f"❌ Publipost falhou: {e}")
 
 
+def segue_job():
+    """Post recorrente 'SEGUE a Rádio' (conversão view->seguidor). 2x/semana."""
+    try:
+        import segue
+        r = segue.run(post=_autopost_on())
+        logger.info("➕ SEGUE %s — %s", "POSTADO" if r.get("postado") else "preview/pulado",
+                    r.get("motivo", "ok"))
+    except Exception as e:
+        logger.error(f"❌ SEGUE falhou: {e}")
+
+
+def agenda_job():
+    """AGENDA DO VALE — carrossel dos eventos da semana. Pula se não há eventos."""
+    try:
+        import agenda
+        r = agenda.run(post=_autopost_on())
+        if r.get("ok"):
+            logger.info("📅 Agenda %s — %s evento(s).",
+                        "POSTADA" if r["postado"] else "preview", r["n_eventos"])
+        else:
+            logger.info("💤 Agenda pulada — %s.", r.get("motivo"))
+    except Exception as e:
+        logger.error(f"❌ Agenda falhou: {e}")
+
+
 def collect_job():
     """Coleta notícias de todos os feeds RSS."""
     try:
@@ -318,6 +343,24 @@ def start_scheduler(interval_minutes=60):
         trigger=CronTrigger(day_of_week='fri', hour=19, minute=0, timezone='America/Sao_Paulo'),
         id='publipost_parceiro',
         name='Publipost do parceiro da semana (sexta 19h)',
+        replace_existing=True
+    )
+
+    # 📅 AGENDA DO VALE — eventos da semana, toda quinta 12h (a galera planeja o fim de semana).
+    _scheduler.add_job(
+        func=agenda_job,
+        trigger=CronTrigger(day_of_week='thu', hour=12, minute=0, timezone='America/Sao_Paulo'),
+        id='agenda_vale',
+        name='Agenda do Vale (eventos da semana, quinta 12h)',
+        replace_existing=True
+    )
+
+    # ➕ SEGUE a Rádio — conversão view->seguidor, 2x/semana (segunda e quinta 20h).
+    _scheduler.add_job(
+        func=segue_job,
+        trigger=CronTrigger(day_of_week='mon,thu', hour=20, minute=0, timezone='America/Sao_Paulo'),
+        id='segue_radio',
+        name='SEGUE a Rádio (conversão, seg/qui 20h)',
         replace_existing=True
     )
 

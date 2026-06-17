@@ -926,6 +926,87 @@ _PATRO_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 </body></html>"""
 
 
+@app.route('/admin/agenda', methods=['GET', 'POST'])
+@login_required
+def admin_agenda():
+    """Cadastro da Agenda do Vale (festa de igreja, escola, show, feira...)."""
+    import agenda
+    msg = ""
+    if request.method == 'POST':
+        acao = request.form.get('acao')
+        try:
+            if acao == 'add':
+                tit = (request.form.get('titulo') or '').strip()
+                data = (request.form.get('data') or '').strip()
+                if tit and data:
+                    agenda.add_evento(tit, data, request.form.get('hora', ''),
+                                      request.form.get('local', ''), request.form.get('cidade', ''))
+                    msg = f"✅ Evento '{tit}' cadastrado!"
+                else:
+                    msg = "⚠️ Informe pelo menos título e data."
+            elif acao == 'remove':
+                agenda.remove_evento(request.form.get('id'))
+                msg = "🗑️ Evento removido."
+        except Exception as e:
+            logger.error(f"admin_agenda: {e}")
+            msg = f"erro: {e}"
+    try:
+        lista = agenda.list_eventos()
+        proximos = len(agenda.eventos_proximos())
+    except Exception:
+        lista, proximos = [], 0
+    return render_template_string(_AGENDA_HTML, lista=lista, msg=msg, proximos=proximos)
+
+
+_AGENDA_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Agenda do Vale · Rádio SC News</title>
+<style>
+ body{background:#11121a;color:#eee;font-family:system-ui,Segoe UI,Arial;margin:0;padding:24px;line-height:1.5}
+ h1{font-size:20px} h2{font-size:15px;margin:18px 0 8px;color:#cfd0db}
+ input{background:#181a22;border:1px solid #2a2c3c;color:#eee;border-radius:8px;padding:10px;margin:4px 0;width:100%;max-width:440px;box-sizing:border-box}
+ button{background:#e74c3c;color:#fff;border:0;border-radius:8px;padding:9px 16px;cursor:pointer;font-weight:700}
+ .msg{background:#16321f;border:1px solid #2e7d4e;border-radius:8px;padding:10px;margin:10px 0}
+ table{border-collapse:collapse;width:100%;max-width:820px;margin-top:8px}
+ td,th{border-bottom:1px solid #262838;padding:8px 10px;text-align:left;font-size:14px}
+ a{color:#f5c518} .card{background:#181a22;border:1px solid #262838;border-radius:12px;padding:16px;max-width:480px}
+ .sub{color:#9a9cab;font-size:13px}
+</style></head><body>
+<h1>📅 Agenda do Vale</h1>
+<p class=sub>Festa de igreja, evento de escola, show, feira, missa, jogo... O motor monta o carrossel "Agenda do Vale" e posta toda quinta 12h. Conteúdo útil + patrocinável.</p>
+{% if msg %}<div class=msg>{{msg}}</div>{% endif %}
+<p>⏭️ Eventos nos próximos 10 dias: <b>{{proximos}}</b></p>
+
+<div class=card>
+ <h2>Cadastrar evento</h2>
+ <form method=post>
+  <input type=hidden name=acao value=add>
+  <input name=titulo placeholder="Título (ex: Festa Junina da Igreja Matriz)" required><br>
+  <input name=data type=date required><br>
+  <input name=hora placeholder="Hora (ex: 19h)"><br>
+  <input name=cidade placeholder="Cidade (ex: Schroeder)"><br>
+  <input name=local placeholder="Local (ex: Salão Paroquial)"><br>
+  <button type=submit>Cadastrar evento</button>
+ </form>
+</div>
+
+<h2>Eventos cadastrados ({{lista|length}})</h2>
+<table>
+ <tr><th>Data</th><th>Hora</th><th>Evento</th><th>Cidade</th><th></th></tr>
+ {% for e in lista %}
+ <tr>
+  <td>{{e.data_evento}}</td><td>{{e.hora or ''}}</td>
+  <td>{{e.titulo}}</td><td>{{e.cidade or ''}}</td>
+  <td><form method=post style="display:inline" onsubmit="return confirm('Remover?')">
+   <input type=hidden name=acao value=remove><input type=hidden name=id value={{e.id}}>
+   <button type=submit>remover</button></form></td>
+ </tr>
+ {% endfor %}
+</table>
+<p style="margin-top:22px"><a href="/admin/saude">→ saúde</a> · <a href="/admin/patrocinadores">→ parceiros</a> · <a href="/admin">← painel</a></p>
+</body></html>"""
+
+
 @app.route('/admin/collect', methods=['POST'])
 @login_required
 def admin_collect():
