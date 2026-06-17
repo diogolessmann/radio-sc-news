@@ -479,16 +479,21 @@ def social_caption(news, resumo):
 
 
 # ---------------------------------------------------------------- imagens (reusa gen_instagram)
-def generate_images(news, outdir, hook=None):
-    """Carrossel ADAPTATIVO. 2026: o ideal sao 8-10 slides (mais swipes = sinal forte),
-    mas sem encher linguica: quebra o resumo em pedacos menores (mais slides quando ha
-    conteudo) e respeita materia curta (menos slides). cover -> ate 5 de corpo -> CTA."""
+_EMOJI_RE = re.compile(
+    "[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F900-\U0001F9FF⬀-⯿️‍]",
+    flags=re.UNICODE)
+
+
+def generate_images(news, outdir, hook=None, corpo=None):
+    """Carrossel ADAPTATIVO. 🛡️ ANTI-PROCESSO: os slides de CORPO usam o REWRITE da IA (corpo, teu
+    texto), NUNCA o texto cru da fonte (verbatim = risco de processo). So cai pro summary cru
+    quando nao ha rewrite (uso manual/standalone). cover -> ate 5 de corpo -> CTA."""
     os.makedirs(outdir, exist_ok=True)
     paths = [gi.slide_cover(news, outdir, hook=hook)]
-    summary = re.sub(r"\s+", " ", (news["summary"] or "")).strip()
+    base = corpo if corpo else (news["summary"] or "")        # teu rewrite > texto da fonte
+    summary = _EMOJI_RE.sub("", re.sub(r"\s+", " ", base)).strip()
     n = 2
     if summary:
-        # ~200 chars/slide (antes 320) -> uma materia decente vira 4-6 slides
         chunks = textwrap.wrap(summary, 200, break_long_words=False)[:5]
         for i, ch in enumerate(chunks, 1):
             paths.append(gi.slide_text(ch, i, len(chunks), outdir, n))
@@ -782,7 +787,7 @@ def process_one(conn, news, do_post, day_dir):
     hook = cover_hook(news)  # gancho sobrio da capa (None se IA off/suspeito)
 
     outdir = os.path.join(day_dir, str(nid))
-    imgs = generate_images(news, outdir, hook=hook)
+    imgs = generate_images(news, outdir, hook=hook, corpo=resumo)  # slides com TEU texto
     print(f"   {len(imgs)} imagens geradas em {outdir}")
 
     # salva previews (Instagram/Facebook + WhatsApp Canal)

@@ -225,11 +225,14 @@ def footer_site(draw):
 
 # ---------------------------------------------------------------- slides
 def slide_cover(news, outdir, hook=None):
-    bg = cover_image(news["image_url"], news["admin_image"])
+    # 🛡️ ANTI-PROCESSO: por padrão NÃO usa foto de TERCEIRO (nem a og:image da fonte, nem foto de
+    # outro portal). O FATO é livre; a FOTO deles não é. Só foto PRÓPRIA (admin), stock regional
+    # (própria), arte de IA ou card de marca. Desliga com ANTI_STRIKE=0 (por sua conta e risco).
+    anti = os.environ.get("ANTI_STRIKE", "1").strip() != "0"
+    bg = cover_image(None if anti else news["image_url"], news["admin_image"])
     foto_credito = None
-    if not bg:
-        # 1) FOTO REAL: a MESMA notícia em outro portal (do nosso banco) que tenha foto.
-        #    Usa a foto de lá COM crédito. Melhor que IA p/ notícia (foto real e relevante).
+    if not bg and not anti:
+        # fotobusca (foto de OUTRO portal, com crédito) — só FORA do modo anti-strike
         try:
             import fotobusca
             try:
