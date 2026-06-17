@@ -224,7 +224,7 @@ def footer_site(draw):
 
 
 # ---------------------------------------------------------------- slides
-def slide_cover(news, outdir, hook=None):
+def slide_cover(news, outdir, hook=None, manchete=None):
     # 🛡️ ANTI-PROCESSO: por padrão NÃO usa foto de TERCEIRO (nem a og:image da fonte, nem foto de
     # outro portal). O FATO é livre; a FOTO deles não é. Só foto PRÓPRIA (admin), stock regional
     # (própria), arte de IA ou card de marca. Desliga com ANTI_STRIKE=0 (por sua conta e risco).
@@ -298,10 +298,16 @@ def slide_cover(news, outdir, hook=None):
     city = news["city"] or "Santa Catarina"
     cat = CAT_LABEL.get((news["category"] or "geral"), (news["category"] or "GERAL").upper())
 
-    # manchete
-    title = re.sub(r"\s+", " ", news["title"]).strip().rstrip(".")
+    # manchete — TIKTOK MODE: a notícia em 2 linhas que se basta (nosso texto), não o título cru
+    title = re.sub(r"\s+", " ", (manchete or news["title"])).strip().rstrip(".")
     fh = font(70, impact=True)
     lines = wrap(d, title.upper(), fh, W - 112)
+    # adaptativo: a notícia-flash pode ser longa — diminui a fonte pra caber bonito (máx ~4 linhas)
+    for _sz in (62, 56, 50):
+        if len(lines) <= 4:
+            break
+        fh = font(_sz, impact=True)
+        lines = wrap(d, title.upper(), fh, W - 112)
     line_h = int(fh.size * 1.05)
     block_h = len(lines) * line_h
     y0 = H - 230 - block_h

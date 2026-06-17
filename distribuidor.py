@@ -410,6 +410,38 @@ def cover_hook(news):
         return None
 
 
+# ---------------------------------------------------------------- TIKTOK MODE (notícia em 2 linhas)
+def flash_manchete(news):
+    """A notícia INTEIRA em até 2 linhas punchy que SE BASTAM (estilo TikTok): a pessoa lê e já
+    sabe tudo, sem swipe nem clique. É TEU texto (anti-processo) + completo + com emoção.
+    Usa cerebro; fallback = título cru se a IA estiver off."""
+    title = re.sub(r"\s+", " ", (news["title"] or "")).strip()
+    body = re.sub(r"\s+", " ", (news["summary"] or "")).strip()
+    if not title:
+        return ""
+    cidade = news["city"] or "o Vale"
+    prompt = (
+        "Voce e o editor do RadioSC News (Vale do Itapocu, Norte de SC). Reescreva a noticia "
+        "abaixo como UMA CHAMADA DE CAPA estilo TikTok: no MAXIMO 2 linhas (ate ~16 palavras), "
+        "que entregue a noticia COMPLETA — a pessoa le e JA SABE o que aconteceu, sem precisar de "
+        "mais nada. Punchy, no tom de vizinho do Vale, com a emocao certa (orgulho na conquista, "
+        "atencao no alerta). Cite a cidade (" + cidade + ") quando fizer sentido. PROIBIDO: "
+        "inventar fato, clickbait, 'voce nao vai acreditar', e mais de 1 emoji. Responda SO a "
+        "chamada, sem aspas.\n\n"
+        f"TITULO: {title}\nTEXTO: {body}"
+    )
+    try:
+        import cerebro
+        m = (cerebro.completar(prompt) or "").strip().strip('"').strip()
+        m = re.sub(r"#\S+", "", m)              # capa não é lugar de hashtag
+        m = re.sub(r"\s+", " ", m).strip()
+        if m and len(m) <= 160:        # guarda-corpo: descarta resposta longa/estranha
+            return m
+    except Exception:
+        pass
+    return title          # fallback seguro: o título (já é nosso ponto de partida)
+
+
 # ---------------------------------------------------------------- links
 def news_permalink(news):
     """Link compartilhavel da materia no proprio site (rota /noticia/<id> com OpenGraph)."""
@@ -484,12 +516,12 @@ _EMOJI_RE = re.compile(
     flags=re.UNICODE)
 
 
-def generate_images(news, outdir, hook=None, corpo=None):
-    """Carrossel ADAPTATIVO. 🛡️ ANTI-PROCESSO: os slides de CORPO usam o REWRITE da IA (corpo, teu
-    texto), NUNCA o texto cru da fonte (verbatim = risco de processo). So cai pro summary cru
-    quando nao ha rewrite (uso manual/standalone). cover -> ate 5 de corpo -> CTA."""
+def generate_images(news, outdir, hook=None, corpo=None, manchete=None):
+    """Carrossel ADAPTATIVO. TIKTOK MODE: a CAPA usa a notícia em 2 linhas (manchete = nosso texto
+    completo e punchy). 🛡️ ANTI-PROCESSO: os slides de CORPO usam o REWRITE (corpo, teu texto),
+    NUNCA o texto cru da fonte. cover -> ate 5 de corpo -> CTA."""
     os.makedirs(outdir, exist_ok=True)
-    paths = [gi.slide_cover(news, outdir, hook=hook)]
+    paths = [gi.slide_cover(news, outdir, hook=hook, manchete=manchete)]
     base = corpo if corpo else (news["summary"] or "")        # teu rewrite > texto da fonte
     summary = _EMOJI_RE.sub("", re.sub(r"\s+", " ", base)).strip()
     n = 2
@@ -784,10 +816,10 @@ def process_one(conn, news, do_post, day_dir):
     resumo = groq_summary(news)
     caption = social_caption(news, resumo)
     zap = whatsapp_message(news, resumo)
-    hook = cover_hook(news)  # gancho sobrio da capa (None se IA off/suspeito)
+    flash = flash_manchete(news)  # TIKTOK MODE: notícia em 2 linhas que se basta (nosso texto)
 
     outdir = os.path.join(day_dir, str(nid))
-    imgs = generate_images(news, outdir, hook=hook, corpo=resumo)  # slides com TEU texto
+    imgs = generate_images(news, outdir, corpo=resumo, manchete=flash)  # capa flash + slides nossos
     print(f"   {len(imgs)} imagens geradas em {outdir}")
 
     # salva previews (Instagram/Facebook + WhatsApp Canal)

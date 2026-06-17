@@ -208,9 +208,10 @@ def make_reel_for(news, day_dir, do_post=False):
     zap = dist.whatsapp_message(news, resumo)
     media_url = f"{dist.PUBLIC_BASE_URL}/static/social/r{nid}.mp4"
 
-    # 1) slides do carrossel (reusa o gerador existente) — com TEU texto (anti-processo)
+    # 1) slides do carrossel (reusa o gerador) — capa em 2 linhas (TikTok) + TEU texto (anti-processo)
     outdir = os.path.join(day_dir, str(nid))
-    slides = dist.generate_images(news, outdir, corpo=resumo)
+    flash = dist.flash_manchete(news)
+    slides = dist.generate_images(news, outdir, corpo=resumo, manchete=flash)
 
     # 2) converte cada slide p/ 1080x1920
     vert_dir = os.path.join(outdir, "vert")
