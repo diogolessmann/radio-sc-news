@@ -24,7 +24,11 @@ _PT = {
     "Croatia": "Croácia", "Netherlands": "Holanda", "Belgium": "Bélgica", "Italy": "Itália",
     "Uruguay": "Uruguai", "Colombia": "Colômbia", "Mexico": "México", "USA": "Estados Unidos",
     "South Korea": "Coreia do Sul", "Japan": "Japão", "Morocco": "Marrocos",
-    "DR Congo": "RD Congo", "Switzerland": "Suíça", "Denmark": "Dinamarca",
+    "DR Congo": "RD Congo", "Congo DR": "RD Congo", "Switzerland": "Suíça",
+    "Denmark": "Dinamarca", "Algeria": "Argélia", "Jordan": "Jordânia",
+    "Austria": "Áustria", "Panama": "Panamá", "Ghana": "Gana", "Poland": "Polônia",
+    "Senegal": "Senegal", "Ecuador": "Equador", "Paraguay": "Paraguai",
+    "Saudi Arabia": "Arábia Saudita", "Australia": "Austrália", "Canada": "Canadá",
 }
 
 
