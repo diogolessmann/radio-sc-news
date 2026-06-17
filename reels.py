@@ -64,12 +64,17 @@ def _to_vertical(img_path, out_path):
 
 
 # ---------------------------------------------------------------- narração
-def _narration_script(news, resumo):
-    """Texto curto pra narrar no Reels: cidade + título + corpo do resumo (sem emoji)."""
+def _narration_script(news, resumo, gancho=None):
+    """Texto pra narrar no Reels. ABRE com o GANCHO punchy (flash) — os 3 primeiros segundos
+    decidem a retenção, que é o que dá alcance. Depois cidade (se ainda não citada) + corpo do
+    resumo (sem emoji). Sem gancho, cai no título cru."""
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip().rstrip(".")
     corpo = dist._short_resumo(resumo, max_chars=320)
     city = news["city"] or "Santa Catarina"
-    partes = [f"{city}.", f"{title}."]
+    abertura = re.sub(r"\s+", " ", (gancho or title)).strip().rstrip(".")
+    partes = [f"{abertura}."]
+    if city and city.lower() not in abertura.lower():
+        partes.append(f"{city}.")
     if corpo:
         partes.append(corpo)
     partes.append("Siga a Rádio SC News e fique por dentro de tudo no Vale.")
@@ -222,7 +227,7 @@ def make_reel_for(news, day_dir, do_post=False):
     # 3) narração curta do resumo
     os.makedirs(AUDIO_DIR, exist_ok=True)
     narr_path = os.path.join(AUDIO_DIR, f"reel_{nid}.mp3")
-    script = _narration_script(news, resumo)
+    script = _narration_script(news, resumo, gancho=flash)  # abre com o gancho punchy (retenção)
     # Por padrao narra com edge-tts (GRATIS) p/ poupar creditos do ElevenLabs.
     # Ligue REELS_USE_ELEVEN=1 no ambiente se quiser a voz premium nos Reels.
     prefer_free = dist._env("REELS_USE_ELEVEN", "0") != "1"

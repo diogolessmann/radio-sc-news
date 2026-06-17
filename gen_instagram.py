@@ -93,7 +93,9 @@ CAT_TAGS = {
     "clima":    ["#tempo", "#clima"],
     "cultura":  ["#eventos", "#cultura"],
 }
-BASE_TAGS = ["#santacatarina", "#nortedesc", "#noticias", "#radioscnews", "#sc"]
+# Playbook 2026: 3-5 hashtags hiperlocais > enxurrada genérica. As de CIDADE (CITY_TAGS) são o
+# ouro; aqui só região + marca (cortado #noticias/#sc genéricos, que não geram descoberta local).
+BASE_TAGS = ["#nortedesc", "#radioscnews", "#santacatarina"]
 
 CAT_LABEL = {
     "policial": "POLICIAL", "politica": "POLITICA", "saude": "SAUDE",

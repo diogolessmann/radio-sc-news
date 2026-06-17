@@ -26,6 +26,20 @@ A cada sessão, a gente tira 1-2 itens daqui. Foco regional: Jaraguá · Schroed
 - [ ] **Health check / métricas** — relatório simples: posts/dia, % com foto, % por cidade,
       erros no log, qual categoria bomba. Sem medir, kaizen é chute.
 
+### 🔍 Da AUDITORIA 2 (skill auditing-instagram-engine, 17/jun/2026) — placar 8.2/10 ⬆️
+- [ ] **🟡 alt_text (SEO de imagem)** — nenhum post manda `alt_text` (distribuidor.py:566,
+      reels.py:162). IG indexa a descrição da imagem → alcance em busca. Add tema+cidade nos
+      filhos do carrossel e no Reels. Fix barato, impacto direto em descoberta.
+- [ ] **🟡 Abrir a narração do Reel com o gancho** — `_narration_script` começa "Cidade.
+      Título." (reels.py:67). Os 3 primeiros seg decidem retenção → abrir com `flash_manchete`.
+- [ ] **🟢 Enxugar BASE_TAGS** — hoje ~8-10 hashtags/post (gen_instagram.py:96); playbook 2026
+      pede 3-5. Menos genérica, mais peso na local.
+- [x] **OBSOLETO: cover_hook (gancho dourado)** — REMOVIDO na faxina de 17/jun. O TikTok mode
+      (flash_manchete: notícia inteira em 2 linhas na capa) virou o gancho — melhor que o kicker.
+- [ ] **(DONO) GEO_LOCATIONS no Railway** — pôr os 4 Place ids (Schroeder/Jaraguá/Guaramirim/
+      Joinville) p/ garantir geotag certo, em vez de depender da busca automática.
+- [ ] **(DONO) /anuncie 99k→113k** — atualizar o número de views na página de venda (app.py:995).
+
 ### 🔍 Da AUDITORIA MONSTRO (skill auditing-instagram-engine, jun/2026) — placar 6.2/10
 - [x] **🔴 Geotag por cidade (location_id)** — FEITO. `geo.py` resolve env GEO_LOCATIONS → cache
       → busca Graph → None (sem geotag). Ligado no carrossel e no Reels. ⏳ falta o dono pôr os

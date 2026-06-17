@@ -481,6 +481,15 @@ def social_caption(news, resumo):
     )
 
 
+def alt_text(news):
+    """Texto alternativo da imagem (acessibilidade + SEO: o IG indexa a descrição da imagem na
+    busca). Tema + cidade em texto corrido, sem emoji nem hashtag. Máx 1000 chars (limite Meta)."""
+    city = news["city"] or "Santa Catarina"
+    title = re.sub(r"\s+", " ", (news["title"] or "")).strip().rstrip(".")
+    return (f"Notícia de {city}, Norte de Santa Catarina: {title}. "
+            f"Rádio SC News.")[:1000]
+
+
 # ---------------------------------------------------------------- imagens (reusa gen_instagram)
 _EMOJI_RE = re.compile(
     "[\U0001F000-\U0001FAFF\U00002600-\U000027BF\U0001F900-\U0001F9FF⬀-⯿️‍]",
@@ -563,15 +572,16 @@ def post_instagram_story(image_url):
     )
 
 
-def post_instagram_carousel(public_urls, caption, location_id=None):
+def post_instagram_carousel(public_urls, caption, location_id=None, alt=None):
     """Posta carrossel no Instagram. ATENCAO: IG exige image_url PUBLICA (https) em JPG.
-    location_id (opcional): geotag da cidade (sinal forte de busca hiperlocal)."""
+    location_id (opcional): geotag da cidade (sinal forte de busca hiperlocal).
+    alt (opcional): alt_text de acessibilidade/SEO aplicado a cada slide."""
     children = []
     for u in public_urls:
-        res = _graph_post(
-            f"{GRAPH}/{META_IG_USER_ID}/media",
-            {"image_url": u, "is_carousel_item": "true", "access_token": META_PAGE_TOKEN},
-        )
+        child = {"image_url": u, "is_carousel_item": "true", "access_token": META_PAGE_TOKEN}
+        if alt:
+            child["alt_text"] = alt
+        res = _graph_post(f"{GRAPH}/{META_IG_USER_ID}/media", child)
         children.append(res["id"])
         time.sleep(2)
 
@@ -588,10 +598,10 @@ def post_instagram_carousel(public_urls, caption, location_id=None):
     )
 
 
-def publish_images(prefix, image_paths, caption, location_id=None):
+def publish_images(prefix, image_paths, caption, location_id=None, alt=None):
     """Copia imagens p/ static/social (servidas publicamente) e posta carrossel IG + foto FB.
     Generico: serve tanto p/ noticia quanto p/ Bom dia Vale.
-    location_id (opcional): geotag da cidade no carrossel."""
+    location_id (opcional): geotag da cidade no carrossel. alt (opcional): alt_text SEO."""
     if not _meta_ready():
         raise RuntimeError(
             "Tokens Meta ausentes. Configure META_PAGE_TOKEN, META_IG_USER_ID e "
@@ -608,7 +618,7 @@ def publish_images(prefix, image_paths, caption, location_id=None):
         public_urls.append(f"{PUBLIC_BASE_URL}/static/social/{fname}")
 
     print("   > publicando no Instagram...")
-    ig = post_instagram_carousel(public_urls, caption, location_id=location_id)
+    ig = post_instagram_carousel(public_urls, caption, location_id=location_id, alt=alt)
     if location_id:
         print(f"     📍 geotag: {location_id}")
     print(f"     IG ok: {ig}")
@@ -630,11 +640,13 @@ def publish_images(prefix, image_paths, caption, location_id=None):
     return {"instagram": ig, "facebook": fb, "story": story}
 
 
-def post_instagram_single(image_url, caption, location_id=None):
+def post_instagram_single(image_url, caption, location_id=None, alt=None):
     """Posta UMA imagem no Instagram (feed). Usado por publipost/selo do patrocinador."""
     data = {"image_url": image_url, "caption": caption, "access_token": META_PAGE_TOKEN}
     if location_id:
         data["location_id"] = location_id
+    if alt:
+        data["alt_text"] = alt
     cont = _graph_post(f"{GRAPH}/{META_IG_USER_ID}/media", data)["id"]
     time.sleep(2)
     return _graph_post(f"{GRAPH}/{META_IG_USER_ID}/media_publish",
@@ -663,7 +675,8 @@ def publish_real(news, image_paths, caption):
         loc = geo.location_id(news["city"])
     except Exception:
         loc = None
-    return publish_images(f"n{news['id']}", image_paths, caption, location_id=loc)
+    return publish_images(f"n{news['id']}", image_paths, caption,
+                          location_id=loc, alt=alt_text(news))
 
 
 # ---------------------------------------------------------------- ponto de entrada p/ scheduler

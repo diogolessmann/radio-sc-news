@@ -992,7 +992,7 @@ _ANUNCIE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 <div class=sub>O portal que o Norte de SC acompanha todo dia — Jaraguá do Sul · Schroeder · Guaramirim · Joinville · Corupá.</div>
 
 <div class=stats>
- <div class=stat><b>+99 mil</b><span>visualizações por mês</span></div>
+ <div class=stat><b>+113 mil</b><span>visualizações por mês</span></div>
  <div class=stat><b>Norte de SC</b><span>público 100% local</span></div>
  <div class=stat><b>Diário</b><span>notícia, agenda e bom dia</span></div>
 </div>
