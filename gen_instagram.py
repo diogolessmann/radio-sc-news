@@ -320,8 +320,25 @@ def slide_cover(news, outdir, manchete=None):
     bg = cover_image(None if anti else news["image_url"], news["admin_image"])
     foto_credito = None
     ilustrativa = False
-    # 0) ARSENAL PRÓPRIO: a NOSSA imagem (cidade/situação/categoria) em static/bg/. Prioridade
-    #    máxima depois da foto do admin — é nossa (legal), on-brand e relevante por tema.
+    # foto REAL da matéria (quando ANTI_STRIKE=0): credita a fonte na capa (atribuição). Fontes
+    # litigiosas (OCP/Schroeder) já vêm SEM image_url do coletor, então nunca caem aqui.
+    if bg and not anti and not news["admin_image"] and news["image_url"]:
+        try:
+            foto_credito = news["source"] or None
+        except Exception:
+            foto_credito = None
+    # A) STREET VIEW de LUGAR ESPECÍFICO (prefeitura/câmara/hospital/BR-280) — foto REAL do prédio,
+    #    layout foto+faixa. Só roda quando o título cita o lugar; senão cai no arsenal. SEM mapa.
+    if not bg:
+        try:
+            import streetview
+            _gp, _tipo = streetview.buscar(news, outdir)
+            if _gp:
+                return slide_cover_foto_faixa(news, _gp, outdir, manchete=manchete,
+                                              credito="Imagem: Google Street View")
+        except Exception:
+            pass
+    # B) ARSENAL PRÓPRIO: a NOSSA imagem (cidade/situação/categoria) em static/bg/.
     if not bg:
         try:
             import genericbg
@@ -365,18 +382,6 @@ def slide_cover(news, outdir, manchete=None):
                                (_si.width - W) // 2 + W, (_si.height - H) // 2 + H))
         except Exception:
             pass
-    if not bg:
-        # 2.4) GEO: foto REAL do local (Street View) ou mapa do Google. Layout FOTO+FAIXA (a
-        #      atribuição do Google fica visível; texto não vai por cima) → retorna direto aqui.
-        try:
-            import streetview
-            _gp, _tipo = streetview.buscar(news, outdir)
-            if _gp:
-                _cr = "Imagem: Google Street View" if _tipo == "streetview" else "Mapa: Google"
-                return slide_cover_foto_faixa(news, _gp, outdir, manchete=manchete, credito=_cr)
-        except Exception:
-            pass
-
     _cat = (news["category"] or "").strip().lower()
     if not bg and _cat in _ILUSTRA_CATS:
         # 2.5) IMAGEM LIVRE (Pexels): FOTO REAL ilustrativa SÓ nas categorias onde a imagem
