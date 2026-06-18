@@ -93,7 +93,9 @@ PUBLIC_IMG_DIR = os.path.join("static", "social")  # postagem real serve as imag
 # menores como vitima, crimes sexuais e suicidio — onde um post automatico no tom
 # errado queima a marca ou gera bloqueio na Meta.
 _SENSITIVE_DEFAULT = [
-    r"mort[eoa]s?", r"falec", r"óbit", r"cadáver", r"v[íi]tima fatal", r"corpo encontrad",
+    # morte: pega o VERBO (morre/morreu/morrer/morrem/morreram/morrendo) sem casar "morro" (monte)
+    r"mort[eoa]s?", r"morre", r"morrer", r"falec", r"óbit", r"cadáver",
+    r"v[íi]tima fatal", r"fatal", r"trag[ée]d", r"tr[áa]gic", r"perd\w+ a vida", r"corpo encontrad",
     r"assassin", r"homicíd", r"feminicíd", r"esfaque", r"chacina", r"latrocínio",
     r"suicíd", r"enforcad", r"tirou a própria vida",
     r"estupr", r"abuso sexual", r"pedofil", r"importunç", r"violência sexual",
@@ -247,8 +249,28 @@ def save_channel_payload(conn, news_id, zap_text, media_url):
     conn.commit()
 
 
+def _norm_city(c):
+    t = unicodedata.normalize("NFKD", (c or "").lower())
+    return "".join(ch for ch in t if not unicodedata.combining(ch)).strip()
+
+
+# Cidades de SC FORA da nossa regiao (Norte/Vale do Itapocu) — NAO entram no autopost (poluiam o
+# feed: ex Ararangua/Seara/Gaspar). "Santa Catarina"/"SC"/"Brasil" genericos seguem (statewide/
+# esporte, p/ nao esvaziar). Adicione mais via env FORA_REGIAO_EXTRA (csv).
+_FORA_REGIAO = set(_norm_city(c) for c in (
+    "Ararangua,Seara,Gaspar,Chapeco,Criciuma,Blumenau,Florianopolis,Itajai,Balneario Camboriu,"
+    "Lages,Tubarao,Brusque,Rio do Sul,Concordia,Sao Jose,Palhoca,Biguacu,Itapema,Navegantes,"
+    "Indaial,Pomerode,Joacaba,Videira,Cacador,Imbituba,Laguna,Sao Miguel do Oeste,Xanxere,Camboriu"
+).split(",")) | set(_norm_city(x) for x in _env("FORA_REGIAO_EXTRA").split(",") if x.strip())
+
+
+def _fora_regiao(city):
+    return _norm_city(city) in _FORA_REGIAO
+
+
 def pick_next(conn, only_id=None, limit=1):
-    """Proximas materias ainda nao postadas. Prioriza Norte de SC, depois prioridade/data."""
+    """Proximas materias ainda nao postadas. Prioriza Norte de SC, depois prioridade/data.
+    Corta cidades de SC fora da nossa regiao (Ararangua/Seara/...) pra nao poluir."""
     if only_id:
         return conn.execute("SELECT * FROM news WHERE id=?", (only_id,)).fetchall()
 
@@ -260,7 +282,7 @@ def pick_next(conn, only_id=None, limit=1):
     ).fetchall()
 
     local = [r for r in rows if (r["city"] in gi.NORTE_SC)]
-    rest = [r for r in rows if r["city"] not in gi.NORTE_SC]
+    rest = [r for r in rows if r["city"] not in gi.NORTE_SC and not _fora_regiao(r["city"])]
     ordered = local + rest
     return ordered[:limit]
 
@@ -289,7 +311,7 @@ def pick_urgent(conn, minutes=120, limit=5):
     ).fetchall()
     urg = [r for r in rows if is_urgent(r)]
     local = [r for r in urg if r["city"] in gi.NORTE_SC]
-    rest = [r for r in urg if r["city"] not in gi.NORTE_SC]
+    rest = [r for r in urg if r["city"] not in gi.NORTE_SC and not _fora_regiao(r["city"])]
     return (local + rest)[:limit]
 
 
