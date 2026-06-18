@@ -54,12 +54,14 @@ def _build_prompt(bruto, cidade, fonte, titulo_hint):
              "segundo a fonte.")
     hint = f" Sugestão de manchete (pode melhorar): {titulo_hint}." if titulo_hint else ""
     return (
-        "Você é repórter da Rádio SC News (Norte de SC). Reescreva a informação abaixo como "
-        "uma NOTÍCIA curta em português do Brasil, tom de vizinho bem informado — claro, "
-        "direto, SEM sensacionalismo. NÃO invente nada (principalmente números)." + atrib + hint +
+        "Você é editor da Rádio SC News (Norte de SC). Leia a informação e escreva A NOSSA notícia "
+        "em português do Brasil no estilo TIKTOK: CURTA, direta e punchy — a pessoa lê em ~10 "
+        "segundos e JÁ ENTENDE tudo, sem precisar clicar em nada. Tom de vizinho bem informado, com "
+        "a emoção certa (orgulho na conquista, atenção no alerta), SEM sensacionalismo e SEM "
+        "clickbait. NÃO invente nada (principalmente números)." + atrib + hint +
         " Responda EXATAMENTE neste formato:\n"
-        "TITULO: <manchete forte, sem ponto final>\n"
-        "CORPO: <2 a 4 frases>\n\n"
+        "TITULO: <manchete forte e curta, sem ponto final>\n"
+        "CORPO: <NO MÁXIMO 5 linhas curtas, uma frase punchy por linha; entregue o fato completo>\n\n"
         f"CIDADE: {cidade}\nINFORMAÇÃO BRUTA:\n{bruto}"
     )
 

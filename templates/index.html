@@ -3210,13 +3210,6 @@
         </div>
       </div>
       <div class="tutorial-step">
-        <div class="tutorial-icon">▶️</div>
-        <div>
-          <h3>Ouça as notícias em áudio</h3>
-          <p>Clique em <b>"Ouvir esta notícia em áudio"</b> e um locutor vai ler a notícia pra você.</p>
-        </div>
-      </div>
-      <div class="tutorial-step">
         <div class="tutorial-icon">📺</div>
         <div>
           <h3>Assista TV e ouça Rádio</h3>
@@ -4145,18 +4138,7 @@ function buildNewsCard(n) {
 
   let urgenteHtml = isUrgente ? `<div class="urgente-bar"><div class="urgente-dot"></div> URGENTE</div>` : '';
   let imageHtml   = imgSrc ? `<img class="card-image" src="${escHtml(imgSrc)}" alt="" loading="lazy" onerror="this.style.display='none'">` : '';
-  let audioHtml   = n.audio_file
-    ? `<div class="audio-player">
-        <button class="play-btn" id="play-${n.id}" onclick="togglePlay(${n.id},'${n.audio_file}')">▶</button>
-        <div class="player-info">
-          <div class="player-label">🎧 Ouça a notícia</div>
-          <div class="player-progress" onclick="seekAudio(event,${n.id})">
-            <div class="player-progress-fill" id="prog-${n.id}"></div>
-          </div>
-          <div class="player-time" id="time-${n.id}">0:00</div>
-        </div>
-      </div>`
-    : `<button class="gen-audio-btn" id="genbtn-${n.id}" onclick="generateAndPlay(${n.id},this)">▶ Ouvir esta notícia em áudio</button>`;
+  let audioHtml   = '';   // "ouvir notícia" (TTS) removido do site — ninguém usava (rádio ao vivo continua)
 
   card.innerHTML = `
     ${urgenteHtml}
