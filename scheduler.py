@@ -144,6 +144,17 @@ def segue_job():
         logger.error(f"❌ SEGUE falhou: {e}")
 
 
+def enquete_job():
+    """Enquete do Vale (Story) — gera pergunta + opções + imagem 1x/dia. NÃO posta (o sticker de
+    enquete é colado na mão no app; a Meta não deixa via API). Fica pronta em /admin/enquete."""
+    try:
+        import enquete
+        r = enquete.run()
+        logger.info("🗳️ Enquete do dia gerada: %s (%s / %s)", r.get("pergunta"), r.get("a"), r.get("b"))
+    except Exception as e:
+        logger.error(f"❌ Enquete falhou: {e}")
+
+
 def agenda_job():
     """AGENDA DO VALE — carrossel dos eventos da semana. Pula se não há eventos."""
     try:
@@ -382,6 +393,15 @@ def start_scheduler(interval_minutes=60):
         trigger=CronTrigger(day_of_week='mon,thu', hour=20, minute=0, timezone='America/Sao_Paulo'),
         id='segue_radio',
         name='SEGUE a Rádio (conversão, seg/qui 20h)',
+        replace_existing=True
+    )
+
+    # 🗳️ ENQUETE DO VALE — Story diário de engajamento, pronto às 8h (dono posta + cola o sticker).
+    _scheduler.add_job(
+        func=enquete_job,
+        trigger=CronTrigger(hour=8, minute=0, timezone='America/Sao_Paulo'),
+        id='enquete_vale',
+        name='Enquete do Vale (Story diário, 8h)',
         replace_existing=True
     )
 

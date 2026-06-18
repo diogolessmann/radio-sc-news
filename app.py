@@ -375,6 +375,59 @@ def noticia_permalink(news_id):
                            portal_url=PORTAL_URL)
 
 
+_ENQUETE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>Enquete do Vale</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#0f1016;color:#f2f3f7;font-family:system-ui,Arial;padding:18px;max-width:520px;margin:auto}
+h1{font-size:1.4rem;margin:.2rem 0 1rem} .muted{color:#9aa0ad}
+.q{background:#181a22;border:1px solid #262a36;border-radius:14px;padding:16px;font-size:1.25rem;font-weight:700;margin:10px 0}
+.ops{display:flex;gap:10px;margin:10px 0}
+.op{flex:1;background:#181a22;border:1px solid #2a2f3d;border-radius:12px;padding:14px;text-align:center}
+.op small{color:#9aa0ad;display:block;font-size:.75rem} .op b{font-size:1.25rem}
+img{width:100%;border-radius:14px;border:1px solid #262a36;margin:12px 0}
+.btn{display:block;text-align:center;background:#e74c3c;color:#fff;text-decoration:none;border:0;
+  padding:14px;border-radius:12px;font-weight:700;font-size:1rem;margin:8px 0;width:100%;cursor:pointer}
+.btn.alt{background:#23262f} .passo{background:#15171f;border-left:4px solid #f5c518;border-radius:8px;padding:12px 14px;margin-top:14px;line-height:1.5;font-size:.95rem}
+.passo b{color:#f5c518}
+</style></head><body>
+<h1>🗳️ Enquete do Vale — pronta pra postar</h1>
+{% if e %}
+<div class=muted>Pergunta de hoje:</div>
+<div class=q>{{ e.pergunta }}</div>
+<div class=ops>
+  <div class=op><small>OPÇÃO A</small><b>{{ e.opcao_a }}</b></div>
+  <div class=op><small>OPÇÃO B</small><b>{{ e.opcao_b }}</b></div>
+</div>
+<img src="{{ img }}" alt="Story da enquete">
+<a class=btn href="{{ img }}" download="enquete.png">📥 Baixar imagem do Story</a>
+<form method=post><button class="btn alt" type=submit>🔄 Gerar outra pergunta</button></form>
+<div class=passo>
+  <b>Como postar (10s):</b><br>
+  1) Abre o Story e escolhe esta imagem<br>
+  2) Toca no sticker <b>Enquete</b><br>
+  3) Digita as opções <b>{{ e.opcao_a }}</b> e <b>{{ e.opcao_b }}</b><br>
+  4) Arrasta pro meio (no "VOTA AQUI EMBAIXO") e <b>posta</b>. Pronto! ✅
+</div>
+{% else %}<p>Nenhuma enquete ainda. <form method=post><button class=btn>Gerar a 1ª</button></form></p>{% endif %}
+</body></html>"""
+
+
+@app.route('/admin/enquete', methods=['GET', 'POST'])
+@login_required
+def admin_enquete():
+    """Enquete do Vale pronta pro Story (imagem + opções). O dono posta e cola o sticker nativo."""
+    import enquete
+    if request.method == 'POST':
+        enquete.run()
+        return redirect('/admin/enquete')
+    e = enquete.ultima()
+    if not e:
+        enquete.run()
+        e = enquete.ultima()
+    img = '/' + (e['image_path'] or '').replace('\\', '/') if e else ''
+    return render_template_string(_ENQUETE_HTML, e=e, img=img)
+
+
 @app.route('/manifest.json')
 def manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
