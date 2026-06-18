@@ -571,6 +571,32 @@ def clear_blocked_images(conn):
         return 0
 
 
+def backfill_text(conn, limit=8):
+    """Reescreve aos poucos as notícias ANTIGAS sem o nosso texto (title_own) — converte a base
+    inteira p/ o nosso tom sem rodar tudo de uma vez (um punhado por coleta). Trava BACKFILL_ON."""
+    if os.environ.get("BACKFILL_ON", "1").strip() == "0":
+        return 0
+    try:
+        rows = conn.execute(
+            "SELECT id, title, summary, source, city FROM news "
+            "WHERE active=1 AND (title_own IS NULL OR title_own='') "
+            "ORDER BY datetime(published_at) DESC LIMIT ?", (limit,)
+        ).fetchall()
+    except Exception:
+        return 0
+    n = 0
+    for r in rows:
+        t, c = _reescreve({'title': r['title'], 'summary': r['summary'],
+                           'source': r['source'], 'city': r['city']})
+        if t:
+            conn.execute("UPDATE news SET title_own=?, resumo_own=? WHERE id=?", (t, c, r['id']))
+            n += 1
+    if n:
+        conn.commit()
+        logger.info(f"✍️ backfill: {n} notícia(s) antiga(s) reescrita(s) no nosso tom.")
+    return n
+
+
 def collect_all():
     """Coleta de todos os feeds RSS configurados."""
     # limpeza idempotente: tira imagem de OCP/Schroeder que tenha entrado antes do bloqueio
@@ -586,6 +612,14 @@ def collect_all():
         saved = save_articles(articles)
         total += saved
     logger.info(f"Coleta concluída. Total de novas notícias: {total}")
+    # backfill gradual do texto antigo (converte a base p/ o nosso tom, um pouco por coleta)
+    try:
+        _c = get_db()
+        _ensure_text_cols(_c)
+        backfill_text(_c)
+        _c.close()
+    except Exception:
+        pass
     return total
 
 
