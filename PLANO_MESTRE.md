@@ -15,7 +15,11 @@ Cascata final: **foto do admin → NOSSA imagem (arsenal) → Street View/mapa �
 - ✅ Street View + mapa do Google (foto real do local, layout foto+faixa legal) — chave no ar
 - ✅ Arsenal próprio `static/bg/` (escolhe por situação > cidade > categoria)
 - ✅ Bloqueio de imagem de fonte litigiosa (OCP + Portal de Schroeder/Gabriel). G1 mantido.
-- ⏳👤 Gerar as imagens do arsenal no Nano Banana (textless) e salvar em `static/bg/`
+- ✅ **Arsenal carregado: 31 imagens no ar** (`static/bg/`) — 4 cidades + situações (acidente carro/
+  rodovia, policial, incêndio, temporal, alagamento, neblina, saúde, prefeitura, economia, esporte,
+  evento) com variações. Motor já escolhe pela notícia.
+- ⏳👤 (opcional) Faltam só: `cidade_corupa`, `cidade_geral`, `obra`, `camara`, `escola`, `comercio`
+  (caem no Street View/card até gerar)
 - ⏳👤 Validar o Street View num post real (mandar print)
 
 ## ✍️ PILAR 2 — TEXTO (sempre nosso, com emoção)
