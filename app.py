@@ -355,6 +355,15 @@ def noticia_permalink(news_id):
     # TEXTO NOSSO: site mostra a nossa reescrita (fallback no original se ainda não reescrita)
     n['title'] = n.get('title_own') or n['title']
     n['summary'] = n.get('resumo_own') or n['summary']
+    # IMAGEM NOSSA: notícia sem foto (ex OCP/Schroeder bloqueados) usa o arsenal
+    if not n.get('admin_image') and not n.get('image_url'):
+        try:
+            import genericbg
+            _bp = genericbg.buscar(n)
+            if _bp:
+                n['image_url'] = '/static/bg/' + os.path.basename(_bp)
+        except Exception:
+            pass
     # Imagem para OG: prefere admin_image, depois image_url
     og_image = ''
     if n.get('admin_image'):
@@ -435,6 +444,15 @@ def api_news():
         # TEXTO NOSSO: o feed mostra a nossa reescrita (fallback no original)
         item['title'] = item.get('title_own') or item['title']
         item['summary'] = item.get('resumo_own') or item['summary']
+        # IMAGEM NOSSA no site: notícia sem foto (ex OCP/Schroeder bloqueados) usa o arsenal
+        if not item.get('admin_image') and not item.get('image_url'):
+            try:
+                import genericbg
+                _bp = genericbg.buscar(item)
+                if _bp:
+                    item['image_url'] = '/static/bg/' + os.path.basename(_bp)
+            except Exception:
+                pass
         item['media_files'] = row['media_files'].split(',') if row['media_files'] else []
         news_list.append(item)
 
