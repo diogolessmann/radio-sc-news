@@ -13,6 +13,7 @@ As imagens ficam em static/bg/<slug>.(jpg|jpeg|png|webp). Pode ter variações p
 nós / IA própria) → 100% legal, on-brand e sempre relevante. Dormente até existir imagem.
 Trava BG_ON (default ligado). Ver static/bg/_LEIA-ME.txt pros nomes exatos.
 """
+import glob
 import os
 import re
 import unicodedata
@@ -120,5 +121,12 @@ def buscar(news):
         if p:
             return p
 
-    # 4) genérico do Vale
-    return _file("cidade_geral", seed) or _file("geral", seed)
+    # 4) genérico do Vale: cidade_geral/geral; senão rotaciona entre QUALQUER aérea de cidade que
+    #    exista (melhor uma cidade do Vale "ilustrativa" do que um card vazio na notícia estadual).
+    p = _file("cidade_geral", seed) or _file("geral", seed)
+    if p:
+        return p
+    cidades = sorted(glob.glob(os.path.join(BG_DIR, "cidade_*.jpg")) +
+                     glob.glob(os.path.join(BG_DIR, "cidade_*.jpeg")) +
+                     glob.glob(os.path.join(BG_DIR, "cidade_*.png")))
+    return cidades[seed % len(cidades)] if cidades else None

@@ -42,7 +42,16 @@ SITUAÇÕES (achadas no título):
   comercio.jpg                (loja, feira, mercado)
   evento.jpg                  (festa, show, cultura, festival)
   esporte.jpg                 (futebol, jogo, campeonato)
+  transito.jpg                (interdição, congestionamento, desvio)
+  energia.jpg                 (falta de luz, apagão, blecaute)
+  agua.jpg                    (falta d'água, rodízio, abastecimento)
+  manifestacao.jpg            (protesto, greve, paralisação)
+  animais.jpg                 (resgate de animal, maus-tratos)
+  rural.jpg                   (agricultor, colheita, zona rural)
+  turismo.jpg                 (cachoeira, trilha, ponto turístico)
 
+OBS: se NÃO tiver cidade_geral, notícia "Santa Catarina" rotaciona entre as cidade_*.jpg
+que existirem (não cai mais em card vazio). Mesmo assim, vale gerar um cidade_geral próprio.
 ------------------------------------------------------------
 Trava: BG_ON=0 desliga tudo. Enquanto não tiver imagem, o motor segue pro Street View
 e depois pro card de marca (nada quebra).

@@ -8,13 +8,19 @@ Status: ✅ feito · 🔨 fazendo agora · ⏳ próximo · 🔴 risco aberto · 
 
 ---
 
-## 🖼️ PILAR 1 — IMAGEM (nunca foto de terceiro)
-Cascata final: **foto do admin → NOSSA imagem (arsenal) → Street View/mapa → card de marca**.
+## 🖼️ PILAR 1 — IMAGEM (nunca foto de terceiro litigioso)
+Cascata (modo HÍBRIDO, ANTI_STRIKE=0): **foto REAL da matéria (fonte segura, creditada) →
+Street View do prédio → NOSSA imagem (arsenal) → card de marca**.
 
-- ✅ Card de marca quando não há foto (acabou foto gringa do Pexels sem nexo)
-- ✅ Street View + mapa do Google (foto real do local, layout foto+faixa legal) — chave no ar
-- ✅ Arsenal próprio `static/bg/` (escolhe por situação > cidade > categoria)
-- ✅ Bloqueio de imagem de fonte litigiosa (OCP + Portal de Schroeder/Gabriel). G1 mantido.
+- ✅ **Híbrido ligado (ANTI_STRIKE=0):** usa foto real de fonte segura (G1/ND) com crédito; OCP/
+  Schroeder seguem bloqueados (imagem apagada na coleta).
+- ✅ Street View **só de lugar específico** (câmara/prefeitura/BR-280) — foto do prédio real.
+  **Mapa removido** (era feio/sem nexo).
+- ✅ Arsenal próprio `static/bg/` — **31 imagens no ar** + 7 situações novas wired (transito/energia/
+  água/manifestação/animais/rural/turismo, dormentes até ter imagem). "Santa Catarina" genérico
+  rotaciona entre as aéreas de cidade.
+- ✅ Card de marca como último fallback.
+- ⏳👤 Gerar os buracos: `obra`, `comercio`, `cidade_geral`, `escola`, `camara`, `cidade_corupa` (+ as 7 novas)
 - ✅ **Arsenal carregado: 31 imagens no ar** (`static/bg/`) — 4 cidades + situações (acidente carro/
   rodovia, policial, incêndio, temporal, alagamento, neblina, saúde, prefeitura, economia, esporte,
   evento) com variações. Motor já escolhe pela notícia.
