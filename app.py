@@ -610,9 +610,12 @@ def api_get_audio(news_id):
     # Gera sob demanda
     try:
         from tts_engine import generate_audio
+        _k = news.keys()
+        _title = (news['title_own'] if 'title_own' in _k else None) or news['title']
+        _summary = (news['resumo_own'] if 'resumo_own' in _k else None) or news['summary'] or ''
         audio_file = generate_audio(
-            title=news['title'],
-            summary=news['summary'] or '',
+            title=_title,            # TEXTO NOSSO: o áudio narra a nossa reescrita
+            summary=_summary,
             source=news['source'],
             city=news['city'],
             news_id=news_id,
@@ -1582,9 +1585,12 @@ def admin_generate_audio(news_id):
     
     try:
         from tts_engine import generate_audio
+        _k = news.keys()
+        _title = (news['title_own'] if 'title_own' in _k else None) or news['title']
+        _summary = (news['resumo_own'] if 'resumo_own' in _k else None) or news['summary'] or ''
         audio_file = generate_audio(
-            title=news['title'],
-            summary=news['summary'] or '',
+            title=_title,            # TEXTO NOSSO: o áudio narra a nossa reescrita
+            summary=_summary,
             source=news['source'],
             city=news['city'],
             news_id=news_id,
