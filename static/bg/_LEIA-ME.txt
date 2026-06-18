@@ -26,8 +26,13 @@ CIDADES (a do título da notícia):
   cidade_geral.jpg            (fallback "Vale", quando a cidade não tem imagem)
 
 SITUAÇÕES (achadas no título):
-  acidente_carro.jpg          (batida, colisão, capotamento)
-  acidente_rodovia.jpg        (BR-280, SC-108, caminhão, acostamento)
+  acidente_carro.jpg          (batida, colisão, capotamento de carro)
+  acidente_rodovia.jpg        (acidente em BR-280/SC-108, acostamento)
+  acidente_moto.jpg           (motociclista colide/cai/atropela)
+  acidente_scooter.jpg        (scooter/patinete em acidente)
+  acidente_bicicleta.jpg      (ciclista atropelado/colide)
+  acidente_caminhao.jpg       (caminhão/carreta tomba/bate)
+  acidente_onibus.jpg         (ônibus/coletivo em acidente)
   incendio.jpg                (incêndio, fogo, bombeiros)
   policial.jpg                (polícia, preso, furto, roubo, apreensão)
   temporal.jpg                (temporal, tempestade, chuva, vendaval)

@@ -33,7 +33,15 @@ def _norm(s):
 
 
 # SITUAÇÃO detectada no título → slug do arquivo. Ordem = prioridade (mais específico primeiro).
+# Acidente: o TIPO de veículo tem prioridade. Exige veículo + palavra de acidente (lookahead),
+# pra "linha de ônibus nova" / "moto 0km" NÃO virarem foto de batida.
+_AC = r"(coli|bate|bati|aciden|atropel|tomb|capot|morr|ferid|engav|virou|incend)"
 _SITUACOES = [
+    (rf"(?=.*(motociclista|de moto|motoqueir))(?=.*{_AC})", "acidente_moto"),
+    (rf"(?=.*(scooter|patinete|ciclomotor))(?=.*{_AC})", "acidente_scooter"),
+    (rf"(?=.*(ciclista|bicicleta|de bike))(?=.*{_AC})", "acidente_bicicleta"),
+    (rf"(?=.*(caminh[ãa]o|carreta|bitrem|ca[çc]amba))(?=.*{_AC})", "acidente_caminhao"),
+    (rf"(?=.*([ôo]nibus|coletivo|micro-?[ôo]nibus))(?=.*{_AC})", "acidente_onibus"),
     (r"\bBR[-\s]?\d{2,3}\b|\bSC[-\s]?\d{2,3}\b|rodovia|acostament", "acidente_rodovia"),
     (r"acidente|colis|bati(d|u)|capot|tomba|atropel", "acidente_carro"),
     (r"inc[êe]ndi|fogo|chamas|bombeir", "incendio"),
