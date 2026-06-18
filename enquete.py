@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-enquete.py — "Enquete do Vale" diária pro Story do Instagram (engajamento/participação).
+enquete.py — "Enquete do Vale" diária pro Story (engajamento em cima da NOTÍCIA).
 
-O Instagram NÃO deixa bot colar o sticker de enquete (trava da Meta — só no app, na mão).
-Então o motor faz 90%: escolhe a pergunta + 2 opções e gera a IMAGEM do Story pronta (9:16,
-com espaço pro sticker). O dono posta (10s) e cola a enquete nativa com as 2 opções.
+Modelo (igual o dono faz): pega uma notícia boa de debate, monta o Story com a CAPA da notícia
+(mesma cascata de imagem do feed) e o dono cola o sticker nativo "VOCÊ CONCORDA? Sim/Não".
 
-1x/dia (scheduler) + painel /admin/enquete (imagem pra baixar + opções pra copiar + gerar nova).
+O Instagram NÃO deixa bot colar o sticker (trava da Meta) → semi-automático: o motor faz a arte
+pronta (1x/dia, scheduler) + o dono posta e cola a enquete (10s) via /admin/enquete.
+Fallback: se não houver notícia boa, usa uma pergunta leve do banco local.
 """
 import os
 import re
+import random
 import sqlite3
 from datetime import datetime
 
@@ -19,22 +21,19 @@ DB_PATH = os.environ.get("DB_PATH", "radio_sc.db")
 OUT_DIR = os.path.join("static", "enquete")
 SW, SH = 1080, 1920  # Story 9:16
 
-# Banco de reserva (local, leve, participação) — usado se a IA estiver off. Rotaciona pelo dia.
+# Notícia "de debate" (rende opinião / "você concorda?"): multa, lei, decisão, aumento...
+_DEBATE = re.compile(
+    r"multa|lei\b|proib|aprov|aument|reduz|taxa|decis|pol[êe]mic|veta|obrigat|deveria|cobran|"
+    r"reajust|fecha|libera|restri|sal[áa]rio|imposto|tarifa|projeto|propost", re.IGNORECASE)
+
+# Banco de reserva (pergunta leve/local) — só se não houver notícia boa.
 _BANCO = [
-    ("Café da manhã de domingo: pão com manteiga ou cuca?", "Pão", "Cuca"),
     ("Fim de semana no Vale: praia ou cachoeira?", "Praia", "Cachoeira"),
     ("Frio do Vale pede o quê?", "Cobertor", "Lareira"),
     ("Churrasco de domingo: picanha ou linguiça?", "Picanha", "Linguiça"),
-    ("Festa junina: quentão ou pinhão?", "Quentão", "Pinhão"),
     ("Chimarrão no frio: amargo ou doce?", "Amargo", "Doce"),
     ("Padaria do bairro: sonho ou cuca?", "Sonho", "Cuca"),
-    ("Melhor lugar pra relaxar: praça ou shopping?", "Praça", "Shopping"),
-    ("Pôr do sol mais bonito é em qual cidade?", "Jaraguá", "Schroeder"),
-    ("Trânsito na BR-280: melhorou ou piorou?", "Melhorou", "Piorou"),
-    ("Sextou no Vale: balada ou sofá?", "Balada", "Sofá"),
-    ("Inverno chegando: já tá no agasalho?", "Já tô", "Aguento"),
     ("Café do dia: com ou sem açúcar?", "Com", "Sem"),
-    ("Domingo é dia de: dormir até tarde ou caminhada?", "Dormir", "Caminhada"),
 ]
 
 
@@ -46,42 +45,87 @@ def _db():
 
 def _ensure(conn):
     conn.execute("""CREATE TABLE IF NOT EXISTS enquetes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT, pergunta TEXT,
-        opcao_a TEXT, opcao_b TEXT, image_path TEXT, created_at TEXT)""")
+        id INTEGER PRIMARY KEY AUTOINCREMENT, data TEXT, pergunta TEXT, opcao_a TEXT,
+        opcao_b TEXT, contexto TEXT, image_path TEXT, created_at TEXT)""")
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(enquetes)")]
+    if "contexto" not in cols:
+        conn.execute("ALTER TABLE enquetes ADD COLUMN contexto TEXT")
     conn.commit()
 
 
-def pergunta_do_dia():
-    """(pergunta, A, B). Tenta IA p/ variar todo dia; senão usa o banco rotativo."""
-    prompt = (
-        "Voce e editor da Radio SC News (Norte de SC: Jaragua do Sul, Schroeder, Guaramirim, "
-        "Joinville). Crie UMA enquete curta e divertida pro Story do Instagram que faca o publico "
-        "do Vale querer VOTAR (participacao). Tema leve do cotidiano/local (comida, frio, fim de "
-        "semana, rotina, cidade) - NADA de politica partidaria nem tragedia. 2 opcoes curtas e "
-        "opostas. Responda EXATAMENTE neste formato:\n"
-        "PERGUNTA: <max 10 palavras>\nA: <max 3 palavras>\nB: <max 3 palavras>")
+# ---------------------------------------------------------------- modo NOTÍCIA (principal)
+def escolher_noticia(conn):
+    """Notícia boa pra enquete: recente, local/SC, NÃO sensível (morte/tragédia não combina com
+    'você concorda?'), de preferência de DEBATE. None se não achar."""
     try:
-        import cerebro
-        txt = cerebro.completar(prompt) or ""
-        mp = re.search(r"(?i)pergunta:\s*(.+)", txt)
-        ma = re.search(r"(?im)^\s*A[:)\-]\s*(.+)", txt)
-        mb = re.search(r"(?im)^\s*B[:)\-]\s*(.+)", txt)
-        if mp and ma and mb:
-            p = re.sub(r"\s+", " ", mp.group(1)).strip().strip('"')[:90]
-            a = re.sub(r"\s+", " ", ma.group(1)).strip().strip('"')[:18]
-            b = re.sub(r"\s+", " ", mb.group(1)).strip().strip('"')[:18]
-            if p and a and b:
-                return p, a, b
+        rows = conn.execute(
+            "SELECT * FROM news WHERE active=1 AND title IS NOT NULL AND title!='' "
+            "ORDER BY datetime(published_at) DESC LIMIT 50").fetchall()
     except Exception:
-        pass
-    return _BANCO[datetime.now().timetuple().tm_yday % len(_BANCO)]
+        return None
+    try:
+        import distribuidor
+        seguros = [r for r in rows if not distribuidor.sensitive_reason(r)]
+    except Exception:
+        seguros = list(rows)
+    if not seguros:
+        return None
+    local = [r for r in seguros if r["city"] in gi.NORTE_SC] or seguros
+    debate = [r for r in local if _DEBATE.search(f"{r['title']} {r['summary'] or ''}")]
+    pool = debate or local
+    return random.choice(pool[:12])
 
 
-def gerar_story(pergunta, opcao_a, opcao_b, outdir=OUT_DIR):
-    """Imagem 9:16 do Story, pronta pro dono colar o sticker de enquete no meio."""
+def gerar_story_noticia(news, outdir=OUT_DIR):
+    """Story 9:16 com a CAPA da notícia em cima (reusa toda a cascata de imagem + manchete) e
+    espaço livre embaixo pro sticker 'Você concorda? Sim/Não'."""
     from PIL import Image, ImageDraw
     os.makedirs(outdir, exist_ok=True)
-    # fundo gradiente de marca (escuro -> vinho leve)
+    tmp = os.path.join(outdir, "_cover")
+    os.makedirs(tmp, exist_ok=True)
+    try:
+        import distribuidor
+        flash = distribuidor.flash_manchete(news)
+    except Exception:
+        flash = None
+    cover_path = gi.slide_cover(news, tmp, manchete=flash)        # 1080x1350, com a cascata toda
+    cov = Image.open(cover_path).convert("RGB")
+    if cov.size != (gi.W, gi.H):
+        cov = cov.resize((gi.W, gi.H))
+    cov = cov.crop((0, 0, gi.W, 1235))     # tira a faixa "ARRASTA PARA O LADO" (é Story, não carrossel)
+
+    grad = Image.new("RGB", (1, SH))
+    top, bot = (16, 17, 23), (40, 17, 22)
+    for y in range(SH):
+        t = y / SH
+        grad.putpixel((0, y), tuple(int(top[i] + (bot[i] - top[i]) * t) for i in range(3)))
+    canvas = grad.resize((SW, SH))
+    canvas.paste(cov, (0, 90))                                   # capa no topo (90..1325)
+    d = ImageDraw.Draw(canvas)
+
+    # dica discreta acima do espaço do sticker (que fica ~1430..1730)
+    fh = gi.font(40)
+    hint = "VOTA AÍ EMBAIXO"
+    w = d.textlength(hint, font=fh)
+    d.text(((SW - w) // 2, 1380), hint, font=fh, fill=gi.MUTED)
+
+    # rodapé
+    fm = gi.font(44, impact=True)
+    foot = "E MARCA UM AMIGO DO VALE"
+    w = d.textlength(foot, font=fm)
+    d.rounded_rectangle([(SW - w) // 2 - 36, 1780, (SW + w) // 2 + 36, 1780 + 80], radius=22, fill=gi.RED)
+    d.text(((SW - w) // 2, 1797), foot, font=fm, fill=gi.WHITE)
+
+    path = os.path.join(outdir, "enquete.png")
+    canvas.save(path, quality=92)
+    return path
+
+
+# ---------------------------------------------------------------- modo BANCO (fallback)
+def gerar_story_pergunta(pergunta, outdir=OUT_DIR):
+    """Story de pergunta leve (fallback) — fundo de marca + pergunta + espaço pro sticker."""
+    from PIL import Image, ImageDraw
+    os.makedirs(outdir, exist_ok=True)
     grad = Image.new("RGB", (1, SH))
     top, bot = (16, 17, 23), (46, 18, 24)
     for y in range(SH):
@@ -89,19 +133,13 @@ def gerar_story(pergunta, opcao_a, opcao_b, outdir=OUT_DIR):
         grad.putpixel((0, y), tuple(int(top[i] + (bot[i] - top[i]) * t) for i in range(3)))
     canvas = grad.resize((SW, SH))
     d = ImageDraw.Draw(canvas)
-
-    # brand header
     gi.pill(d, 60, 96, "  " + gi.BRAND + "  ", gi.font(40), gi.RED, gi.WHITE)
     d.ellipse([60 + 18, 96 + 24, 60 + 18 + 22, 96 + 24 + 22], fill=gi.WHITE)
-
-    # selo ENQUETE DO DIA
     fe = gi.font(54, impact=True)
     txt = "ENQUETE DO DIA"
     w = d.textlength(txt, font=fe)
-    d.rounded_rectangle([(SW - w) // 2 - 36, 360, (SW + w) // 2 + 36, 360 + 84], radius=42, fill=gi.GOLD)
+    d.rounded_rectangle([(SW - w) // 2 - 36, 360, (SW + w) // 2 + 36, 444], radius=42, fill=gi.GOLD)
     d.text(((SW - w) // 2, 374), txt, font=fe, fill=gi.BLACK)
-
-    # pergunta (grande, centralizada, adaptativa)
     fq = gi.font(84, impact=True)
     lines = gi.wrap(d, pergunta.upper(), fq, SW - 150)
     for _sz in (76, 68, 60, 54):
@@ -115,47 +153,44 @@ def gerar_story(pergunta, opcao_a, opcao_b, outdir=OUT_DIR):
         w = d.textlength(ln, font=fq)
         d.text(((SW - w) // 2, y0), ln, font=fq, fill=gi.WHITE, stroke_width=2, stroke_fill=gi.BLACK)
         y0 += lh
-
-    # hint de onde vai o sticker (área central livre ~1150-1480)
     fh = gi.font(42)
     hint = "VOTA AQUI EMBAIXO"
     w = d.textlength(hint, font=fh)
     d.text(((SW - w) // 2, 1120), hint, font=fh, fill=gi.MUTED)
-
-    # rodapé: chamada de marcação + handle
     fm = gi.font(46, impact=True)
     foot = "E MARCA UM AMIGO DO VALE"
     w = d.textlength(foot, font=fm)
-    d.rounded_rectangle([(SW - w) // 2 - 40, 1648, (SW + w) // 2 + 40, 1648 + 86], radius=24, fill=gi.RED)
+    d.rounded_rectangle([(SW - w) // 2 - 40, 1648, (SW + w) // 2 + 40, 1734], radius=24, fill=gi.RED)
     d.text(((SW - w) // 2, 1664), foot, font=fm, fill=gi.WHITE)
-    fh2 = gi.font(48)
-    h = "@radioscnews"
-    w = d.textlength(h, font=fh2)
-    d.text(((SW - w) // 2, 1772), h, font=fh2, fill=gi.GOLD)
-
     path = os.path.join(outdir, "enquete.png")
     canvas.save(path, quality=92)
     return path
 
 
+# ---------------------------------------------------------------- entrada
 def run():
-    """Gera a enquete do dia (pergunta + opções + imagem) e salva. NÃO posta (sticker é manual)."""
-    p, a, b = pergunta_do_dia()
-    img = gerar_story(p, a, b)
+    """Gera a enquete do dia. Principal = NOTÍCIA + 'Você concorda? Sim/Não'. Fallback = banco."""
     conn = _db()
     _ensure(conn)
+    news = escolher_noticia(conn)
+    if news is not None:
+        img = gerar_story_noticia(news)
+        pergunta, a, b, contexto = "Você concorda?", "Sim", "Não", news["title"]
+    else:
+        pergunta_banco, a, b = random.choice(_BANCO)
+        img = gerar_story_pergunta(pergunta_banco)
+        pergunta, contexto = pergunta_banco, ""
     conn.execute(
-        "INSERT INTO enquetes (data, pergunta, opcao_a, opcao_b, image_path, created_at) "
-        "VALUES (?,?,?,?,?,?)",
-        (datetime.now().strftime("%Y-%m-%d"), p, a, b, img,
+        "INSERT INTO enquetes (data, pergunta, opcao_a, opcao_b, contexto, image_path, created_at) "
+        "VALUES (?,?,?,?,?,?,?)",
+        (datetime.now().strftime("%Y-%m-%d"), pergunta, a, b, contexto, img,
          datetime.now().isoformat(timespec="seconds")))
     conn.commit()
     conn.close()
-    return {"pergunta": p, "a": a, "b": b, "image": img}
+    return {"pergunta": pergunta, "a": a, "b": b, "contexto": contexto, "image": img}
 
 
 def ultima():
-    """Última enquete gerada (pro painel admin), ou None."""
     conn = _db()
     _ensure(conn)
     r = conn.execute("SELECT * FROM enquetes ORDER BY id DESC LIMIT 1").fetchone()

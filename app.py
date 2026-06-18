@@ -392,21 +392,23 @@ img{width:100%;border-radius:14px;border:1px solid #262a36;margin:12px 0}
 </style></head><body>
 <h1>🗳️ Enquete do Vale — pronta pra postar</h1>
 {% if e %}
-<div class=muted>Pergunta de hoje:</div>
-<div class=q>{{ e.pergunta }}</div>
+{% if e.contexto %}<div class=muted>Enquete sobre esta notícia:</div>
+<div class=q>{{ e.contexto }}</div>{% endif %}
+<div class=muted>No sticker de enquete, digita:</div>
+<div class=q style="font-size:1.05rem">Pergunta: <b>{{ e.pergunta }}</b></div>
 <div class=ops>
   <div class=op><small>OPÇÃO A</small><b>{{ e.opcao_a }}</b></div>
   <div class=op><small>OPÇÃO B</small><b>{{ e.opcao_b }}</b></div>
 </div>
 <img src="{{ img }}" alt="Story da enquete">
 <a class=btn href="{{ img }}" download="enquete.png">📥 Baixar imagem do Story</a>
-<form method=post><button class="btn alt" type=submit>🔄 Gerar outra pergunta</button></form>
+<form method=post><button class="btn alt" type=submit>🔄 Gerar outra</button></form>
 <div class=passo>
   <b>Como postar (10s):</b><br>
   1) Abre o Story e escolhe esta imagem<br>
   2) Toca no sticker <b>Enquete</b><br>
-  3) Digita as opções <b>{{ e.opcao_a }}</b> e <b>{{ e.opcao_b }}</b><br>
-  4) Arrasta pro meio (no "VOTA AQUI EMBAIXO") e <b>posta</b>. Pronto! ✅
+  3) Digita a pergunta <b>{{ e.pergunta }}</b> e as opções <b>{{ e.opcao_a }}</b> / <b>{{ e.opcao_b }}</b><br>
+  4) Arrasta pro espaço livre (no "VOTA AÍ") e <b>posta</b>. Pronto! ✅
 </div>
 {% else %}<p>Nenhuma enquete ainda. <form method=post><button class=btn>Gerar a 1ª</button></form></p>{% endif %}
 </body></html>"""
