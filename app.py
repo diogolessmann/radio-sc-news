@@ -69,6 +69,8 @@ def init_db():
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
             title       TEXT NOT NULL,
             summary     TEXT,
+            title_own   TEXT,
+            resumo_own  TEXT,
             link        TEXT UNIQUE,
             source      TEXT,
             city        TEXT DEFAULT "Santa Catarina",
@@ -350,6 +352,9 @@ def noticia_permalink(news_id):
     if not n:
         return redirect('/', 302)
     n = dict(n)
+    # TEXTO NOSSO: site mostra a nossa reescrita (fallback no original se ainda não reescrita)
+    n['title'] = n.get('title_own') or n['title']
+    n['summary'] = n.get('resumo_own') or n['summary']
     # Imagem para OG: prefere admin_image, depois image_url
     og_image = ''
     if n.get('admin_image'):
@@ -427,6 +432,9 @@ def api_news():
     news_list = []
     for row in news_rows:
         item = dict(row)
+        # TEXTO NOSSO: o feed mostra a nossa reescrita (fallback no original)
+        item['title'] = item.get('title_own') or item['title']
+        item['summary'] = item.get('resumo_own') or item['summary']
         item['media_files'] = row['media_files'].split(',') if row['media_files'] else []
         news_list.append(item)
 

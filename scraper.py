@@ -445,10 +445,43 @@ def fetch_feed(feed_config):
     return articles
 
 
+def _ensure_text_cols(conn):
+    """Garante as colunas do NOSSO texto (reescrita) na tabela news."""
+    try:
+        cols = [r[1] for r in conn.execute("PRAGMA table_info(news)")]
+        if 'title_own' not in cols:
+            conn.execute("ALTER TABLE news ADD COLUMN title_own TEXT")
+        if 'resumo_own' not in cols:
+            conn.execute("ALTER TABLE news ADD COLUMN resumo_own TEXT")
+        conn.commit()
+    except Exception as e:
+        logger.error(f"_ensure_text_cols falhou: {e}")
+
+
+def _reescreve(art):
+    """Reescreve a notícia no NOSSO tom (anti-strike + emoção) via cerebro. (titulo, corpo) ou
+    (None, None) se desligado/IA falhar — aí o site cai no texto original."""
+    if os.environ.get("REWRITE_ON", "1").strip() == "0":
+        return None, None
+    try:
+        import cerebro
+        t, c, _ = cerebro.gerar_texto(
+            art.get('summary') or art.get('title') or '',
+            cidade=art.get('city') or '', fonte=art.get('source') or '',
+            titulo_hint=art.get('title') or '')
+        if t and c:
+            return t.strip()[:500], c.strip()[:2000]
+    except Exception as e:
+        logger.error(f"reescrita falhou p/ '{(art.get('title') or '')[:40]}': {e}")
+    return None, None
+
+
 def save_articles(articles):
     """Salva notícias, ignorando duplicatas. ENRIQUECE (Fase 2): se a duplicata trouxer foto
-    e a versão já salva estiver SEM foto, preenche a foto (não joga a foto fora)."""
+    e a versão já salva estiver SEM foto, preenche a foto (não joga a foto fora).
+    TEXTO NOSSO: reescreve cada notícia nova no tom da Rádio (title_own/resumo_own)."""
     conn = get_db()
+    _ensure_text_cols(conn)
     saved = 0
     # base de comparação: registros recentes (id, título, foto) — p/ dedup E enriquecimento
     try:
@@ -492,12 +525,17 @@ def save_articles(articles):
                     art['summary'] = corpo[:2000]
                     logger.info(f"📝 texto enriquecido p/ '{art['title'][:45]}' ({len(corpo)} chars)")
 
+            # TEXTO NOSSO: reescreve no tom da Rádio (anti-strike + emoção). Site/Insta usam o nosso.
+            title_own, resumo_own = _reescreve(art)
+            if title_own:
+                logger.info(f"✍️ reescrito p/ '{art['title'][:45]}' -> '{title_own[:45]}'")
+
             cur = conn.execute('''
-                INSERT INTO news (title, summary, link, source, city, category,
+                INSERT INTO news (title, summary, title_own, resumo_own, link, source, city, category,
                                   published_at, image_url, priority, audio_file, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
             ''', (
-                art['title'], art['summary'], art['link'],
+                art['title'], art['summary'], title_own, resumo_own, art['link'],
                 art['source'], art['city'], art['category'],
                 art['published_at'], art.get('image_url'), int(art.get('priority', False)),
                 datetime.now().isoformat()
