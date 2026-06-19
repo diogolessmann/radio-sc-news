@@ -62,7 +62,7 @@ _SITUACOES = [
     (r"falta de [áa]gua|sem [áa]gua|rod[íi]zio de [áa]gua|abastecimento de [áa]gua", "agua"),
     (r"internet|sinal de celular|telefonia|telecom|fibra [óo]ptic|banda larga|\b[45]g\b|antena de celular|sem sinal", "internet"),
     (r"manifesta[çc]|protesto|greve|paralisa[çc]", "manifestacao"),
-    (r"zona rural|agricultor|colheita|planta[çc][ãa]o|propriedade rural|agropecu", "rural"),
+    (r"zona rural|agricultor|agricultura|colheita|planta[çc]|plantio|lavoura|safra|propriedade rural|agropecu|\btrator|gado|su[íi]no|avic[óo]l|leiteir", "rural"),
     (r"cachoeira|trilha ecol|parque natural|ponto tur[íi]stic", "turismo"),
     (r"prefeitur|prefeit[oa]", "prefeitura"),
     (r"c[âa]mara|vereador|sess[ãa]o|legislativ", "camara"),
