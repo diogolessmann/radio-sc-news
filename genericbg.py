@@ -47,6 +47,7 @@ _SITUACOES = [
     (r"inc[êe]ndi|fogo|chamas|bombeir", "incendio"),
     (r"resgat\w+ (de )?(animal|c[ãa]o|cachorro|gato)|maus-tratos.{0,12}animal|animal (preso|resgatad|abandonad)", "animais"),
     (r"pol[íi]ci|preso|pres[ao]s|furto|roub|assalt|apreens|delegacia|tr[áa]fico", "policial"),
+    (r"c[âa]mera de seguran|videomonitor|monitorament|vigil[âa]ncia|\bcftv\b|c[âa]meras flagr", "seguranca"),
     (r"dia de chuva|chuvos|garoa|guarda-chuva|pancada de chuva|chuva forte", "chuva"),
     (r"temporal|tempestade|vendaval|granizo|ciclone|ressaca|chuva", "temporal"),
     (r"alagament|enchente|inunda|transbord|cheia do rio", "alagamento"),
@@ -56,6 +57,7 @@ _SITUACOES = [
     (r"buraco|cratera|esburacad|asfalto destru|via destru", "buraco"),
     (r"obra|asfalt|pavimenta|recape|constru[çc]|saneament", "obra"),
     (r"interdi|desvio de tr[áa]fego|tr[âa]nsito (lento|parado|bloquead|interrompid)|bloqueio de (via|rua|avenida)", "transito"),
+    (r"linha de [ôo]nibus|ponto de [ôo]nibus|transporte p[úu]blic|tarifa de [ôo]nibus|terminal urbano|passagem de [ôo]nibus", "transporte"),
     (r"falta de (luz|energia)|apag[ãa]o|blecaute|sem energia", "energia"),
     (r"falta de [áa]gua|sem [áa]gua|rod[íi]zio de [áa]gua|abastecimento de [áa]gua", "agua"),
     (r"internet|sinal de celular|telefonia|telecom|fibra [óo]ptic|banda larga|\b[45]g\b|antena de celular|sem sinal", "internet"),
@@ -71,6 +73,7 @@ _SITUACOES = [
     (r"feira livre|feir[ãa]o|feira de artesan|feira do produtor", "feira"),
     (r"igreja|par[óo]quia|missa|cat[óo]lic|capela|festa religios|romaria", "igreja"),
     (r"lixo|coleta de lixo|entulho|descarte irregular|aterro sanit", "lixo"),
+    (r"natal\b|natalin|papai noel|luzes de natal|decora[çc][ãa]o de natal|ceia de natal", "natal"),
     (r"festa|show|evento|festival|m[úu]sica|arrai|cultura|teatro", "evento"),
     (r"futebol|jogo|campeonat|esporte|t[íi]tulo|copa|atleta", "esporte"),
 ]
