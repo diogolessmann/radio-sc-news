@@ -58,6 +58,7 @@ _SITUACOES = [
     (r"interdi|desvio de tr[áa]fego|tr[âa]nsito (lento|parado|bloquead|interrompid)|bloqueio de (via|rua|avenida)", "transito"),
     (r"falta de (luz|energia)|apag[ãa]o|blecaute|sem energia", "energia"),
     (r"falta de [áa]gua|sem [áa]gua|rod[íi]zio de [áa]gua|abastecimento de [áa]gua", "agua"),
+    (r"internet|sinal de celular|telefonia|telecom|fibra [óo]ptic|banda larga|\b[45]g\b|antena de celular|sem sinal", "internet"),
     (r"manifesta[çc]|protesto|greve|paralisa[çc]", "manifestacao"),
     (r"zona rural|agricultor|colheita|planta[çc][ãa]o|propriedade rural|agropecu", "rural"),
     (r"cachoeira|trilha ecol|parque natural|ponto tur[íi]stic", "turismo"),
