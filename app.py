@@ -402,7 +402,8 @@ img{width:100%;border-radius:14px;border:1px solid #262a36;margin:12px 0}
 </div>
 <img src="{{ img }}" alt="Story da enquete">
 <a class=btn href="{{ img }}" download="enquete.png">📥 Baixar imagem do Story</a>
-<form method=post><button class="btn alt" type=submit>🔄 Gerar outra</button></form>
+<form method=post onsubmit="var b=this.querySelector('button');b.textContent='⏳ Gerando nova... (uns 10s)';b.disabled=true;">
+  <button class="btn alt" type=submit>🔄 Gerar outra</button></form>
 <div class=passo>
   <b>Como postar (10s):</b><br>
   1) Abre o Story e escolhe esta imagem<br>

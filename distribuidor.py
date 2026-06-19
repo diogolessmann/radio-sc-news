@@ -96,7 +96,9 @@ _SENSITIVE_DEFAULT = [
     # morte: pega o VERBO (morre/morreu/morrer/morrem/morreram/morrendo) sem casar "morro" (monte)
     r"mort[eoa]s?", r"morre", r"morrer", r"falec", r"óbit", r"cadáver",
     r"v[íi]tima fatal", r"fatal", r"trag[ée]d", r"tr[áa]gic", r"perd\w+ a vida", r"corpo encontrad",
-    r"assassin", r"homicíd", r"feminicíd", r"esfaque", r"chacina", r"latrocínio",
+    r"assassin", r"\bmat(ou|aram|ando|ad[ao]s?)\b",
+    r"\bmatar\b(?! a (fome|sede|saudade|aula|pau|charada))", r"homicíd", r"feminicíd",
+    r"esfaque", r"chacina", r"latrocínio",
     r"suicíd", r"enforcad", r"tirou a própria vida",
     r"estupr", r"abuso sexual", r"pedofil", r"importunç", r"violência sexual",
     r"criança", r"menino", r"menina", r"bebê", r"recém-nascid", r"adolescente",
