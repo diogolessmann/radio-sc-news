@@ -51,9 +51,13 @@ SITUAÇÕES (achadas no título):
   energia.jpg                 (falta de luz, apagão, blecaute)
   agua.jpg                    (falta d'água, rodízio, abastecimento)
   manifestacao.jpg            (protesto, greve, paralisação)
-  animais.jpg                 (resgate de animal, maus-tratos)
-  rural.jpg                   (agricultor, colheita, zona rural)
-  turismo.jpg                 (cachoeira, trilha, ponto turístico)
+  animais.jpg                 (resgate de animal, maus-tratos, veterinário/pet)
+  rural.jpg                   (agricultor, colheita, zona rural, estufa, trator)
+  turismo.jpg                 (cachoeira, trilha, ponto turístico, mirante)
+  solidariedade.jpg           (doação, campanha do agasalho, arrecadação, voluntário)
+  meioambiente.jpg            (preservação, reciclagem, nascente, reflorestamento)
+  formatura.jpg               (formatura, formando, colação de grau)
+  ponte.jpg                   (ponte, viaduto, passarela)
 
 OBS: se NÃO tiver cidade_geral, notícia "Santa Catarina" rotaciona entre as cidade_*.jpg
 que existirem (não cai mais em card vazio). Mesmo assim, vale gerar um cidade_geral próprio.
