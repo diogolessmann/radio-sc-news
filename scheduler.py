@@ -155,6 +155,17 @@ def enquete_job():
         logger.error(f"❌ Enquete falhou: {e}")
 
 
+def curiosidade_job():
+    """Curiosidade do Vale ('Você Sabia?' das cidades) — gera carrossel próprio 2x/semana pros dias
+    fracos de notícia. NÃO auto-posta (conteúdo novo); fica pronto em /admin/curiosidade."""
+    try:
+        import curiosidades
+        r = curiosidades.run()
+        logger.info("🏛️ Curiosidade gerada: %s — %s", r.get("cidade"), r.get("gancho"))
+    except Exception as e:
+        logger.error(f"❌ Curiosidade falhou: {e}")
+
+
 def agenda_job():
     """AGENDA DO VALE — carrossel dos eventos da semana. Pula se não há eventos."""
     try:
@@ -412,6 +423,16 @@ def start_scheduler(interval_minutes=60):
         trigger=CronTrigger(hour=8, minute=0, timezone='America/Sao_Paulo'),
         id='enquete_vale',
         name='Enquete do Vale (Story diário, 8h)',
+        replace_existing=True
+    )
+
+    # 🏛️ CURIOSIDADE DO VALE — carrossel "Você Sabia?" das cidades, 2x/semana (terça e sábado 9h),
+    # pros dias fracos de notícia. Conteúdo 100% nosso. Não auto-posta: pronto em /admin/curiosidade.
+    _scheduler.add_job(
+        func=curiosidade_job,
+        trigger=CronTrigger(day_of_week='tue,sat', hour=9, minute=0, timezone='America/Sao_Paulo'),
+        id='curiosidade_vale',
+        name='Curiosidade do Vale (Você Sabia?, ter/sáb 9h)',
         replace_existing=True
     )
 

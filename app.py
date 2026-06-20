@@ -439,6 +439,59 @@ def admin_enquete():
     return render_template_string(_ENQUETE_HTML, e=e, img=img)
 
 
+_CURIOSIDADE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>Curiosidade do Vale</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#0f1016;color:#f2f3f7;font-family:system-ui,Arial;padding:18px;max-width:520px;margin:auto}
+h1{font-size:1.35rem;margin:.2rem 0 1rem} .muted{color:#9aa0ad}
+.q{background:#181a22;border:1px solid #262a36;border-radius:14px;padding:16px;font-size:1.2rem;font-weight:700;margin:10px 0}
+img{width:100%;border-radius:14px;border:1px solid #262a36;margin:6px 0}
+.btn{display:block;text-align:center;background:#e74c3c;color:#fff;text-decoration:none;border:0;
+  padding:14px;border-radius:12px;font-weight:700;font-size:1rem;margin:8px 0;width:100%;cursor:pointer}
+.btn.alt{background:#23262f}
+.passo{background:#15171f;border-left:4px solid #f5c518;border-radius:8px;padding:12px 14px;margin-top:14px;line-height:1.5;font-size:.92rem}
+.passo b{color:#f5c518} pre{white-space:pre-wrap;word-wrap:break-word;font-family:inherit;margin:6px 0}
+</style></head><body>
+<h1>🏛️ Curiosidade do Vale — pronta pra postar</h1>
+{% if c %}
+<div class=muted>Carrossel "Você Sabia?" sobre:</div>
+<div class=q>{{ c.cidade }} — {{ c.gancho }}</div>
+{% for s in slides %}<img src="{{ s }}" alt="slide">
+<a class="btn alt" href="{{ s }}" download style="padding:8px;font-size:.85rem">📥 Baixar slide {{ loop.index }}</a>{% endfor %}
+<form method=post onsubmit="var b=this.querySelector('button');b.textContent='⏳ Gerando outra... (uns 8s)';b.disabled=true;">
+  <button class="btn alt" type=submit>🔄 Gerar outra cidade</button></form>
+<div class=passo><b>Legenda (copia e cola):</b><br><pre>{{ legenda }}</pre></div>
+<div class=passo><b>Como postar:</b> baixa os {{ slides|length }} slides na ordem, cria um carrossel
+no Instagram e cola a legenda acima. Posta nos dias fracos de notícia. ✅</div>
+{% else %}<p>Nenhuma ainda. <form method=post><button class=btn>Gerar a 1ª</button></form></p>{% endif %}
+</body></html>"""
+
+
+@app.route('/admin/curiosidade', methods=['GET', 'POST'])
+@login_required
+def admin_curiosidade():
+    """Curiosidade do Vale ('Você Sabia?') — carrossel pronto. O dono revisa, baixa e posta."""
+    import curiosidades, glob as _glob
+    if request.method == 'POST':
+        curiosidades.run()
+        return redirect('/admin/curiosidade')
+    c = curiosidades.ultima()
+    if not c:
+        curiosidades.run()
+        c = curiosidades.ultima()
+    slides, legenda = [], ''
+    if c and c.get('pasta'):
+        pasta = c['pasta']
+        slides = ['/' + p.replace('\\', '/')
+                  for p in sorted(_glob.glob(os.path.join(pasta, 'slide_*.png')))]
+        try:
+            with open(os.path.join(pasta, 'legenda.txt'), encoding='utf-8') as f:
+                legenda = f.read()
+        except Exception:
+            legenda = ''
+    return render_template_string(_CURIOSIDADE_HTML, c=c, slides=slides, legenda=legenda)
+
+
 @app.route('/manifest.json')
 def manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
