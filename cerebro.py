@@ -54,14 +54,19 @@ def _build_prompt(bruto, cidade, fonte, titulo_hint):
              "segundo a fonte.")
     hint = f" Sugestão de manchete (pode melhorar): {titulo_hint}." if titulo_hint else ""
     return (
-        "Você é editor da Rádio SC News (Norte de SC). Leia a informação e escreva A NOSSA notícia "
-        "em português do Brasil no estilo TIKTOK: CURTA, direta e punchy — a pessoa lê em ~10 "
-        "segundos e JÁ ENTENDE tudo, sem precisar clicar em nada. Tom de vizinho bem informado, com "
-        "a emoção certa (orgulho na conquista, atenção no alerta), SEM sensacionalismo e SEM "
-        "clickbait. NÃO invente nada (principalmente números)." + atrib + hint +
+        "Você é editor da Rádio SC News (Norte de SC). Reescreva como A NOSSA notícia em português "
+        "do Brasil, estilo TIKTOK: CURTA, direta e que SEGURA O SCROLL. A pessoa lê em ~10 segundos "
+        "e JÁ ENTENDE tudo, sem clicar em nada.\n"
+        "REGRAS DE GANCHO (pra render no Instagram):\n"
+        "- TÍTULO = um gancho forte e ESPECÍFICO. Pode ser pergunta, número concreto, ou alerta "
+        "local citando a cidade (ex.: 'Morador de Schroeder, atenção'). Curto, sem ponto final, "
+        "SEM clickbait mentiroso (mantém a credibilidade).\n"
+        "- A 1ª linha do CORPO é o SOCO: a informação mais importante primeiro, sem enrolar.\n"
+        "- Tom de vizinho bem informado, com a emoção certa (orgulho na conquista, atenção no "
+        "alerta). SEM sensacionalismo. NÃO invente NADA (principalmente números e datas)." + atrib + hint +
         " Responda EXATAMENTE neste formato:\n"
-        "TITULO: <manchete forte e curta, sem ponto final>\n"
-        "CORPO: <NO MÁXIMO 5 linhas curtas, uma frase punchy por linha; entregue o fato completo>\n\n"
+        "TITULO: <gancho forte e curto, sem ponto final>\n"
+        "CORPO: <NO MÁXIMO 5 linhas curtas, 1 frase punchy por linha; a 1ª linha é o fato principal>\n\n"
         f"CIDADE: {cidade}\nINFORMAÇÃO BRUTA:\n{bruto}"
     )
 
