@@ -212,7 +212,7 @@ def cleanup_job():
         db_path = os.environ.get('DB_PATH', 'radio_sc.db')
         audio_dir = os.environ.get('AUDIO_DIR', 'audio')
 
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path, timeout=10)
         conn.row_factory = sqlite3.Row
 
         # Segurança: só limpa se tiver notícias suficientes recentes (últimas 24h)
@@ -275,7 +275,17 @@ def start_scheduler(interval_minutes=60):
         logger.info("Scheduler já está rodando.")
         return _scheduler
 
-    _scheduler = BackgroundScheduler(timezone='America/Sao_Paulo')
+    # job_defaults: sem isso o APScheduler usa misfire_grace_time=1s — se o Railway reiniciar
+    # (deploy) exatamente na hora de um post (7h/12h/18h/19h), o job some sem rodar. Com 30min
+    # de tolerância + coalesce, o post atrasado AINDA dispara quando o processo volta (1x só).
+    _scheduler = BackgroundScheduler(
+        timezone='America/Sao_Paulo',
+        job_defaults={
+            'misfire_grace_time': 1800,   # tolera até 30min de atraso (deploy/restart)
+            'coalesce': True,             # juntou execuções perdidas → roda 1 vez, não enfileira
+            'max_instances': 1,           # nunca 2 do mesmo job ao mesmo tempo
+        },
+    )
 
     # Coleta a cada hora
     _scheduler.add_job(

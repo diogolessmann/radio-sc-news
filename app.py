@@ -57,13 +57,21 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 # Banco de dados
 # ──────────────────────────────────────────────
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
+    # timeout=10: se o banco estiver travado (coleta escrevendo em paralelo), espera até 10s
+    # em vez de estourar "database is locked" na hora.
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db():
     conn = get_db()
+    # WAL: leituras (web) não travam com escritas (coleta) e vice-versa. É persistente no banco,
+    # então beneficia TODAS as conexões (scraper, distribuidor, etc.), não só esta.
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except Exception:
+        pass
     conn.executescript('''
         CREATE TABLE IF NOT EXISTS news (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,

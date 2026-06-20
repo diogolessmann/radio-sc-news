@@ -143,7 +143,7 @@ def update_live_status(db_path):
     - Se auto_publish=1 e canal entrou ao vivo, cria transmissão automaticamente.
     """
     try:
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(db_path, timeout=10)
         conn.row_factory = sqlite3.Row
 
         channels = conn.execute(
