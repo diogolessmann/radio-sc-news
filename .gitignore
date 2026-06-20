@@ -10,6 +10,8 @@ radio_sc/
 .env
 instagram_posts/
 static/social/
+static/curiosidades/
+static/enquete/
 static/redacao/
 static/.geo_cache.json
 static/redacao/.nb_*
