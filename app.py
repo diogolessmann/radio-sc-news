@@ -492,6 +492,71 @@ def admin_curiosidade():
     return render_template_string(_CURIOSIDADE_HTML, c=c, slides=slides, legenda=legenda)
 
 
+_PLACAR_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>Placar do Vale</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#0f1016;color:#f2f3f7;font-family:system-ui,Arial;padding:18px;max-width:640px;margin:auto}
+h1{font-size:1.35rem;margin:.2rem 0 .4rem} h2{font-size:1.05rem;margin:1.4rem 0 .5rem;color:#f5c518}
+.muted{color:#9aa0ad;font-size:.9rem}
+.resumo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}
+.card{background:#181a22;border:1px solid #262a36;border-radius:12px;padding:12px}
+.card small{color:#9aa0ad;font-size:.7rem;letter-spacing:.04em} .card b{display:block;font-size:1.15rem;margin-top:4px;text-transform:capitalize}
+.row{margin:7px 0} .row .lbl{display:flex;justify-content:space-between;font-size:.92rem;margin-bottom:3px}
+.row .lbl span:first-child{text-transform:capitalize;font-weight:600} .row .lbl span:last-child{color:#9aa0ad;font-size:.8rem}
+.bar{height:22px;background:#181a22;border-radius:6px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#e74c3c,#f5c518);border-radius:6px}
+.post{background:#181a22;border:1px solid #262a36;border-radius:10px;padding:10px 12px;margin:8px 0}
+.post b{font-size:.95rem} .post .meta{color:#9aa0ad;font-size:.78rem;margin-top:4px}
+.empty{background:#15171f;border-left:4px solid #f5c518;border-radius:8px;padding:16px;line-height:1.5}
+.foot{margin-top:18px;font-size:.78rem;color:#6b7280}
+a.back{color:#9aa0ad;text-decoration:none;font-size:.85rem}
+</style></head><body>
+<a class=back href="/admin">&larr; painel</a>
+<h1>📊 Placar do Vale</h1>
+<div class=muted>O que o público mais SALVA e COMPARTILHA. Nota = (saves×3 + shares×4 + coment×2) por 1.000 de alcance.</div>
+{% if not p.tem_dado %}
+<div class=empty>🌱 <b>Ainda juntando dados.</b><br>O motor começa a aprender quando os posts tiverem
+resultado (precisa do autopost ligado + alguns dias de posts). Insights coletados até agora:
+<b>{{ p.n_posts }}</b>. Volta aqui em alguns dias.</div>
+{% else %}
+<div class=resumo>
+  <div class=card><small>TEMA QUE MAIS RENDE</small><b>{{ p.resumo.tema or '—' }}</b></div>
+  <div class=card><small>CIDADE</small><b>{{ p.resumo.cidade or '—' }}</b></div>
+  <div class=card><small>FORMATO</small><b>{{ p.resumo.formato or '—' }}</b></div>
+  <div class=card><small>MELHOR HORÁRIO</small><b>{{ p.resumo.hora or '—' }}</b></div>
+</div>
+{% macro rank(titulo, lst) %}
+{% if lst %}<h2>{{ titulo }}</h2>
+{% set mx = lst[0].score or 1 %}
+{% for it in lst %}<div class=row>
+  <div class=lbl><span>{{ it.nome }}</span><span>nota {{ it.score }} · {{ it.n }} posts · alcance méd {{ it.reach_medio }} · {{ it.saves_medio }} saves</span></div>
+  <div class=bar><i style="width:{{ ((it.score/mx)*100)|round|int }}%"></i></div>
+</div>{% endfor %}{% endif %}
+{% endmacro %}
+{{ rank('Por tema', p.por_categoria) }}
+{{ rank('Por cidade', p.por_cidade) }}
+{{ rank('Por formato', p.por_formato) }}
+{{ rank('Por horário', p.por_hora) }}
+<h2>🏆 Campeões (top posts)</h2>
+{% for t in p.top_posts %}<div class=post>
+  <b>{{ t.titulo }}</b>
+  <div class=meta>nota {{ t.score }} · {{ t.formato }} · {{ t.categoria }} · {{ t.cidade }} ·
+  {{ t.reach }} alcance · {{ t.saves }} saves · {{ t.shares }} shares</div>
+</div>{% endfor %}
+<div class=foot>Baseado em {{ p.n_posts }} posts com insight · atualizado {{ p.gerado_em }}.
+Posts com alcance &lt;20 ficam de fora (ruído).</div>
+{% endif %}
+</body></html>"""
+
+
+@app.route('/admin/placar')
+@login_required
+def admin_placar():
+    """Placar do Vale: o que o público mais salva/compartilha (tema/cidade/formato/horário)."""
+    import placar
+    return render_template_string(_PLACAR_HTML, p=placar.painel())
+
+
 @app.route('/manifest.json')
 def manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
