@@ -557,6 +557,41 @@ def admin_placar():
     return render_template_string(_PLACAR_HTML, p=placar.painel())
 
 
+_RESUMO_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>O Vale em 60s</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#0f1016;color:#f2f3f7;font-family:system-ui,Arial;padding:18px;max-width:520px;margin:auto}
+h1{font-size:1.3rem;margin:.2rem 0 .6rem} .muted{color:#9aa0ad;font-size:.92rem}
+video{width:100%;border-radius:14px;border:1px solid #262a36;margin:12px 0;background:#000}
+.btn{display:block;text-align:center;background:#e74c3c;color:#fff;text-decoration:none;
+  padding:14px;border-radius:12px;font-weight:700;margin:8px 0}
+.passo{background:#15171f;border-left:4px solid #f5c518;border-radius:8px;padding:14px;margin-top:14px;line-height:1.55;font-size:.92rem}
+.passo b{color:#f5c518} pre{white-space:pre-wrap;word-wrap:break-word;font-family:inherit;margin:6px 0}
+a.back{color:#9aa0ad;text-decoration:none;font-size:.85rem}
+</style></head><body>
+<a class=back href="/admin">&larr; painel</a>
+<h1>🎙️ O Vale em 60 segundos</h1>
+{% if r %}
+<video controls preload=metadata src="{{ r.video }}"></video>
+<a class=btn href="{{ r.video }}" download>📥 Baixar vídeo</a>
+<div class=passo><b>Legenda (copia e cola):</b><br><pre>{{ r.legenda }}</pre></div>
+{% else %}
+<div class=passo>🌱 <b>Nenhum resumo gerado ainda.</b><br>
+Esse é o Reels diário "O Vale em 60s" (3 notícias do dia). Ele vem <b>dormente</b>.<br><br>
+Pra LIGAR (gera todo dia 20h30 pra você revisar aqui): no Railway, <b>RESUMO_ON=1</b>.<br>
+Quando aprovar os primeiros e quiser postar automático: <b>RESUMO_POST=1</b>.</div>
+{% endif %}
+</body></html>"""
+
+
+@app.route('/admin/resumo')
+@login_required
+def admin_resumo():
+    """O Vale em 60s: revisa o último Reels-resumo gerado (vídeo + legenda) antes de postar."""
+    import resumo_dia
+    return render_template_string(_RESUMO_HTML, r=resumo_dia.ultimo())
+
+
 @app.route('/manifest.json')
 def manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')

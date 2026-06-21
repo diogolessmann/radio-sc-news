@@ -54,6 +54,25 @@ def reels_job():
         logger.error(f"❌ Reels falhou: {e}")
 
 
+def resumo_job():
+    """🎙️ 'O Vale em 60 segundos' — Reels diário de resumo (3 notícias). DORMENTE até RESUMO_ON=1.
+    Com RESUMO_ON=1 GERA todo dia pra revisão em /admin/resumo; só POSTA se RESUMO_POST=1 (+autopost).
+    Assim o dono aprova os primeiros antes de ir ao ar. Render roda no worker — 1x/dia, horário calmo."""
+    if os.environ.get('RESUMO_ON', '0').strip() != '1':
+        return
+    try:
+        import resumo_dia
+        quer_postar = _autopost_on() and os.environ.get('RESUMO_POST', '0').strip() == '1'
+        r = resumo_dia.run(post=quer_postar)
+        if r.get('ok'):
+            logger.info("🎙️ Resumo do dia %s — %s",
+                        "POSTADO" if r.get('postado') else "gerado (preview p/ revisão)", r.get('titulos'))
+        else:
+            logger.info("💤 Resumo do dia pulado — %s", r.get('motivo'))
+    except Exception as e:
+        logger.error(f"❌ Resumo do dia falhou: {e}")
+
+
 def urgent_news_job():
     """Plantão: posta NA HORA notícia urgente recém-coletada. Só age se autopost ligado."""
     if not _autopost_on():
@@ -353,6 +372,16 @@ def start_scheduler(interval_minutes=60):
             name=f'Reels {_h}h (vídeo narrado IG+FB)',
             replace_existing=True
         )
+
+    # 🎙️ O VALE EM 60 SEGUNDOS — Reels diário de resumo (3 notícias do dia), 20h30. DORMENTE até
+    # RESUMO_ON=1; posta só com RESUMO_POST=1 (senão gera p/ revisão em /admin/resumo).
+    _scheduler.add_job(
+        func=resumo_job,
+        trigger=CronTrigger(hour=20, minute=30, timezone='America/Sao_Paulo'),
+        id='resumo_dia',
+        name='O Vale em 60 segundos (Reels diário de resumo, 20h30)',
+        replace_existing=True
+    )
 
     # ⚽ PALPITE DO VALE (Copa) — checa a cada 2h: posta o vota do jogo + a revela quando acaba.
     _scheduler.add_job(
