@@ -125,6 +125,23 @@ def painel(dias=90):
     }
 
 
+def pesos(dias=90):
+    """Pesos NORMALIZADOS (0..1) por tema e cidade — o que o motor (Fase 2) consulta pra dar
+    bônus de prioridade ao que mais rende. Devolve {} se ainda não há dado (aí o motor não mexe)."""
+    p = painel(dias)
+    if not p.get("tem_dado"):
+        return {}
+
+    def _norm(lst):
+        if not lst:
+            return {}
+        mx = max((x["score"] for x in lst), default=0) or 1.0
+        return {x["nome"]: round(x["score"] / mx, 3) for x in lst}
+
+    return {"categoria": _norm(p.get("por_categoria")), "cidade": _norm(p.get("por_cidade"))}
+
+
 if __name__ == "__main__":
     import json
     print(json.dumps(painel(), ensure_ascii=False, indent=2))
+    print("PESOS:", json.dumps(pesos(), ensure_ascii=False))

@@ -270,9 +270,41 @@ def _fora_regiao(city):
     return _norm_city(city) in _FORA_REGIAO
 
 
+def _aprende_on():
+    """Fase 2 do motor que aprende. DORMENTE por padrao (LEARN_ON=0): sem isso o pick_next se
+    comporta igual a hoje. Liga com LEARN_ON=1 quando o Placar ja tiver dado (semana que vem)."""
+    return os.environ.get("LEARN_ON", "0").strip() == "1"
+
+
+def _ranqueia_aprendido(lista):
+    """Reordena os candidatos pelo que historicamente MAIS RENDE (placar), com trava 80/20:
+    20% das vezes mantem a ordem atual (recencia/prioridade) pra EXPLORAR e nao viciar o feed.
+    Sem LEARN_ON, ou sem dado, devolve a lista intacta (zero mudanca de comportamento)."""
+    if not _aprende_on() or len(lista) < 2:
+        return lista
+    try:
+        import random
+        import placar
+        pesos = placar.pesos()
+        if not pesos:                       # ainda sem dado -> nao mexe
+            return lista
+        if random.random() < 0.2:           # 20% explora: ordem atual
+            return lista
+        cat_w = pesos.get("categoria", {})
+        city_w = pesos.get("cidade", {})
+
+        def _bonus(r):
+            return cat_w.get((r["category"] or "").lower(), 0.0) + 0.5 * city_w.get(r["city"], 0.0)
+
+        return sorted(lista, key=_bonus, reverse=True)
+    except Exception:
+        return lista
+
+
 def pick_next(conn, only_id=None, limit=1):
     """Proximas materias ainda nao postadas. Prioriza Norte de SC, depois prioridade/data.
-    Corta cidades de SC fora da nossa regiao (Ararangua/Seara/...) pra nao poluir."""
+    Corta cidades de SC fora da nossa regiao (Ararangua/Seara/...) pra nao poluir.
+    Com LEARN_ON=1, reordena pelo que mais rende no Instagram (Fase 2, trava 80/20)."""
     if only_id:
         return conn.execute("SELECT * FROM news WHERE id=?", (only_id,)).fetchall()
 
@@ -285,7 +317,7 @@ def pick_next(conn, only_id=None, limit=1):
 
     local = [r for r in rows if (r["city"] in gi.NORTE_SC)]
     rest = [r for r in rows if r["city"] not in gi.NORTE_SC and not _fora_regiao(r["city"])]
-    ordered = local + rest
+    ordered = _ranqueia_aprendido(local) + _ranqueia_aprendido(rest)
     return ordered[:limit]
 
 
