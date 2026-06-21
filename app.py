@@ -592,6 +592,44 @@ def admin_resumo():
     return render_template_string(_RESUMO_HTML, r=resumo_dia.ultimo())
 
 
+_RETRO_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>O Vale na Semana</title>
+<style>
+*{box-sizing:border-box} body{margin:0;background:#0f1016;color:#f2f3f7;font-family:system-ui,Arial;padding:18px;max-width:520px;margin:auto}
+h1{font-size:1.3rem;margin:.2rem 0 .6rem} .muted{color:#9aa0ad;font-size:.92rem}
+img{width:100%;border-radius:14px;border:1px solid #262a36;margin:6px 0}
+.btn{display:block;text-align:center;background:#23262f;color:#fff;text-decoration:none;
+  padding:10px;border-radius:10px;font-weight:700;margin:6px 0;font-size:.85rem}
+.btn.go{background:#e74c3c;padding:14px;font-size:1rem}
+.passo{background:#15171f;border-left:4px solid #f5c518;border-radius:8px;padding:14px;margin-top:14px;line-height:1.55;font-size:.92rem}
+.passo b{color:#f5c518} pre{white-space:pre-wrap;word-wrap:break-word;font-family:inherit;margin:6px 0}
+a.back{color:#9aa0ad;text-decoration:none;font-size:.85rem}
+</style></head><body>
+<a class=back href="/admin">&larr; painel</a>
+<h1>🐇 O Vale na Semana</h1>
+<div class=muted>Retrospectiva de dados (gera sozinha domingo 18h). É só baixar e postar.</div>
+{% if r %}
+<form method=post style=margin:10px:0><button class="btn go" type=submit>🔄 Gerar agora</button></form>
+{% for s in r.slides %}<img src="{{ s }}" alt="slide">
+<a class=btn href="{{ s }}" download>📥 Baixar slide {{ loop.index }}</a>{% endfor %}
+<div class=passo><b>Legenda (copia e cola):</b><br><pre>{{ r.legenda }}</pre></div>
+{% else %}
+<form method=post><button class="btn go" type=submit>Gerar a 1ª retrospectiva</button></form>
+{% endif %}
+</body></html>"""
+
+
+@app.route('/admin/retro', methods=['GET', 'POST'])
+@login_required
+def admin_retro():
+    """O Vale na Semana: retrospectiva de dados (carrossel) pronta pra revisar/baixar/postar."""
+    import retro_semana
+    if request.method == 'POST':
+        retro_semana.run()
+        return redirect('/admin/retro')
+    return render_template_string(_RETRO_HTML, r=retro_semana.ultima())
+
+
 @app.route('/manifest.json')
 def manifest():
     return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')

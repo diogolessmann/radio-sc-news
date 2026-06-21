@@ -185,6 +185,21 @@ def curiosidade_job():
         logger.error(f"❌ Curiosidade falhou: {e}")
 
 
+def retro_job():
+    """🐇 'O Vale na Semana' — retrospectiva de DADOS (carrossel) todo domingo. Conteúdo 100% nosso
+    do próprio banco. NÃO auto-posta (padrão Curiosidade): fica pronto em /admin/retro pro dono postar."""
+    try:
+        import retro_semana
+        r = retro_semana.run()
+        if r.get("ok"):
+            logger.info("🐇 Retrospectiva da semana gerada: %s notícias · %s",
+                        r["numeros"]["total"], r["numeros"]["cidade"])
+        else:
+            logger.info("💤 Retrospectiva pulada — %s", r.get("motivo"))
+    except Exception as e:
+        logger.error(f"❌ Retrospectiva falhou: {e}")
+
+
 def agenda_job():
     """AGENDA DO VALE — carrossel dos eventos da semana. Pula se não há eventos."""
     try:
@@ -425,6 +440,16 @@ def start_scheduler(interval_minutes=60):
         trigger=CronTrigger(day_of_week='fri', hour=19, minute=0, timezone='America/Sao_Paulo'),
         id='publipost_parceiro',
         name='Publipost do parceiro da semana (sexta 19h)',
+        replace_existing=True
+    )
+
+    # 🐇 O VALE NA SEMANA — retrospectiva de DADOS (carrossel) todo domingo 18h. Não auto-posta:
+    # fica pronto em /admin/retro pro dono postar (conteúdo próprio do banco, salvável).
+    _scheduler.add_job(
+        func=retro_job,
+        trigger=CronTrigger(day_of_week='sun', hour=18, minute=0, timezone='America/Sao_Paulo'),
+        id='retro_semana',
+        name='O Vale na Semana (retrospectiva de dados, domingo 18h)',
         replace_existing=True
     )
 
