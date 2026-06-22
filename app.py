@@ -451,9 +451,17 @@ img{width:100%;border-radius:14px;border:1px solid #262a36;margin:6px 0}
 .btn.alt{background:#23262f}
 .passo{background:#15171f;border-left:4px solid #f5c518;border-radius:8px;padding:12px 14px;margin-top:14px;line-height:1.5;font-size:.92rem}
 .passo b{color:#f5c518} pre{white-space:pre-wrap;word-wrap:break-word;font-family:inherit;margin:6px 0}
+input[type=text]{width:100%;background:#0f1015;border:1px solid #2a2e3a;color:#f2f3f7;border-radius:9px;padding:12px;font-size:1rem;margin-bottom:8px}
+.warn{background:#2a1410;border-left:4px solid #e74c3c;border-radius:8px;padding:12px 14px;margin:10px 0;font-size:.92rem;color:#ffb3a3}
 </style></head><body>
 <h1>🏛️ Curiosidade do Vale — pronta pra postar</h1>
+<form method=post onsubmit="var b=this.querySelector('button');b.textContent='⏳ Pesquisando e gerando... (uns 10s)';b.disabled=true;">
+  <input type=text name=tema placeholder="Tema livre: ex. quando a WEG foi fundada? história do nome de Corupá...">
+  <button class=btn type=submit>🔎 Pesquisar tema e gerar</button>
+</form>
 {% if c %}
+{% if c.tema %}<div class=warn>⚠️ <b>Tema livre (gerado por IA):</b> a IA pode errar data/número.
+<b>Confira os fatos</b> com a fonte antes de postar.</div>{% endif %}
 <div class=muted>Carrossel "Você Sabia?" sobre:</div>
 <div class=q>{{ c.cidade }} — {{ c.gancho }}</div>
 {% for s in slides %}<img src="{{ s }}" alt="slide">
@@ -473,7 +481,8 @@ def admin_curiosidade():
     """Curiosidade do Vale ('Você Sabia?') — carrossel pronto. O dono revisa, baixa e posta."""
     import curiosidades, glob as _glob
     if request.method == 'POST':
-        curiosidades.run()
+        tema = (request.form.get('tema') or '').strip()
+        curiosidades.run(tema=tema or None)
         return redirect('/admin/curiosidade')
     c = curiosidades.ultima()
     if not c:

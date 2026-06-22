@@ -122,7 +122,40 @@ def _ensure(conn):
     conn.execute("""CREATE TABLE IF NOT EXISTS curiosidades_log (
         id INTEGER PRIMARY KEY AUTOINCREMENT, cidade TEXT, idx INTEGER,
         gancho TEXT, pasta TEXT, created_at TEXT)""")
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(curiosidades_log)")]
+    if "tema" not in cols:
+        conn.execute("ALTER TABLE curiosidades_log ADD COLUMN tema TEXT")
     conn.commit()
+
+
+def _gerar_tema(tema):
+    """TEMA LIVRE: a IA pesquisa o assunto e devolve (cidade, gancho, [fatos]). Avisa pra conferir
+    (IA pode errar data/número). Fallback que não quebra se a IA falhar."""
+    import json
+    try:
+        import cerebro
+        prompt = (
+            "Você é pesquisador local do Norte de Santa Catarina (Brasil). Crie uma curiosidade no "
+            "estilo 'Você Sabia?' sobre o TEMA abaixo, para um carrossel de Instagram.\n"
+            "REGRAS: 3 a 4 fatos CURTOS e VERDADEIROS. Se você NÃO tiver certeza de uma data ou "
+            "número, NÃO invente — prefira fatos de que tem certeza. Sem opinião, sem repetir.\n"
+            'Responda SÓ um JSON: {"cidade":"<uma de: Jaraguá do Sul, Schroeder, Corupá, Joinville, '
+            'Guaramirim>", "gancho":"<frase curta de capa>", "fatos":["...","...","..."]}\n\n'
+            f"TEMA: {tema}"
+        )
+        out = cerebro.completar(prompt)
+        if out:
+            m = re.search(r"\{.*\}", out, re.S)
+            if m:
+                d = json.loads(m.group(0))
+                cidade = d.get("cidade") if d.get("cidade") in CURIOSIDADES else "Jaraguá do Sul"
+                gancho = (d.get("gancho") or tema).strip()[:80]
+                fatos = [str(f).strip() for f in (d.get("fatos") or []) if str(f).strip()][:4]
+                if fatos:
+                    return cidade, gancho, fatos
+    except Exception:
+        pass
+    return "Jaraguá do Sul", tema.strip()[:80], [tema.strip()]   # fallback bruto
 
 
 def _city_bg(cidade):
@@ -272,14 +305,22 @@ def _legenda(cidade, gancho, fatos):
             f"Segue @radioscnews pra mais do Vale.\n\n{tags.strip()}")
 
 
-def run(post=False):
-    """Gera o carrossel de curiosidade do dia (preview). post=True fica pra quando o dono liberar."""
+def run(post=False, tema=None):
+    """Gera o carrossel de curiosidade. Sem tema = rotaciona o banco curado. COM tema = a IA
+    pesquisa o assunto livre (ex.: 'quando a WEG foi fundada?') e gera — confira os fatos."""
     conn = _db()
     _ensure(conn)
-    cidade, idx, gancho, fatos = escolher(conn)
+    tema = (tema or "").strip()
+    if tema:
+        cidade, gancho, fatos = _gerar_tema(tema)
+        idx = -1
+        sub = (_norm(tema)[:32] or "tema") + "_t"
+    else:
+        cidade, idx, gancho, fatos = escolher(conn)
+        sub = f"{_norm(cidade)}_{idx}"
 
     dia = datetime.now().strftime("%Y-%m-%d")
-    outdir = os.path.join(OUT_BASE, dia, f"{_norm(cidade)}_{idx}")
+    outdir = os.path.join(OUT_BASE, dia, sub)
     os.makedirs(outdir, exist_ok=True)
 
     slides = [_capa(cidade, gancho, _city_bg(cidade), outdir, 1)]
@@ -292,11 +333,11 @@ def run(post=False):
         f.write(legenda)
 
     conn.execute(
-        "INSERT INTO curiosidades_log (cidade, idx, gancho, pasta, created_at) VALUES (?,?,?,?,?)",
-        (cidade, idx, gancho, outdir, datetime.now().isoformat(timespec="seconds")))
+        "INSERT INTO curiosidades_log (cidade, idx, gancho, pasta, tema, created_at) VALUES (?,?,?,?,?,?)",
+        (cidade, idx, gancho, outdir, tema or None, datetime.now().isoformat(timespec="seconds")))
     conn.commit()
     conn.close()
-    return {"cidade": cidade, "gancho": gancho, "slides": slides,
+    return {"cidade": cidade, "gancho": gancho, "slides": slides, "tema": tema or None,
             "pasta": outdir, "legenda": legenda, "postado": False}
 
 
