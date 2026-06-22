@@ -137,8 +137,10 @@ FORMATOS = {
 }
 
 
-def _news(titulo, cidade, categoria):
-    return {"image_url": None, "admin_image": None, "city": cidade,
+def _news(titulo, cidade, categoria, admin_image=None):
+    # admin_image (nome do arquivo em uploads/) tem PRIORIDADE na capa: o cover_image usa a foto
+    # que o dono colou em vez do arsenal/card. None = cai na cascata normal.
+    return {"image_url": None, "admin_image": admin_image, "city": cidade,
             "category": categoria, "title": titulo}
 
 
@@ -160,11 +162,12 @@ def gerar_arte(titulo, corpo, cidade, categoria, slug):
     return outdir, _slides_feed(news, corpo, outdir)
 
 
-def gerar_formato(formato, titulo, corpo, cidade, categoria, slug):
+def gerar_formato(formato, titulo, corpo, cidade, categoria, slug, admin_image=None):
     """Gera o ARTEFATO do formato escolhido. Devolve dict:
        {kind:'none'|'imgs'|'video'|'error', outdir, paths:[...], video:'/...'}.
-       Reusa gen_instagram (imagens) e reels.py (vídeo) — zero dependência nova."""
-    news = _news(titulo, cidade, categoria)
+       admin_image (opcional): foto colada pelo dono → vira a CAPA. Reusa gen_instagram (imagens)
+       e reels.py (vídeo) — zero dependência nova."""
+    news = _news(titulo, cidade, categoria, admin_image)
     outdir = os.path.join("instagram_posts", "redator_" + slug)
     os.makedirs(outdir, exist_ok=True)
 

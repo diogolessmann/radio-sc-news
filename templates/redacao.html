@@ -40,6 +40,11 @@
   .tag{display:inline-block;background:#23262f;color:var(--mut);border-radius:20px;padding:3px 10px;font-size:12px;margin-top:8px}
   .hint{color:var(--mut);font-size:13px;margin-top:6px}
   .empty{color:var(--mut);text-align:center;padding:40px 10px}
+  .dropzone{border:1px dashed #2a2e3a;border-radius:10px;padding:14px;text-align:center;
+    cursor:pointer;background:#0f1015;margin-bottom:4px}
+  .dropzone.has{border-color:var(--gold);background:#13140f}
+  .dropzone img{max-width:100%;max-height:220px;border-radius:8px;display:block;margin:0 auto}
+  .dz-x{display:inline-block;margin-top:8px;color:var(--mut);cursor:pointer;font-size:13px;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -54,6 +59,15 @@
   <div class="box">
     <label>Informação bruta (cole o WhatsApp, release, ou a ideia)</label>
     <textarea id="bruto" placeholder="Ex: O presidente do PT de Schroeder garantiu R$ 700 mil para a saúde..."></textarea>
+
+    <label>Imagem (opcional — vira a capa, já comprimida)</label>
+    <div class="dropzone" id="dropzone">
+      <input type="file" id="imgfile" accept="image/*" style="display:none">
+      <div id="dz_empty">📎 Clique, arraste ou <b>cole (Ctrl+V)</b> a imagem do WhatsApp aqui</div>
+      <img id="dz_preview" style="display:none" alt="prévia">
+      <div id="dz_info" class="hint" style="display:none"></div>
+    </div>
+    <span class="dz-x" id="dz_clear" style="display:none">✕ remover imagem</span>
 
     <div class="row">
       <div><label>Cidade</label><input id="cidade" value="Schroeder"></div>
@@ -131,6 +145,27 @@ document.querySelectorAll('#formatos .brain').forEach(el=>{
 document.getElementById('brainhint').textContent=hints.auto;
 document.getElementById('fmthint').textContent=fmthints.feed;
 
+// ---- imagem: clica, arrasta ou COLA (Ctrl+V) — o servidor comprime ----
+let imgData = '';
+const dz=document.getElementById('dropzone'), imgfile=document.getElementById('imgfile');
+function setImg(url){
+  imgData=url||'';
+  const pv=document.getElementById('dz_preview'), em=document.getElementById('dz_empty'),
+        cl=document.getElementById('dz_clear'), inf=document.getElementById('dz_info');
+  if(imgData){pv.src=imgData;pv.style.display='block';em.style.display='none';dz.classList.add('has');cl.style.display='inline-block';}
+  else{pv.style.display='none';em.style.display='block';dz.classList.remove('has');cl.style.display='none';inf.style.display='none';}
+}
+function readFile(f){ if(!f||!f.type.startsWith('image/'))return;
+  const r=new FileReader(); r.onload=e=>setImg(e.target.result); r.readAsDataURL(f); }
+dz.onclick=()=>imgfile.click();
+imgfile.onchange=e=>readFile(e.target.files[0]);
+document.getElementById('dz_clear').onclick=e=>{e.stopPropagation();setImg('');imgfile.value='';};
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('has');});
+dz.addEventListener('dragleave',()=>{if(!imgData)dz.classList.remove('has');});
+dz.addEventListener('drop',e=>{e.preventDefault();readFile(e.dataTransfer.files[0]);});
+window.addEventListener('paste',e=>{const it=[...((e.clipboardData||{}).items||[])].find(i=>i.type.startsWith('image/'));
+  if(it)readFile(it.getAsFile());});
+
 async function gerar(){
   const bruto=document.getElementById('bruto').value.trim();
   if(!bruto){alert('Cole a informação primeiro.');return;}
@@ -139,9 +174,11 @@ async function gerar(){
   try{
     const r=await fetch('/admin/redacao/gerar',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({bruto,cidade:cidade.value,categoria:categoria.value,
-        fonte:fonte.value,titulo:titulo.value,brain,formato})});
+        fonte:fonte.value,titulo:titulo.value,brain,formato,imagem:imgData})});
     const d=await r.json();
     if(!d.ok){alert('Erro: '+(d.erro||'falhou'));return;}
+    if(d.imagem){const inf=document.getElementById('dz_info');inf.style.display='block';
+      inf.textContent=`✅ comprimida: ${d.imagem.antes_kb} KB → ${d.imagem.depois_kb} KB`;}
     document.getElementById('empty').style.display='none';
     document.getElementById('out').style.display='block';
     const cards=document.getElementById('cards'); cards.innerHTML='';

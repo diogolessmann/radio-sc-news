@@ -995,10 +995,26 @@ def admin_redacao():
     return render_template('redacao.html', brains=brains, categorias=categorias)
 
 
+def _comprimir_upload(raw, prefix="red"):
+    """Comprime a imagem colada (PIL) num JPEG leve em uploads/ — igual o motor do MandaJá,
+    sem precisar subir no imgur. Maior lado <=1600px, qualidade 82. Devolve (filename, kb_antes, kb_depois)."""
+    import time as _t
+    from io import BytesIO
+    from PIL import Image
+    img = Image.open(BytesIO(raw))
+    if img.mode in ("RGBA", "P", "LA"):
+        img = img.convert("RGB")
+    img.thumbnail((1600, 1600), Image.LANCZOS)
+    fname = f"{prefix}_{int(_t.time())}.jpg"
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    img.save(os.path.join(UPLOAD_DIR, fname), "JPEG", quality=82, optimize=True)
+    return fname, len(raw) // 1024, os.path.getsize(os.path.join(UPLOAD_DIR, fname)) // 1024
+
+
 @app.route('/admin/redacao/gerar', methods=['POST'])
 @login_required
 def admin_redacao_gerar():
-    """Recebe info bruta → redator (IA híbrida) → revisor → card. Não publica."""
+    """Recebe info bruta (+ imagem opcional) → redator (IA híbrida) → revisor → arte. Não publica."""
     import os as _os, shutil, time
     data = request.get_json(force=True, silent=True) or {}
     bruto = (data.get('bruto') or '').strip()
@@ -1010,6 +1026,17 @@ def admin_redacao_gerar():
     titulo_hint = (data.get('titulo') or '').strip()
     brain = (data.get('brain') or 'auto').strip()
     formato = (data.get('formato') or 'feed').strip()
+    imagem_b64 = data.get('imagem') or ''
+    # imagem colada (opcional): comprime na hora e usa como CAPA (admin_image)
+    admin_image, img_info = None, None
+    if isinstance(imagem_b64, str) and imagem_b64.startswith('data:'):
+        try:
+            import base64
+            raw = base64.b64decode(imagem_b64.split(',', 1)[1])
+            admin_image, kb0, kb1 = _comprimir_upload(raw)
+            img_info = {'antes_kb': kb0, 'depois_kb': kb1, 'url': f'/uploads/{admin_image}'}
+        except Exception as e:
+            logger.error(f"Redacao: compressao da imagem falhou: {e}")
     try:
         import cerebro, redator
         titulo, corpo, usado = cerebro.gerar_texto(bruto, cidade, fonte, titulo_hint, brain)
@@ -1017,7 +1044,7 @@ def admin_redacao_gerar():
         alertas = redator.revisar(titulo, corpo, fonte)
         # gera o ARTEFATO do formato escolhido (site/story/feed/reels) e expõe p/ preview
         slug = redator._slug(titulo)
-        art = redator.gerar_formato(formato, titulo, corpo, cidade, categoria, slug)
+        art = redator.gerar_formato(formato, titulo, corpo, cidade, categoria, slug, admin_image=admin_image)
         if art.get('kind') == 'error':
             return jsonify({'ok': False, 'erro': art.get('erro', 'falha ao gerar a arte')}), 500
         prev_dir = _os.path.join('static', 'redacao')
@@ -1031,7 +1058,7 @@ def admin_redacao_gerar():
                         'legenda': legenda, 'alertas': alertas, 'cerebro': usado,
                         'formato': formato, 'kind': art.get('kind'),
                         'card_urls': card_urls, 'video_url': art.get('video'),
-                        'n_slides': len(card_urls)})
+                        'n_slides': len(card_urls), 'imagem': img_info})
     except Exception as e:
         logger.error(f"Redacao gerar falhou: {e}")
         return jsonify({'ok': False, 'erro': str(e)}), 500
