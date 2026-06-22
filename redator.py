@@ -127,17 +127,82 @@ def legenda(titulo, corpo, cidade, categoria):
             f"📍 {cidade}  ·  🔊 Leia e ouça no site (link na bio)\n\n" + " ".join(uniq))
 
 # ---- ARTE ------------------------------------------------------------------
-def gerar_arte(titulo, corpo, cidade, categoria, slug):
-    import textwrap
-    news = {"image_url": None, "admin_image": None, "city": cidade,
+# Formatos de saída (rótulo amigável pra UI). A Redação produz o artefato escolhido.
+FORMATOS = {
+    "site": "Só pro site (texto)",
+    "story1": "Story simples (1 imagem)",
+    "story_carrossel": "Story carrossel (3-5, storytelling)",
+    "feed": "Feed (carrossel)",
+    "reels": "Reels com áudio",
+}
+
+
+def _news(titulo, cidade, categoria):
+    return {"image_url": None, "admin_image": None, "city": cidade,
             "category": categoria, "title": titulo}
-    outdir = os.path.join("instagram_posts", "redator_" + slug)
-    os.makedirs(outdir, exist_ok=True)
+
+
+def _slides_feed(news, corpo, outdir):
+    """Carrossel padrão (1080x1350): capa + até 2 slides de texto + CTA (motor oficial)."""
+    import textwrap
     paths = [gi.slide_cover(news, outdir)]
     for i, ch in enumerate(textwrap.wrap(corpo, 300, break_long_words=False)[:2], 1):
         paths.append(gi.slide_text(ch, i, 2, outdir, len(paths) + 1))
     paths.append(gi.slide_cta(news, outdir, len(paths) + 1))
-    return outdir, paths
+    return paths
+
+
+def gerar_arte(titulo, corpo, cidade, categoria, slug):
+    """Compat: gera o carrossel de feed (usado pelo CLI). Devolve (outdir, paths)."""
+    news = _news(titulo, cidade, categoria)
+    outdir = os.path.join("instagram_posts", "redator_" + slug)
+    os.makedirs(outdir, exist_ok=True)
+    return outdir, _slides_feed(news, corpo, outdir)
+
+
+def gerar_formato(formato, titulo, corpo, cidade, categoria, slug):
+    """Gera o ARTEFATO do formato escolhido. Devolve dict:
+       {kind:'none'|'imgs'|'video'|'error', outdir, paths:[...], video:'/...'}.
+       Reusa gen_instagram (imagens) e reels.py (vídeo) — zero dependência nova."""
+    news = _news(titulo, cidade, categoria)
+    outdir = os.path.join("instagram_posts", "redator_" + slug)
+    os.makedirs(outdir, exist_ok=True)
+
+    if formato == "site":                       # só o texto, sem arte
+        return {"kind": "none", "outdir": outdir, "paths": []}
+
+    if formato == "feed":                       # carrossel 1080x1350 (padrão)
+        return {"kind": "imgs", "outdir": outdir, "paths": _slides_feed(news, corpo, outdir)}
+
+    if formato in ("story1", "story_carrossel"):   # 9:16 (1 imagem ou 3-5 storytelling)
+        import reels as rl
+        base = ([gi.slide_cover(news, outdir)] if formato == "story1"
+                else _slides_feed(news, corpo, outdir)[:5])
+        sdir = os.path.join(outdir, "story")
+        os.makedirs(sdir, exist_ok=True)
+        paths = [rl._to_vertical(p, os.path.join(sdir, f"s{i}.jpg")) for i, p in enumerate(base, 1)]
+        return {"kind": "imgs", "outdir": outdir, "paths": paths}
+
+    if formato == "reels":                      # vídeo vertical narrado
+        import reels as rl
+        import tts_engine
+        base = _slides_feed(news, corpo, outdir)
+        vdir = os.path.join(outdir, "vert")
+        os.makedirs(vdir, exist_ok=True)
+        vslides = [rl._to_vertical(p, os.path.join(vdir, f"v{i}.jpg")) for i, p in enumerate(base, 1)]
+        script = re.sub(r"\s+", " ",
+                        f"{titulo}. {corpo} Siga a Rádio SC News e fique por dentro do Vale.").strip()
+        os.makedirs(rl.AUDIO_DIR, exist_ok=True)
+        narr = os.path.join(rl.AUDIO_DIR, f"redator_{slug}.mp3")
+        if not tts_engine.generate_tts(script, narr, category=categoria, prefer_free=True):
+            return {"kind": "error", "erro": "não consegui gerar a narração (TTS)."}
+        pubdir = os.path.join("static", "redacao")
+        os.makedirs(pubdir, exist_ok=True)
+        mp4 = os.path.join(pubdir, f"reel_{slug}.mp4")
+        rl.build_reel(vslides, narr, mp4, caption_script=script, capdir=os.path.join(outdir, "caps"))
+        return {"kind": "video", "outdir": outdir, "video": "/static/redacao/" + os.path.basename(mp4)}
+
+    return {"kind": "imgs", "outdir": outdir, "paths": _slides_feed(news, corpo, outdir)}
 
 # ---- fluxo -----------------------------------------------------------------
 def _slug(t):

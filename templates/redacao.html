@@ -69,6 +69,16 @@
     <label>Manchete (deixe vazio que a IA decide)</label>
     <input id="titulo" placeholder="(opcional)">
 
+    <label>Formato de saída</label>
+    <div class="brains" id="formatos">
+      <div class="brain" data-f="site">🌐 Só site<small>texto</small></div>
+      <div class="brain" data-f="story1">📱 Story<small>1 imagem</small></div>
+      <div class="brain" data-f="story_carrossel">📲 Story carrossel<small>3-5</small></div>
+      <div class="brain on" data-f="feed">🖼️ Feed<small>carrossel</small></div>
+      <div class="brain" data-f="reels">🎬 Reels<small>com áudio</small></div>
+    </div>
+    <p class="hint" id="fmthint"></p>
+
     <label>Cérebro</label>
     <div class="brains" id="brains">
       <div class="brain on" data-b="auto">🤖 Auto<small>melhor disponível</small></div>
@@ -85,7 +95,7 @@
   <div class="box res">
     <div id="empty" class="empty">O post gerado aparece aqui — com card, legenda e alertas do revisor.</div>
     <div id="out" style="display:none">
-      <img id="card" class="card-img" alt="card">
+      <div id="cards"></div>
       <div class="field"><h4>Manchete</h4><div class="v" id="r_titulo"></div></div>
       <div class="field"><h4>Corpo</h4><div class="v" id="r_corpo"></div></div>
       <div class="field"><h4>🔎 Revisor</h4><div id="r_alertas"></div></div>
@@ -101,30 +111,51 @@
 </div>
 
 <script>
-let brain = 'auto';
+let brain = 'auto', formato = 'feed';
 const hints = {auto:'Tenta Gemini → Groq automaticamente, com fallback local.',
   gemini:'Padrão recomendado: bom em PT-BR, já pago.', groq:'Grátis e rápido — bom pra volume.',
   claude:'Premium: use pra texto sensível/estratégico.'};
-document.querySelectorAll('.brain').forEach(el=>{
+const fmthints = {site:'Só o texto + legenda, pronto pro site (sem imagem).',
+  story1:'1 imagem 9:16 pro Story.', story_carrossel:'3 a 5 telas 9:16 (storytelling) pro Story.',
+  feed:'Carrossel 1080x1350 pro feed (capa + texto + CTA).',
+  reels:'Vídeo vertical narrado. ⚠️ o render demora ~1 min.'};
+document.querySelectorAll('#brains .brain').forEach(el=>{
   el.onclick=()=>{ if(el.classList.contains('off'))return;
-    document.querySelectorAll('.brain').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('#brains .brain').forEach(b=>b.classList.remove('on'));
     el.classList.add('on'); brain=el.dataset.b; document.getElementById('brainhint').textContent=hints[brain]; };
 });
+document.querySelectorAll('#formatos .brain').forEach(el=>{
+  el.onclick=()=>{ document.querySelectorAll('#formatos .brain').forEach(b=>b.classList.remove('on'));
+    el.classList.add('on'); formato=el.dataset.f; document.getElementById('fmthint').textContent=fmthints[formato]; };
+});
 document.getElementById('brainhint').textContent=hints.auto;
+document.getElementById('fmthint').textContent=fmthints.feed;
 
 async function gerar(){
   const bruto=document.getElementById('bruto').value.trim();
   if(!bruto){alert('Cole a informação primeiro.');return;}
-  const go=document.getElementById('go'); go.disabled=true; go.textContent='⏳ Gerando...';
+  const go=document.getElementById('go'); go.disabled=true;
+  go.textContent = formato==='reels' ? '⏳ Renderizando vídeo... (~1 min)' : '⏳ Gerando...';
   try{
     const r=await fetch('/admin/redacao/gerar',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({bruto,cidade:cidade.value,categoria:categoria.value,
-        fonte:fonte.value,titulo:titulo.value,brain})});
+        fonte:fonte.value,titulo:titulo.value,brain,formato})});
     const d=await r.json();
     if(!d.ok){alert('Erro: '+(d.erro||'falhou'));return;}
     document.getElementById('empty').style.display='none';
     document.getElementById('out').style.display='block';
-    document.getElementById('card').src=d.card_url+'?t='+Date.now();
+    const cards=document.getElementById('cards'); cards.innerHTML='';
+    if(d.video_url){
+      const v=document.createElement('video'); v.src=d.video_url+'?t='+Date.now();
+      v.controls=true; v.className='card-img'; cards.appendChild(v);
+    } else if(d.card_urls && d.card_urls.length){
+      d.card_urls.forEach(u=>{const im=document.createElement('img');
+        im.src=u+'?t='+Date.now(); im.className='card-img'; cards.appendChild(im);});
+    } else {
+      const n=document.createElement('div'); n.className='hint';
+      n.textContent='🌐 Formato "só site": use o texto e a legenda abaixo — sem imagem.';
+      cards.appendChild(n);
+    }
     document.getElementById('r_titulo').textContent=d.titulo;
     document.getElementById('r_corpo').textContent=d.corpo;
     document.getElementById('r_legenda').textContent=d.legenda;
@@ -132,7 +163,10 @@ async function gerar(){
     (d.alertas||[]).forEach(a=>{const x=document.createElement('div');
       x.className='alert'+(a.startsWith('✓')?' ok':''); x.textContent=a; al.appendChild(x);});
     document.getElementById('r_cerebro').textContent='🧠 cérebro: '+d.cerebro;
-    document.getElementById('r_slides').textContent='🖼️ '+d.n_slides+' slides gerados';
+    const tag={site:'🌐 texto pro site', reels:'🎬 Reels com áudio',
+      story1:'📱 Story (1)', story_carrossel:'📲 Story carrossel ('+d.n_slides+')',
+      feed:'🖼️ Feed ('+d.n_slides+' slides)'}[d.formato] || (d.n_slides+' slides');
+    document.getElementById('r_slides').textContent=tag;
   }catch(e){alert('Falha: '+e);}
   finally{go.disabled=false; go.textContent='✍️ Gerar matéria';}
 }

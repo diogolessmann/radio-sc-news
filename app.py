@@ -1009,22 +1009,29 @@ def admin_redacao_gerar():
     fonte = (data.get('fonte') or '').strip()
     titulo_hint = (data.get('titulo') or '').strip()
     brain = (data.get('brain') or 'auto').strip()
+    formato = (data.get('formato') or 'feed').strip()
     try:
         import cerebro, redator
         titulo, corpo, usado = cerebro.gerar_texto(bruto, cidade, fonte, titulo_hint, brain)
         legenda = redator.legenda(titulo, corpo, cidade, categoria)
         alertas = redator.revisar(titulo, corpo, fonte)
-        # gera os slides (reusa o motor oficial) e copia a CAPA p/ static/redacao (preview)
+        # gera o ARTEFATO do formato escolhido (site/story/feed/reels) e expõe p/ preview
         slug = redator._slug(titulo)
-        outdir, paths = redator.gerar_arte(titulo, corpo, cidade, categoria, slug)
+        art = redator.gerar_formato(formato, titulo, corpo, cidade, categoria, slug)
+        if art.get('kind') == 'error':
+            return jsonify({'ok': False, 'erro': art.get('erro', 'falha ao gerar a arte')}), 500
         prev_dir = _os.path.join('static', 'redacao')
         _os.makedirs(prev_dir, exist_ok=True)
-        fname = f"{slug}_{int(time.time())}.png"
-        shutil.copyfile(paths[0], _os.path.join(prev_dir, fname))
+        card_urls, ts = [], int(time.time())
+        for i, p in enumerate(art.get('paths', []), 1):
+            fname = f"{slug}_{ts}_{i}.png"
+            shutil.copyfile(p, _os.path.join(prev_dir, fname))
+            card_urls.append(f"/static/redacao/{fname}")
         return jsonify({'ok': True, 'titulo': titulo, 'corpo': corpo,
                         'legenda': legenda, 'alertas': alertas, 'cerebro': usado,
-                        'card_url': f"/static/redacao/{fname}", 'n_slides': len(paths),
-                        'pasta_slides': _os.path.abspath(outdir)})
+                        'formato': formato, 'kind': art.get('kind'),
+                        'card_urls': card_urls, 'video_url': art.get('video'),
+                        'n_slides': len(card_urls)})
     except Exception as e:
         logger.error(f"Redacao gerar falhou: {e}")
         return jsonify({'ok': False, 'erro': str(e)}), 500
