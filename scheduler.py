@@ -377,9 +377,12 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
-    # 🎬 Reels (vídeo vertical narrado) — 2x/dia (13h e 19h). Reels = motor de ALCANCE.
-    # ⚠️ o render roda no worker web; manter modesto (2/dia) até mover o render p/ fora.
-    for _h in (13, 19):
+    # 🎬 Reels (vídeo vertical narrado) — motor de ALCANCE (o formato que mais cresce). Configurável
+    # via env REELS_HORAS (horas separadas por vírgula). Default 4x/dia (9,13,16,19), bem espaçado.
+    # ⚠️ o render roda no worker web; pra escalar MUITO (6x+), mover o render p/ fora (risco aberto).
+    _reels_horas = [int(h) for h in os.environ.get('REELS_HORAS', '9,13,16,19').split(',')
+                    if h.strip().isdigit()] or [13, 19]
+    for _h in _reels_horas:
         _scheduler.add_job(
             func=reels_job,
             trigger=CronTrigger(hour=_h, minute=0, timezone='America/Sao_Paulo'),
@@ -518,7 +521,7 @@ def start_scheduler(interval_minutes=60):
     _scheduler.start()
     _ap = "LIGADO" if _autopost_on() else "modo seguro (preview)"
     logger.info(f"✅ Scheduler iniciado — notícias a cada {interval_minutes} min · ao vivo a cada 10 min · "
-                f"limpeza às 3h · Bom dia às 7h · distribuição 12h/18h · Reels às 19h · "
+                f"limpeza às 3h · Bom dia às 7h · distribuição 12h/18h · Reels {len(_reels_horas)}x/dia {_reels_horas} · "
                 f"marcas: Despachante 10h / 4kitem 14h / DL 16h · autopost {_ap}.")
     return _scheduler
 
