@@ -501,8 +501,29 @@ input[type=text]{width:100%;background:#0f1015;border:1px solid #2a2e3a;color:#f
 <form method=post onsubmit="var b=this.querySelector('button');b.textContent='⏳ Gerando outra... (uns 8s)';b.disabled=true;">
   <button class="btn alt" type=submit>🔄 Gerar outra cidade</button></form>
 <div class=passo><b>Legenda (copia e cola):</b><br><pre>{{ legenda }}</pre></div>
-<div class=passo><b>Como postar:</b> baixa os {{ slides|length }} slides na ordem, cria um carrossel
-no Instagram e cola a legenda acima. Posta nos dias fracos de notícia. ✅</div>
+<div style="margin-top:14px;background:#101a12;border:1px solid #1d4d2a;border-radius:12px;padding:14px">
+  <h3 style="margin:0 0 8px;font-size:1.05rem">📤 Postar no Instagram agora</h3>
+  {% if c.tema %}<label style="display:flex;gap:8px;align-items:center;margin-bottom:10px;color:#ffb3a3;font-size:.92rem;cursor:pointer">
+    <input type=checkbox id=confok> <span>Conferi os fatos (a IA pode errar data/número)</span></label>{% endif %}
+  <button class=btn style="background:#27ae60" id=btnpostcur onclick="postarCur(this)">📤 Postar carrossel no Instagram</button>
+  <p id=curmsg style="display:none;margin-top:8px;font-weight:700"></p>
+  <div class=muted style="font-size:.82rem;margin-top:4px">Ou baixa os slides acima e posta na mão.</div>
+</div>
+<script>
+function postarCur(btn){
+  var chk=document.getElementById('confok');
+  if(chk && !chk.checked){alert('Marca que conferiste os fatos antes de postar.');return;}
+  if(!confirm('Postar o carrossel no Instagram agora? PUBLICA de verdade na conta da Rádio.'))return;
+  btn.disabled=true; btn.textContent='⏳ Postando carrossel...';
+  var m=document.getElementById('curmsg'); m.style.display='none';
+  fetch('/admin/curiosidade/postar',{method:'POST'}).then(r=>r.json()).then(d=>{
+    m.style.display='block';
+    m.textContent = d.ok ? ('✅ Carrossel postado! ('+d.tipo+') Já tá no ar.') : ('❌ '+(d.erro||'falhou'));
+    m.style.color = d.ok ? '#27ae60' : '#e74c3c';
+  }).catch(e=>{m.style.display='block';m.textContent='❌ Falha: '+e;m.style.color='#e74c3c';})
+   .finally(()=>{btn.disabled=false; btn.textContent='📤 Postar carrossel no Instagram';});
+}
+</script>
 {% else %}<p>Nenhuma ainda. <form method=post><button class=btn>Gerar a 1ª</button></form></p>{% endif %}
 </body></html>"""
 
@@ -531,6 +552,33 @@ def admin_curiosidade():
         except Exception:
             legenda = ''
     return render_template_string(_CURIOSIDADE_HTML, c=c, slides=slides, legenda=legenda)
+
+
+@app.route('/admin/curiosidade/postar', methods=['POST'])
+@login_required
+def admin_curiosidade_postar():
+    """Posta o carrossel de curiosidade ATUAL no Instagram (feed) + Facebook. É carrossel comum →
+    a API permite (diferente do sticker de enquete). Ação manual do dono (botão + confirmação)."""
+    import curiosidades, glob as _glob, os as _os, time as _t
+    c = curiosidades.ultima()
+    if not c or not c.get('pasta'):
+        return jsonify({'ok': False, 'erro': 'Gera uma curiosidade primeiro.'}), 400
+    slides = sorted(_glob.glob(_os.path.join(c['pasta'], 'slide_*.png')))
+    if not slides:
+        return jsonify({'ok': False, 'erro': 'Sem slides pra postar.'}), 400
+    legenda = ''
+    try:
+        with open(_os.path.join(c['pasta'], 'legenda.txt'), encoding='utf-8') as f:
+            legenda = f.read()
+    except Exception:
+        pass
+    try:
+        import distribuidor as dist
+        dist.publish_images(f"curiosidade_{int(_t.time())}", slides, legenda)
+        return jsonify({'ok': True, 'tipo': f'carrossel {len(slides)} slides'})
+    except Exception as e:
+        logger.error(f"Curiosidade postar falhou: {e}")
+        return jsonify({'ok': False, 'erro': str(e)}), 500
 
 
 _PLACAR_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>

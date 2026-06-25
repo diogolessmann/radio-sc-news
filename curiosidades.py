@@ -266,7 +266,7 @@ def _cta(cidade, outdir, n):
         y += int(fbig.size * 1.06)
 
     y += 56
-    mark = "COMENTA 👇 E COMPARTILHA"
+    mark = "COMENTA E COMPARTILHA"
     fm = gi.font(38)
     w = d.textlength(mark, font=fm)
     d.rounded_rectangle([(gi.W - w) // 2 - 34, y - 14, (gi.W + w) // 2 + 34, y + 62], radius=20, fill=gi.RED)
