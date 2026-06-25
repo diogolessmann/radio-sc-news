@@ -134,16 +134,25 @@ def _gerar_tema(tema):
     import json
     try:
         import cerebro
+        modelo = (os.environ.get("CURIOSIDADE_MODEL", "") or "").strip() or None  # ex: gemini-2.5-pro
         prompt = (
-            "Você é pesquisador local do Norte de Santa Catarina (Brasil). Crie uma curiosidade no "
-            "estilo 'Você Sabia?' sobre o TEMA abaixo, para um carrossel de Instagram.\n"
-            "REGRAS: 3 a 4 fatos CURTOS e VERDADEIROS. Se você NÃO tiver certeza de uma data ou "
-            "número, NÃO invente — prefira fatos de que tem certeza. Sem opinião, sem repetir.\n"
-            'Responda SÓ um JSON: {"cidade":"<uma de: Jaraguá do Sul, Schroeder, Corupá, Joinville, '
-            'Guaramirim>", "gancho":"<frase curta de capa>", "fatos":["...","...","..."]}\n\n'
+            "Você é pesquisador e roteirista de conteúdo viral, especialista na HISTÓRIA e CULTURA do "
+            "Norte de Santa Catarina (Brasil). Crie uma curiosidade IRRESISTÍVEL no estilo 'Você Sabia?' "
+            "sobre o TEMA abaixo, pra um carrossel de Instagram que o povo do Vale vai QUERER compartilhar.\n"
+            "PADRÃO (seja BRABO):\n"
+            "- Gancho de capa curioso e ESPECÍFICO (desperta o 'eu não sabia disso!'), nunca genérico.\n"
+            "- 4 fatos SURPREENDENTES e verdadeiros, cada um com um detalhe CONCRETO (um número, um nome, "
+            "uma data, um porquê). PROIBIDO frase de dicionário ('é uma cidade do sul...'). Vá pro "
+            "inesperado, curioso, motivo de orgulho local.\n"
+            "- Tom de quem conta um segredo bom pro vizinho: claro, gostoso de ler, com personalidade.\n"
+            "RIGOR (inegociável): se NÃO tiver certeza de uma data/número/nome, NÃO invente — troque por "
+            "um fato de que tem certeza. Melhor 3 certos que 4 com um errado.\n"
+            'Responda SÓ um JSON válido: {"cidade":"<a mais ligada ao tema, uma de: Jaraguá do Sul, '
+            'Schroeder, Corupá, Joinville, Guaramirim>", "gancho":"<frase de capa, até 9 palavras>", '
+            '"fatos":["...","...","...","..."]}\n\n'
             f"TEMA: {tema}"
         )
-        out = cerebro.completar(prompt)
+        out = cerebro.completar(prompt, model=modelo)
         if out:
             m = re.search(r"\{.*\}", out, re.S)
             if m:

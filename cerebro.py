@@ -94,11 +94,11 @@ def _groq(prompt):
         return None
 
 
-def _gemini(prompt):
+def _gemini(prompt, model=None):
     if not GEMINI_API_KEY:
         return None
     url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
-           f"{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}")
+           f"{model or GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}")
     cfg = {"temperature": 0.4, "maxOutputTokens": 700}
     # Modelos 2.5 são "thinking" e gastam o orçamento pensando — desliga (é só reescrever).
     # 1ª tentativa com thinking OFF; se o modelo não suportar, refaz sem o campo (modelos 1.5/2.0).
@@ -143,13 +143,13 @@ def _claude(prompt):
 _BACKENDS = {"groq": _groq, "gemini": _gemini, "claude": _claude}
 
 
-def completar(prompt, brain="auto"):
+def completar(prompt, brain="auto", model=None):
     """Roteia um PROMPT qualquer pro melhor cérebro e devolve o TEXTO cru.
     auto = Gemini -> Groq. None se nenhum responder (quem chama trata o fallback).
-    Usado pelo autopost (distribuidor/marcas) p/ reusar os mesmos cérebros da Redação."""
+    model (opcional): força um modelo Gemini específico só nesta chamada (ex: premium pago)."""
     ordem = [brain] if brain in _BACKENDS else ["gemini", "groq"]
     for nome in ordem:
-        out = _BACKENDS[nome](prompt)
+        out = _gemini(prompt, model) if (nome == "gemini" and model) else _BACKENDS[nome](prompt)
         if out:
             return out.strip()
     return None
