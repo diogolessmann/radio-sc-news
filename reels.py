@@ -88,7 +88,7 @@ def _caption_images(script, total, capdir):
     nova: PIL desenha (transparente), o moviepy só sobrepõe — evita o ImageMagick do TextClip.
     Devolve [(png, inicio_seg, duracao_seg)]."""
     from PIL import Image, ImageDraw
-    words = [w for w in re.sub(r"\s+", " ", (script or "")).strip().split(" ") if w]
+    words = [w for w in re.sub(r"\s+", " ", gi._semoji(script or "")).strip().split(" ") if w]
     if not words:
         return []
     grupos = [" ".join(words[i:i + 3]) for i in range(0, len(words), 3)]

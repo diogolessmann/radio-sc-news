@@ -140,9 +140,30 @@ def get_db():
     return conn
 
 
+# Emoji/símbolos que o PIL (DejaVu) NÃO renderiza viram quadradinho (tofu) na imagem.
+# A IA às vezes mete emoji na manchete -> tofu em TODA capa. Tiramos do texto DESENHADO
+# (a legenda do Instagram, que é texto de verdade, mantém os emojis).
+_EMOJI = re.compile(
+    "[\U0001F000-\U0001FAFF"   # emoticons, pictogramas, transporte, suplementar
+    "\U00002600-\U000027BF"    # símbolos diversos + dingbats
+    "\U00002B00-\U00002BFF"    # estrelas/setas diversas
+    "\U0001F1E6-\U0001F1FF"    # bandeiras
+    "\U00002190-\U000021FF"    # setas unicode (usamos -> em ascii)
+    "\U00002300-\U000023FF"    # técnicos (⏰⌛ etc.)
+    "\U0000FE00-\U0000FE0F"    # seletores de variação
+    "\U0000200D\U000020E3\U00002122\U00002139]+", flags=re.UNICODE)
+
+
+def _semoji(s):
+    """Tira emoji/símbolos não-renderáveis do TEXTO DA IMAGEM (vira quadradinho no PIL)."""
+    if not s:
+        return s
+    return re.sub(r"\s{2,}", " ", _EMOJI.sub("", s)).strip()
+
+
 def wrap(draw, text, fnt, max_w):
-    """Quebra texto em linhas que cabem em max_w pixels."""
-    words = text.split()
+    """Quebra texto em linhas que cabem em max_w pixels. Tira emoji (PIL não renderiza -> tofu)."""
+    words = _semoji(text).split()
     lines, cur = [], ""
     for wd in words:
         test = (cur + " " + wd).strip()
@@ -166,6 +187,7 @@ def draw_lines(draw, lines, fnt, x, y, fill, line_h, stroke=0, stroke_fill=BLACK
 
 
 def pill(draw, x, y, text, fnt, bg, fg, pad_x=26, pad_y=14):
+    text = _semoji(text)
     w = draw.textlength(text, font=fnt)
     asc, desc = fnt.getmetrics()
     th = asc + desc
