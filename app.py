@@ -436,6 +436,27 @@ input{width:100%;background:#0f1015;border:1px solid #2a2e3a;color:#f2f3f7;borde
   3) Digita a pergunta <b>{{ e.pergunta }}</b> e as opções <b>{{ e.opcao_a }}</b> / <b>{{ e.opcao_b }}</b><br>
   4) Arrasta pro espaço livre (no "VOTA AÍ") e <b>posta</b>. Pronto! ✅
 </div>
+<div class=card style="margin-top:16px">
+  <h3>📤 Ou: postar no FEED agora (sem app)</h3>
+  <div class=muted style="margin-bottom:10px">Vira um post no feed onde a galera vota por <b>comentário</b>
+  (1 ou 2). Posta sozinho daqui — comentário puxa muito alcance. Não é o clique nativo, mas é automático.</div>
+  <button class=btn style="background:#27ae60" onclick="postarFeed(this)">📤 Postar enquete no Feed agora</button>
+  <p id=feedmsg style="display:none;margin-top:8px;font-weight:700"></p>
+</div>
+<script>
+async function postarFeed(btn){
+  if(!confirm('Postar a enquete no FEED do Instagram agora? (voto por comentário) — PUBLICA de verdade.'))return;
+  btn.disabled=true; btn.textContent='⏳ Postando no feed...';
+  var m=document.getElementById('feedmsg'); m.style.display='none';
+  try{
+    const r=await fetch('/admin/enquete/postar_feed',{method:'POST'});
+    const d=await r.json(); m.style.display='block';
+    m.textContent = d.ok ? '✅ Enquete postada no feed! Já tá no ar.' : ('❌ '+(d.erro||'falhou'));
+    m.style.color = d.ok ? '#27ae60' : '#e74c3c';
+  }catch(e){m.style.display='block';m.textContent='❌ Falha: '+e;m.style.color='#e74c3c';}
+  finally{btn.disabled=false; btn.textContent='📤 Postar enquete no Feed agora';}
+}
+</script>
 {% else %}<p>Nenhuma enquete ainda. <form method=post><button class=btn>Gerar a 1ª</button></form></p>{% endif %}
 </body></html>"""
 
@@ -457,6 +478,17 @@ def admin_enquete():
         e = enquete.ultima()
     img = '/' + (e['image_path'] or '').replace('\\', '/') if e else ''
     return render_template_string(_ENQUETE_HTML, e=e, img=img)
+
+
+@app.route('/admin/enquete/postar_feed', methods=['POST'])
+@login_required
+def admin_enquete_postar_feed():
+    """Posta a enquete atual como comment-poll no FEED (auto, sem app). Voto por comentário."""
+    import enquete
+    e = enquete.ultima()
+    if not e:
+        return jsonify({'ok': False, 'erro': 'Gera uma enquete primeiro.'}), 400
+    return jsonify(enquete.postar_feed(e['pergunta'], e['opcao_a'] or 'Sim', e['opcao_b'] or 'Não'))
 
 
 _CURIOSIDADE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>

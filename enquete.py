@@ -167,6 +167,78 @@ def gerar_story_pergunta(pergunta, outdir=OUT_DIR):
     return path
 
 
+# ---------------------------------------------------------------- ENQUETE NO FEED (comment-poll)
+def gerar_card_feed(pergunta, a="Sim", b="Não", outdir=OUT_DIR):
+    """Card 1080x1350 pro FEED — enquete por COMENTÁRIO (auto-postável pela página, sem app).
+    Pergunta + opções numeradas + 'comenta 1 ou 2'. Comentário puxa MUITO alcance no algoritmo."""
+    from PIL import Image, ImageDraw
+    os.makedirs(outdir, exist_ok=True)
+    W, H = gi.W, gi.H
+    canvas = Image.new("RGB", (W, H), gi.BG)
+    d = ImageDraw.Draw(canvas)
+    gi.brand_header(d)
+
+    fs = gi.font(44, impact=True)
+    seal = "ENQUETE DO VALE"
+    sw = d.textlength(seal, font=fs)
+    d.rounded_rectangle([(W - sw) // 2 - 30, 150, (W + sw) // 2 + 30, 220], radius=34, fill=gi.GOLD)
+    d.text(((W - sw) // 2, 162), seal, font=fs, fill=gi.BLACK)
+
+    fq = gi.font(74, impact=True)
+    lines = gi.wrap(d, pergunta.upper(), fq, W - 130)
+    for _sz in (64, 56, 50, 44):
+        if len(lines) <= 4:
+            break
+        fq = gi.font(_sz, impact=True); lines = gi.wrap(d, pergunta.upper(), fq, W - 130)
+    lh = int(fq.size * 1.12)
+    y = 320
+    for ln in lines[:5]:
+        w = d.textlength(ln, font=fq)
+        d.text(((W - w) // 2, y), ln, font=fq, fill=gi.WHITE, stroke_width=2, stroke_fill=gi.BLACK)
+        y += lh
+
+    y = max(y + 40, 740)
+    for num, opt in (("1", a), ("2", b)):
+        d.rounded_rectangle([90, y, W - 90, y + 110], radius=18, fill=gi.CARD)
+        d.ellipse([122, y + 25, 182, y + 85], fill=gi.GOLD)
+        fn = gi.font(46, impact=True); nw = d.textlength(num, font=fn)
+        d.text((152 - nw / 2, y + 30), num, font=fn, fill=gi.BLACK)
+        d.text((212, y + 28), opt[:24], font=gi.font(48, impact=True), fill=gi.WHITE)
+        y += 138
+
+    fc = gi.font(46, impact=True)
+    cta = "COMENTA 1 OU 2 EMBAIXO"
+    w = d.textlength(cta, font=fc)
+    d.rounded_rectangle([(W - w) // 2 - 30, y + 30, (W + w) // 2 + 30, y + 110], radius=22, fill=gi.RED)
+    d.text(((W - w) // 2, y + 46), cta, font=fc, fill=gi.WHITE)
+
+    fh = gi.font(40)
+    handle = "@radioscnews"
+    w = d.textlength(handle, font=fh)
+    d.text(((W - w) // 2, H - 86), handle, font=fh, fill=gi.GOLD)
+
+    path = os.path.join(outdir, "enquete_feed.png")
+    canvas.save(path, quality=92)
+    return path
+
+
+def postar_feed(pergunta, a="Sim", b="Não"):
+    """Gera o card de feed e POSTA no Instagram (feed) + Facebook. Voto por comentário. Exige tokens
+    Meta. Ação manual do dono (botão). Devolve {ok, image, erro}."""
+    import distribuidor as dist
+    img = gerar_card_feed(pergunta, a, b)
+    cap = (f"🗳️ ENQUETE DO VALE\n\n{pergunta}\n\n"
+           f"1️⃣ {a}\n2️⃣ {b}\n\n"
+           f"Comenta 1 ou 2 aqui embaixo 👇 e marca um amigo do Vale pra votar também!\n"
+           f"Segue @radioscnews pra mais do Vale.\n\n"
+           f"#radioscnews #norteSC #valedoitapocu #enquete")
+    try:
+        dist.publish_single("enquete_feed", img, cap)
+        return {"ok": True, "image": img}
+    except Exception as e:
+        return {"ok": False, "erro": str(e), "image": img}
+
+
 # ---------------------------------------------------------------- entrada
 def run(pergunta=None, a=None, b=None, contexto=None):
     """Gera a enquete. COM pergunta = a CUSTOMIZADA do dono (card limpo da pergunta). SEM pergunta
