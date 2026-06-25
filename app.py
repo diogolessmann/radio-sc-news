@@ -397,10 +397,29 @@ img{width:100%;border-radius:14px;border:1px solid #262a36;margin:12px 0}
   padding:14px;border-radius:12px;font-weight:700;font-size:1rem;margin:8px 0;width:100%;cursor:pointer}
 .btn.alt{background:#23262f} .passo{background:#15171f;border-left:4px solid #f5c518;border-radius:8px;padding:12px 14px;margin-top:14px;line-height:1.5;font-size:.95rem}
 .passo b{color:#f5c518}
+input{width:100%;background:#0f1015;border:1px solid #2a2e3a;color:#f2f3f7;border-radius:9px;padding:12px;font-size:1rem;margin-bottom:8px}
+.duo{display:flex;gap:8px}.duo input{flex:1}
+.card{background:#15171f;border:1px solid #262a36;border-radius:14px;padding:16px;margin-bottom:16px}
+.card h3{margin:0 0 10px;font-size:1.05rem} label{font-size:.82rem;color:#9aa0ad;display:block;margin:2px 0}
 </style></head><body>
-<h1>🗳️ Enquete do Vale — pronta pra postar</h1>
+<h1>🗳️ Enquete do Vale</h1>
+<div class=card>
+  <h3>✍️ Criar a MINHA enquete</h3>
+  <form method=post>
+    <label>Pergunta</label>
+    <input name=pergunta required placeholder="Ex: Qual a melhor praça pra levar a família no Vale?">
+    <div class=duo>
+      <div style=flex:1><label>Opção A</label><input name=opcao_a placeholder="Sim"></div>
+      <div style=flex:1><label>Opção B</label><input name=opcao_b placeholder="Não"></div>
+    </div>
+    <button class=btn type=submit onclick="this.textContent='⏳ Gerando... (uns 8s)'">✍️ Gerar com a minha pergunta</button>
+  </form>
+  <form method=post onsubmit="var b=this.querySelector('button');b.textContent='⏳ Gerando...';b.disabled=true;">
+    <button class="btn alt" type=submit>🎲 Gerar automática (notícia do dia)</button></form>
+</div>
 {% if e %}
-{% if e.contexto %}<div class=muted>Enquete sobre esta notícia:</div>
+<h3 style="margin:6px 0">✅ Pronta pra postar</h3>
+{% if e.contexto %}<div class=muted>Sobre esta notícia:</div>
 <div class=q>{{ e.contexto }}</div>{% endif %}
 <div class=muted>No sticker de enquete, digita:</div>
 <div class=q style="font-size:1.05rem">Pergunta: <b>{{ e.pergunta }}</b></div>
@@ -410,8 +429,6 @@ img{width:100%;border-radius:14px;border:1px solid #262a36;margin:12px 0}
 </div>
 <img src="{{ img }}" alt="Story da enquete">
 <a class=btn href="{{ img }}" download="enquete.png">📥 Baixar imagem do Story</a>
-<form method=post onsubmit="var b=this.querySelector('button');b.textContent='⏳ Gerando nova... (uns 10s)';b.disabled=true;">
-  <button class="btn alt" type=submit>🔄 Gerar outra</button></form>
 <div class=passo>
   <b>Como postar (10s):</b><br>
   1) Abre o Story e escolhe esta imagem<br>
@@ -429,7 +446,10 @@ def admin_enquete():
     """Enquete do Vale pronta pro Story (imagem + opções). O dono posta e cola o sticker nativo."""
     import enquete
     if request.method == 'POST':
-        enquete.run()
+        pergunta = (request.form.get('pergunta') or '').strip()
+        a = (request.form.get('opcao_a') or '').strip()
+        b = (request.form.get('opcao_b') or '').strip()
+        enquete.run(pergunta=pergunta or None, a=a or None, b=b or None)
         return redirect('/admin/enquete')
     e = enquete.ultima()
     if not e:

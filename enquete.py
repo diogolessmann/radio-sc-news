@@ -168,18 +168,26 @@ def gerar_story_pergunta(pergunta, outdir=OUT_DIR):
 
 
 # ---------------------------------------------------------------- entrada
-def run():
-    """Gera a enquete do dia. Principal = NOTÍCIA + 'Você concorda? Sim/Não'. Fallback = banco."""
+def run(pergunta=None, a=None, b=None, contexto=None):
+    """Gera a enquete. COM pergunta = a CUSTOMIZADA do dono (card limpo da pergunta). SEM pergunta
+    = automático (notícia + 'Você concorda? Sim/Não'; fallback = banco de perguntas leves)."""
     conn = _db()
     _ensure(conn)
-    news = escolher_noticia(conn)
-    if news is not None:
-        img = gerar_story_noticia(news)
-        pergunta, a, b, contexto = "Você concorda?", "Sim", "Não", news["title"]
-    else:
-        pergunta_banco, a, b = random.choice(_BANCO)
-        img = gerar_story_pergunta(pergunta_banco)
-        pergunta, contexto = pergunta_banco, ""
+    pergunta = (pergunta or "").strip()
+    if pergunta:                                   # CUSTOMIZADA (o dono escolheu a pergunta)
+        a = (a or "Sim").strip() or "Sim"
+        b = (b or "Não").strip() or "Não"
+        contexto = (contexto or "").strip()
+        img = gerar_story_pergunta(pergunta)
+    else:                                          # AUTOMÁTICO
+        news = escolher_noticia(conn)
+        if news is not None:
+            img = gerar_story_noticia(news)
+            pergunta, a, b, contexto = "Você concorda?", "Sim", "Não", news["title"]
+        else:
+            pergunta, a, b = random.choice(_BANCO)
+            img = gerar_story_pergunta(pergunta)
+            contexto = ""
     conn.execute(
         "INSERT INTO enquetes (data, pergunta, opcao_a, opcao_b, contexto, image_path, created_at) "
         "VALUES (?,?,?,?,?,?,?)",
