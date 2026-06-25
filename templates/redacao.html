@@ -37,6 +37,9 @@
   .btns{display:flex;gap:8px;margin-top:10px}
   .btns button{flex:1;background:#23262f;color:var(--txt);border:0;border-radius:9px;padding:11px;cursor:pointer;font-size:14px}
   .btns button.copy{background:var(--gold);color:#111}
+  .post{margin-top:10px;width:100%;background:var(--ok);color:#fff;border:0;border-radius:10px;
+    padding:13px;font-size:15px;font-weight:700;cursor:pointer}
+  .post:disabled{opacity:.6;cursor:wait}
   .tag{display:inline-block;background:#23262f;color:var(--mut);border-radius:20px;padding:3px 10px;font-size:12px;margin-top:8px}
   .hint{color:var(--mut);font-size:13px;margin-top:6px}
   .empty{color:var(--mut);text-align:center;padding:40px 10px}
@@ -118,6 +121,8 @@
         <button class="copy" onclick="copiar()">📋 Copiar legenda</button>
         <button onclick="gerar()">🔄 Refazer</button>
       </div>
+      <button class="post" id="btnpost" onclick="postar()">📤 Postar no Instagram agora</button>
+      <p class="hint" id="postmsg" style="display:none"></p>
       <span class="tag" id="r_cerebro"></span>
       <span class="tag" id="r_slides"></span>
     </div>
@@ -125,7 +130,7 @@
 </div>
 
 <script>
-let brain = 'auto', formato = 'feed';
+let brain = 'auto', formato = 'feed', last = null;
 const hints = {auto:'Tenta Gemini → Groq automaticamente, com fallback local.',
   gemini:'Padrão recomendado: bom em PT-BR, já pago.', groq:'Grátis e rápido — bom pra volume.',
   claude:'Premium: use pra texto sensível/estratégico.'};
@@ -204,11 +209,33 @@ async function gerar(){
       story1:'📱 Story (1)', story_carrossel:'📲 Story carrossel ('+d.n_slides+')',
       feed:'🖼️ Feed ('+d.n_slides+' slides)'}[d.formato] || (d.n_slides+' slides');
     document.getElementById('r_slides').textContent=tag;
+    last={formato:d.formato,kind:d.kind,card_urls:d.card_urls,video_url:d.video_url,legenda:d.legenda};
+    document.getElementById('postmsg').style.display='none';
+    document.getElementById('btnpost').textContent = d.kind==='none'
+      ? '🌐 "Só site" não posta no Instagram' : '📤 Postar no Instagram agora';
   }catch(e){alert('Falha: '+e);}
   finally{go.disabled=false; go.textContent='✍️ Gerar matéria';}
 }
 function copiar(){navigator.clipboard.writeText(document.getElementById('r_legenda').textContent)
   .then(()=>{const b=event.target;const t=b.textContent;b.textContent='✅ Copiado!';setTimeout(()=>b.textContent=t,1500);});}
+
+async function postar(){
+  if(!last){alert('Gera a matéria primeiro.');return;}
+  if(last.kind==='none'||(!(last.card_urls&&last.card_urls.length)&&!last.video_url)){
+    alert('O formato "Só site" não posta no Instagram. Escolhe Feed, Story ou Reels.');return;}
+  if(!confirm('Postar AGORA no Instagram (e Facebook)? Isso PUBLICA de verdade, na conta da Rádio.'))return;
+  const b=document.getElementById('btnpost'); b.disabled=true; b.textContent='⏳ Postando no Instagram...';
+  const msg=document.getElementById('postmsg'); msg.style.display='none';
+  try{
+    const r=await fetch('/admin/redacao/postar',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(last)});
+    const d=await r.json();
+    msg.style.display='block';
+    if(d.ok){msg.textContent='✅ Postado no Instagram ('+d.tipo+')! Já tá no ar.';msg.style.color='var(--ok)';}
+    else{msg.textContent='❌ '+(d.erro||'falhou ao postar');msg.style.color='var(--red)';}
+  }catch(e){msg.style.display='block';msg.textContent='❌ Falha: '+e;msg.style.color='var(--red)';}
+  finally{b.disabled=false; b.textContent='📤 Postar no Instagram agora';}
+}
 </script>
 </body>
 </html>

@@ -1073,6 +1073,52 @@ def admin_redacao_gerar():
         return jsonify({'ok': False, 'erro': str(e)}), 500
 
 
+@app.route('/admin/redacao/postar', methods=['POST'])
+@login_required
+def admin_redacao_postar():
+    """Posta no Instagram o artefato JÁ gerado e revisado na Redação (feed/story/reels).
+    Ação MANUAL e deliberada do dono (botão 'Postar agora' + confirmação) — publica de verdade.
+    Reusa o motor do autopost (distribuidor.publish_images / post_instagram_story / reels)."""
+    import os as _os, time as _t
+    data = request.get_json(force=True, silent=True) or {}
+    formato = (data.get('formato') or 'feed').strip()
+    legenda = (data.get('legenda') or '').strip()
+    card_urls = data.get('card_urls') or []
+    video_url = data.get('video_url')
+    prefix = f"redacao_{int(_t.time())}"
+    try:
+        import distribuidor as dist
+        # REELS (vídeo)
+        if video_url:
+            import reels as rl
+            full = video_url if str(video_url).startswith('http') else f"{dist.PUBLIC_BASE_URL}{video_url}"
+            rl.post_instagram_reel(full, legenda)
+            try:
+                rl.post_facebook_video(full, legenda)
+            except Exception:
+                pass
+            return jsonify({'ok': True, 'tipo': 'Reels'})
+        # imagens: mapeia a URL pública de volta pro arquivo local
+        locais = [u.lstrip('/') for u in card_urls if _os.path.exists(u.lstrip('/'))]
+        if not locais:
+            return jsonify({'ok': False, 'erro': 'Nada pra postar (formato "só site" não publica no Instagram).'}), 400
+        # STORY (1 ou sequência) → posta cada um como Story
+        if formato in ('story1', 'story_carrossel'):
+            from PIL import Image
+            _os.makedirs(dist.PUBLIC_IMG_DIR, exist_ok=True)
+            for i, p in enumerate(locais, 1):
+                fn = f"{prefix}_st{i}.jpg"
+                Image.open(p).convert('RGB').save(_os.path.join(dist.PUBLIC_IMG_DIR, fn), 'JPEG', quality=90)
+                dist.post_instagram_story(f"{dist.PUBLIC_BASE_URL}/static/social/{fn}")
+            return jsonify({'ok': True, 'tipo': f'{len(locais)} story(s)'})
+        # FEED → carrossel IG + foto FB (+ story automático da capa)
+        dist.publish_images(prefix, locais, legenda)
+        return jsonify({'ok': True, 'tipo': 'carrossel no feed'})
+    except Exception as e:
+        logger.error(f"Redacao postar falhou: {e}")
+        return jsonify({'ok': False, 'erro': str(e)}), 500
+
+
 @app.route('/admin/saude')
 @login_required
 def admin_saude():
