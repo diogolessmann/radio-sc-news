@@ -17,6 +17,12 @@ os.makedirs(AUDIO_DIR, exist_ok=True)
 ELEVENLABS_API_KEY = os.environ.get('ELEVENLABS_API_KEY', '')
 ELEVENLABS_VOICE_ID = os.environ.get('ELEVENLABS_VOICE_ID', 'ZYCQDYoXnl78dNdU6JeG')
 
+# ── Gemini TTS (voz natural pt-BR, melhor que edge-tts) — preferida nos Reels ──
+# Mesma chave do Gemini. Liga/desliga com GEMINI_TTS_ON (default ligado). Voz e modelo via env.
+GEMINI_TTS_KEY = os.environ.get('GEMINI_API_KEY', '') or os.environ.get('GOOGLE_API_KEY', '')
+GEMINI_TTS_MODEL = os.environ.get('GEMINI_TTS_MODEL', 'gemini-2.5-flash-preview-tts')
+GEMINI_TTS_VOICE = os.environ.get('GEMINI_TTS_VOICE', 'Charon')  # voz de locutor (informativa)
+
 VOICE_EDGE_PRIMARY = 'pt-BR-AntonioNeural'
 VOICE_EDGE_FEMALE  = 'pt-BR-FranciscaNeural'
 
@@ -201,6 +207,46 @@ def _generate_with_gtts(text, filepath):
         return False
 
 
+def _generate_with_gemini(text, filepath):
+    """Narração via Gemini TTS — voz natural pt-BR (melhor que edge-tts). Zero SDK (HTTP puro).
+    A API devolve PCM 24kHz mono 16-bit (base64); gravo como WAV no filepath. O ffmpeg do moviepy
+    lê pelo CONTEÚDO (não pela extensão), então funciona mesmo num arquivo .mp3. False se falhar."""
+    if not GEMINI_TTS_KEY:
+        return False
+    style = os.environ.get('GEMINI_TTS_STYLE', '').strip()  # opcional: ex "Leia como locutor de rádio:"
+    prompt = f"{style}\n\n{text}" if style else text
+    url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+           f"{GEMINI_TTS_MODEL}:generateContent?key={GEMINI_TTS_KEY}")
+    body = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": {"voiceConfig": {"prebuiltVoiceConfig": {"voiceName": GEMINI_TTS_VOICE}}},
+        },
+    }
+    try:
+        r = requests.post(url, json=body, timeout=90)
+        if not r.ok:
+            logger.warning(f"Gemini TTS erro {r.status_code}: {r.text[:200]}")
+            return False
+        parts = r.json().get("candidates", [{}])[0].get("content", {}).get("parts", [])
+        b64 = next((p["inlineData"]["data"] for p in parts if p.get("inlineData")), None)
+        if not b64:
+            return False
+        import base64
+        import wave
+        pcm = base64.b64decode(b64)
+        with wave.open(filepath, "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)        # 16-bit
+            w.setframerate(24000)    # Gemini TTS: 24kHz
+            w.writeframes(pcm)
+        return os.path.exists(filepath) and os.path.getsize(filepath) > 1000
+    except Exception as e:
+        logger.warning(f"Gemini TTS falhou: {e}")
+        return False
+
+
 def generate_audio(title, summary, source=None, city=None, news_id=None, category=None):
     """
     Gera áudio MP3 para uma notícia.
@@ -254,6 +300,16 @@ def generate_tts(text, filepath, category=None, prefer_free=False):
     clean = clean_text_for_tts(text)
     if not clean:
         return None
+    # 1) Gemini TTS — voz natural pt-BR (preferida nos Reels). Liga/desliga com GEMINI_TTS_ON.
+    if os.environ.get('GEMINI_TTS_ON', '1').strip() != '0':
+        if _generate_with_gemini(clean, filepath):
+            logger.info("Narração Gemini TTS (voz %s)", GEMINI_TTS_VOICE)
+            return filepath
+        if os.path.exists(filepath):
+            try:
+                os.remove(filepath)
+            except Exception:
+                pass
     settings = get_voice_settings(category)
     use_eleven = ELEVENLABS_API_KEY and not prefer_free
     if use_eleven and _generate_with_elevenlabs(clean, filepath, voice_settings=settings):
