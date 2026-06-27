@@ -45,8 +45,14 @@ def _on():
 def _landmark_query(news):
     """Consulta de um LUGAR específico citado no título (ex 'Câmara de Vereadores de Schroeder'),
     ou None se a notícia não cita um lugar concreto. Sem lugar = sem Street View (cai no arsenal)."""
-    city = (news["city"] or "").strip()
     title = news["title"] or ""
+    # PREFERE a cidade citada no TÍTULO (o campo city às vezes vem errado — notícia de Jaraguá
+    # marcada como Schroeder). Assim a foto do prédio é da cidade CERTA.
+    try:
+        import genericbg
+        city = (genericbg.cidade_no_titulo(title) or (news["city"] or "")).strip()
+    except Exception:
+        city = (news["city"] or "").strip()
     for rx, tmpl in _SUBJECTS:
         m = re.search(rx, title, re.IGNORECASE)
         if not m:

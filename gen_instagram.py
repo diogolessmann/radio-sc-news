@@ -269,6 +269,19 @@ def footer_site(draw):
 
 
 # ---------------------------------------------------------------- slides
+def _cidade_real(news):
+    """A cidade que MANDA no selo/CTA: a citada no TÍTULO (mais confiável que o campo city, que
+    às vezes vem errado — notícia de Jaraguá marcada como Schroeder) > o campo city > genérico."""
+    try:
+        import genericbg
+        c = genericbg.cidade_no_titulo(news["title"] or "")
+        if c:
+            return c
+    except Exception:
+        pass
+    return news["city"] or "Santa Catarina"
+
+
 def slide_cover_foto_faixa(news, img_path, outdir, manchete=None, credito=None):
     """Capa LAYOUT FOTO+FAIXA: foto REAL do local em cima (mantém o '© Google' visível, exigência
     da licença do Maps), faixa de marca embaixo com pills + manchete. Usada quando a imagem vem do
@@ -304,7 +317,7 @@ def slide_cover_foto_faixa(news, img_path, outdir, manchete=None, credito=None):
     d.rectangle([0, BAND_TOP, W, H], fill=BG)
     d.rectangle([0, BAND_TOP, W, BAND_TOP + 6], fill=RED)
 
-    city = news["city"] or "Santa Catarina"
+    city = _cidade_real(news)
     cat = CAT_LABEL.get((news["category"] or "geral"), (news["category"] or "GERAL").upper())
     py = BAND_TOP + 34
     xend = pill(d, 56, py, city.upper(), font(30), RED, WHITE)
@@ -439,7 +452,7 @@ def slide_cover(news, outdir, manchete=None):
     brand_header(d)
 
     # tags cidade + categoria (parte de baixo, acima da manchete)
-    city = news["city"] or "Santa Catarina"
+    city = _cidade_real(news)
     cat = CAT_LABEL.get((news["category"] or "geral"), (news["category"] or "GERAL").upper())
 
     # manchete — TIKTOK MODE: a notícia em 2 linhas que se basta (nosso texto), não o título cru
@@ -516,7 +529,8 @@ def slide_cta(news, outdir, n):
     d = ImageDraw.Draw(canvas)
     brand_header(d)
 
-    city = news["city"] if (news["city"] and news["city"] in NORTE_SC) else None
+    _rc = _cidade_real(news)
+    city = _rc if _rc in NORTE_SC else None
     cy = H // 2 - 200
 
     # selo topo
@@ -574,7 +588,7 @@ def slide_cta(news, outdir, n):
 # ---------------------------------------------------------------- legenda
 def make_caption(news):
     title = re.sub(r"\s+", " ", news["title"]).strip()
-    city = news["city"] or "Santa Catarina"
+    city = _cidade_real(news)
     tags = []
     tags += CITY_TAGS.get(city, [])
     tags += CAT_TAGS.get(news["category"] or "", [])

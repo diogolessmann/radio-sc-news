@@ -112,6 +112,22 @@ def _file(slug, seed=0):
     return cands[seed % len(cands)]
 
 
+# Cidades do Vale: detecta no TÍTULO (mais confiável que o campo city, que às vezes vem errado/
+# genérico — ex: notícia de Jaraguá marcada como Schroeder). A cidade citada no título manda.
+_CIDADES_VALE = [
+    ("jaragua", "Jaraguá do Sul"), ("schroeder", "Schroeder"),
+    ("guaramirim", "Guaramirim"), ("joinville", "Joinville"), ("corupa", "Corupá"),
+]
+
+
+def cidade_no_titulo(title):
+    """Se o título cita uma cidade do Vale, devolve o NOME dela (a 1ª que aparece). Senão None.
+    Reusado pela imagem (arsenal/Street View) e pelo selo da cidade na capa."""
+    t = _norm(title)
+    achados = [(t.find(k), nome) for k, nome in _CIDADES_VALE if k in t]
+    return min(achados)[1] if achados else None
+
+
 def buscar(news):
     """Devolve o caminho da NOSSA imagem mais adequada à notícia, ou None (cai no próximo da
     cascata). Prioridade: situação no título → cidade → categoria → genérico do Vale."""
@@ -130,8 +146,9 @@ def buscar(news):
             if p:
                 return p
 
-    # 2) cidade da notícia
-    city = _norm(news["city"])
+    # 2) cidade — PREFERE a citada no TÍTULO (o campo city às vezes vem errado: notícia de
+    #    Jaraguá marcada como Schroeder). Assim a imagem é da cidade CERTA.
+    city = _norm(cidade_no_titulo(title) or news["city"])
     if city:
         p = _file("cidade_" + city, seed) or _file(city, seed)
         if p:
