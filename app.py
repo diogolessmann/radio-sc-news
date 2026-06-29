@@ -646,6 +646,15 @@ def admin_placar():
     return render_template_string(_PLACAR_HTML, p=placar.painel())
 
 
+@app.route('/admin/insights-debug')
+@login_required
+def admin_insights_debug():
+    """Por que o Placar está em 0? Mostra se o ID está sendo salvo e o erro REAL da Meta
+    (ex: token sem permissão instagram_manage_insights). JSON cru pra diagnóstico rápido."""
+    import insights
+    return jsonify(insights.diagnostico())
+
+
 _RESUMO_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1"><title>O Vale em 60s</title>
 <style>

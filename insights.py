@@ -21,7 +21,17 @@ GRAPH = "https://graph.facebook.com/v21.0"
 
 # métrica de mídia (post). saved+shares são o sinal de ouro de 2026.
 POST_METRICS = "reach,saved,shares,likes,comments,total_interactions"
-POST_METRICS_MIN = "reach,saved,total_interactions"   # fallback se a Graph reclamar de algum metric
+# ESCADA de fallback: se a Graph reclamar de algum metric (varia por tipo de post / versão),
+# vai afinando até pegar pelo menos reach+saved. Degrada com elegância em vez de voltar 0.
+_METRIC_LADDER = (
+    "reach,saved,shares,likes,comments,total_interactions",
+    "reach,saved,shares,total_interactions",
+    "reach,saved,total_interactions",
+    "reach,saved",
+    "reach",
+)
+
+_LAST_ERR = ""   # último erro da Graph (lido pelo diagnostico() — mostra POR QUE deu 0)
 
 
 def _token():
@@ -43,29 +53,33 @@ def _ensure_table(conn):
 
 
 def _fetch(media_id, metrics, token):
-    """Devolve {metric: valor} ou None se a Graph recusar (ex: metric não vale p/ esse tipo)."""
+    """Devolve {metric: valor} ou None se a Graph recusar (ex: metric não vale p/ esse tipo).
+    Guarda o erro detalhado da Meta em _LAST_ERR pro diagnóstico (permissão, metric inválido...)."""
+    global _LAST_ERR
     try:
         r = requests.get(f"{GRAPH}/{media_id}/insights",
                          params={"metric": metrics, "access_token": token}, timeout=20)
         if not r.ok:
+            _LAST_ERR = f"HTTP {r.status_code}: {r.text[:300]}"
             return None
         out = {}
         for m in r.json().get("data", []):
             vals = m.get("values") or [{}]
             out[m.get("name")] = vals[0].get("value")
         return out
-    except Exception:
+    except Exception as e:
+        _LAST_ERR = f"EXC: {e}"
         return None
 
 
 def coletar_post(media_id, token=None):
-    """Métricas de UM post. Tenta o conjunto cheio; se a Graph reclamar, cai no mínimo."""
+    """Métricas de UM post. Desce a escada de metrics até pegar pelo menos reach+saved."""
     token = token or _token()[0]
     if not (media_id and token):
         return {}
-    for metrics in (POST_METRICS, POST_METRICS_MIN):
+    for metrics in _METRIC_LADDER:
         res = _fetch(media_id, metrics, token)
-        if res is not None:
+        if res:                       # pegou alguma métrica de verdade
             return res
     return {}
 
@@ -77,6 +91,7 @@ def coletar_conta(token=None, ig_user_id=None):
     ig_user_id = ig_user_id or ig
     if not (token and ig_user_id):
         return {}
+    global _LAST_ERR
     try:
         r = requests.get(f"{GRAPH}/{ig_user_id}/insights",
                          params={"metric": "follower_count,reach,profile_views",
@@ -87,9 +102,56 @@ def coletar_conta(token=None, ig_user_id=None):
                 vals = m.get("values") or [{}]
                 out[m.get("name")] = vals[-1].get("value")   # valor mais recente
             return out
-    except Exception:
-        pass
+        _LAST_ERR = f"HTTP {r.status_code}: {r.text[:300]}"
+    except Exception as e:
+        _LAST_ERR = f"EXC: {e}"
     return {}
+
+
+def diagnostico():
+    """POR QUE o Placar está em 0? Distingue as 2 causas possíveis:
+      - ig_media_id não salvo  -> 'marcados_3d':0  (a publicação não guardou o ID)
+      - coleta falhando        -> 'marcados_3d'>0 mas 'amostra_metricas' vazio + 'amostra_erro'
+                                   mostra o erro da Meta (ex: falta permissão instagram_manage_insights)
+    """
+    global _LAST_ERR
+    out = {"db": DB_PATH}
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        def _c(sql):
+            return conn.execute(sql).fetchone()[0]
+        out["postados_30d"] = _c("SELECT COUNT(*) FROM news WHERE social_posted_at>datetime('now','-30 days')")
+        out["marcados_30d"] = _c("SELECT COUNT(*) FROM news WHERE ig_media_id IS NOT NULL AND ig_media_id!='' AND social_posted_at>datetime('now','-30 days')")
+        out["marcados_3d"] = _c("SELECT COUNT(*) FROM news WHERE ig_media_id IS NOT NULL AND ig_media_id!='' AND social_posted_at>datetime('now','-3 days')")
+        row = conn.execute(
+            "SELECT id, ig_media_id FROM news WHERE ig_media_id IS NOT NULL AND ig_media_id!='' "
+            "ORDER BY social_posted_at DESC LIMIT 1").fetchone()
+    except Exception as e:
+        conn.close()
+        return {"erro_db": str(e), "db": DB_PATH}
+    conn.close()
+
+    token, ig_user = _token()
+    out["tem_token"] = bool(token)
+    out["tem_ig_user_id"] = bool(ig_user)
+    if row:
+        _LAST_ERR = ""
+        out["amostra_id"] = row["id"]
+        out["amostra_media_id"] = row["ig_media_id"]
+        m = coletar_post(row["ig_media_id"], token)
+        out["amostra_metricas"] = m
+        out["amostra_erro"] = "" if m else _LAST_ERR
+        out["veredito"] = ("✅ coleta OK — pode ligar quando juntar volume" if m
+                           else "🚩 COLETA FALHANDO — veja amostra_erro (provável falta de permissão instagram_manage_insights no token)")
+    else:
+        out["amostra_media_id"] = None
+        out["veredito"] = ("🚩 NENHUM post tem ig_media_id salvo — a publicação não está guardando o ID "
+                           "(autopost não passa por publish_real/mark_media?)")
+    _LAST_ERR = ""
+    out["conta"] = coletar_conta(token, ig_user)
+    out["conta_erro"] = "" if out["conta"] else _LAST_ERR
+    return out
 
 
 def atualizar_recentes(dias=3):
