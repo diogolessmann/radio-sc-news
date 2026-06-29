@@ -99,7 +99,7 @@ def _gemini(prompt, model=None):
         return None
     url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
            f"{model or GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}")
-    cfg = {"temperature": 0.4, "maxOutputTokens": 700}
+    cfg = {"temperature": 0.4, "maxOutputTokens": 1024}
     # Modelos 2.5 são "thinking" e gastam o orçamento pensando — desliga (é só reescrever).
     # 1ª tentativa com thinking OFF; se o modelo não suportar, refaz sem o campo (modelos 1.5/2.0).
     tentativas = [
@@ -111,7 +111,13 @@ def _gemini(prompt, model=None):
         try:
             r = requests.post(url, headers={"Content-Type": "application/json"}, json=body, timeout=40)
             r.raise_for_status()
-            parts = r.json()["candidates"][0]["content"].get("parts", [])
+            cand = (r.json().get("candidates") or [{}])[0]
+            # resposta TRUNCADA (estourou tokens — ex: o "thinking" comeu o orçamento) corta a frase
+            # no meio (saiu "...100KM/H, GRAN" na capa) -> descarta pra cair no fallback LIMPO (título)
+            # em vez de publicar pela metade.
+            if cand.get("finishReason") == "MAX_TOKENS":
+                continue
+            parts = (cand.get("content") or {}).get("parts", [])
             txt = "".join(p.get("text", "") for p in parts).strip()
             if txt:
                 return txt
