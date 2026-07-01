@@ -785,14 +785,14 @@ def _posts_hoje(conn):
 
 
 def _teto_dia():
-    """TETO diario de posts (env POSTS_MAX_DIA, default 10). Dia de temporal, o plantao de
-    20min + a grade podem passar de 10 posts — cadencia anomala (algoritmo desconfia) e
-    caminha pro limite da Meta de 100 publicacoes/24h. Grade tipica = ~6 (2 carrossel +
-    4 reels), entao 10 deixa ~4 vagas pro plantao urgente."""
+    """FUSIVEL anti-bug (env POSTS_MAX_DIA, default 30; 0 = sem teto). NAO e freio editorial —
+    o dono cresceu com volume ("mais e mais") e a operacao real nunca chega perto de 30/dia.
+    So existe pra segurar um job em loop por bug (metralhar 40 posts = flag de spam na Meta,
+    que limita 100 publicacoes/24h)."""
     try:
-        return int(_env("POSTS_MAX_DIA", "10"))
+        return int(_env("POSTS_MAX_DIA", "30"))
     except Exception:
-        return 10
+        return 30
 
 
 def run_urgent(post=True, limit=1):
@@ -800,9 +800,10 @@ def run_urgent(post=True, limit=1):
     editorial + dedup. Sensiveis vao p/ revisao marcadas como URGENTE."""
     conn = get_db()
     ensure_column(conn)
-    if post and _posts_hoje(conn) >= _teto_dia():
+    _teto = _teto_dia()
+    if post and _teto > 0 and _posts_hoje(conn) >= _teto:
         conn.close()
-        print(f"[distribuidor] teto diario ({_teto_dia()} posts) atingido — plantao urgente pulado.")
+        print(f"[distribuidor] FUSIVEL: {_teto} posts hoje (provavel bug em loop) — plantao pulado.")
         return {"postadas": 0, "erros": [], "seguradas": []}
     pool = pick_urgent(conn)
     if not pool:
@@ -843,9 +844,10 @@ def run_once(post=False, limit=1):
     Retorna {postadas, erros, seguradas}."""
     conn = get_db()
     ensure_column(conn)
-    if post and _posts_hoje(conn) >= _teto_dia():
+    _teto = _teto_dia()
+    if post and _teto > 0 and _posts_hoje(conn) >= _teto:
         conn.close()
-        print(f"[distribuidor] teto diario ({_teto_dia()} posts) atingido — distribuicao pulada.")
+        print(f"[distribuidor] FUSIVEL: {_teto} posts hoje (provavel bug em loop) — distribuicao pulada.")
         return {"postadas": 0, "erros": [], "seguradas": []}
     # pega um lote maior que o limite p/ ter de onde pular as seguradas
     pool = pick_next(conn, only_id=None, limit=max(limit * 6, 12))
