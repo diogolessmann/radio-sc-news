@@ -124,7 +124,7 @@ def legenda(titulo, corpo, cidade, categoria):
     for t in tags:
         if t not in seen: seen.add(t); uniq.append(t)
     return (f"📢 {titulo}\n\n{corpo}\n\n"
-            f"📍 {cidade}  ·  🔊 Leia e ouça no site (link na bio)\n\n" + " ".join(uniq))
+            f"📍 {cidade}  ·  ➕ mais notícias do Vale no site (link na bio)\n\n" + " ".join(uniq))
 
 # ---- ARTE ------------------------------------------------------------------
 # Formatos de saída (rótulo amigável pra UI). A Redação produz o artefato escolhido.

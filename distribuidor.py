@@ -101,9 +101,17 @@ _SENSITIVE_DEFAULT = [
     r"esfaque", r"chacina", r"latrocínio",
     r"suicíd", r"enforcad", r"tirou a própria vida",
     r"estupr", r"abuso sexual", r"pedofil", r"importunç", r"violência sexual",
-    r"criança", r"menino", r"menina", r"bebê", r"recém-nascid", r"adolescente",
     r"atropelad", r"afogad", r"queda fatal",
 ]
+
+# MENOR DE IDADE: sozinho NÃO segura — senão "menina de Jaraguá ganha medalha" morre na fila
+# e o conteúdo POSITIVO local (o que mais engaja e o que o dono quer) nunca sai sozinho.
+# Segura quando menor aparece JUNTO de termo de risco/crime (a lista principal acima já pega
+# morte/sexual por si; esta cobre o resto: desaparecimento, agressão, internação...).
+_MINOR_RE = re.compile(r"\b(crian[çc]a|menin[oa]|beb[êe]|rec[ée]m-nascid|adolescente)", re.IGNORECASE)
+_MINOR_RISK_RE = re.compile(
+    r"\b(desaparec|apreend|agress|agredid|acident|ferid|interna|hospitaliz|estado grave|"
+    r"viol[êe]nc|sequestr|maus-tratos|abandon|neglig|explora)", re.IGNORECASE)
 
 
 def _sensitive_regex():
@@ -120,10 +128,17 @@ _SENSITIVE_RE = _sensitive_regex()
 
 
 def sensitive_reason(news):
-    """Devolve o termo sensivel encontrado (pra segurar a materia) ou None se for segura."""
+    """Devolve o termo sensivel encontrado (pra segurar a materia) ou None se for segura.
+    Menor de idade so segura acompanhado de termo de risco (noticia positiva passa)."""
     blob = f"{news['title'] or ''} {news['summary'] or ''}"
     m = _SENSITIVE_RE.search(blob)
-    return m.group(0) if m else None
+    if m:
+        return m.group(0)
+    if _MINOR_RE.search(blob):
+        mr = _MINOR_RISK_RE.search(blob)
+        if mr:
+            return f"menor+{mr.group(0)}"
+    return None
 
 
 # ---------------------------------------------------------------- deduplicacao
@@ -505,7 +520,9 @@ def whatsapp_message(news, resumo):
 
 # ---------------------------------------------------------------- legenda social
 def social_caption(news, resumo):
-    city = news["city"] or "Santa Catarina"
+    # cidade REAL: detecta pelo TÍTULO (o campo city às vezes vem errado — mesma lógica da imagem);
+    # senão o "Marca quem é de X" marca a cidade errada e mata o gatilho de pertencimento.
+    city = gi._cidade_real(news)
     tags = []
     tags += gi.CITY_TAGS.get(city, [])
     tags += gi.CAT_TAGS.get(news["category"] or "", [])
@@ -757,11 +774,36 @@ def post_specific(news_id):
         return {"ok": False, "erro": str(e)}
 
 
+def _posts_hoje(conn):
+    """Quantos posts de noticia JA sairam hoje (social_posted_at de hoje) — base do teto."""
+    try:
+        return conn.execute(
+            "SELECT COUNT(*) FROM news WHERE social_posted_at >= date('now','localtime')"
+        ).fetchone()[0]
+    except Exception:
+        return 0
+
+
+def _teto_dia():
+    """TETO diario de posts (env POSTS_MAX_DIA, default 10). Dia de temporal, o plantao de
+    20min + a grade podem passar de 10 posts — cadencia anomala (algoritmo desconfia) e
+    caminha pro limite da Meta de 100 publicacoes/24h. Grade tipica = ~6 (2 carrossel +
+    4 reels), entao 10 deixa ~4 vagas pro plantao urgente."""
+    try:
+        return int(_env("POSTS_MAX_DIA", "10"))
+    except Exception:
+        return 10
+
+
 def run_urgent(post=True, limit=1):
     """Posta NA HORA noticias urgentes recem-coletadas (plantao). Mesmo filtro
     editorial + dedup. Sensiveis vao p/ revisao marcadas como URGENTE."""
     conn = get_db()
     ensure_column(conn)
+    if post and _posts_hoje(conn) >= _teto_dia():
+        conn.close()
+        print(f"[distribuidor] teto diario ({_teto_dia()} posts) atingido — plantao urgente pulado.")
+        return {"postadas": 0, "erros": [], "seguradas": []}
     pool = pick_urgent(conn)
     if not pool:
         conn.close()
@@ -801,6 +843,10 @@ def run_once(post=False, limit=1):
     Retorna {postadas, erros, seguradas}."""
     conn = get_db()
     ensure_column(conn)
+    if post and _posts_hoje(conn) >= _teto_dia():
+        conn.close()
+        print(f"[distribuidor] teto diario ({_teto_dia()} posts) atingido — distribuicao pulada.")
+        return {"postadas": 0, "erros": [], "seguradas": []}
     # pega um lote maior que o limite p/ ter de onde pular as seguradas
     pool = pick_next(conn, only_id=None, limit=max(limit * 6, 12))
     if not pool:

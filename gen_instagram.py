@@ -603,7 +603,7 @@ def make_caption(news):
     body = (
         f"{title}\n\n"
         f"📍 {city}\n\n"
-        f"👉 Leia a matéria completa e OUÇA a notícia em áudio no nosso site:\n"
+        f"👉 Mais notícias do Vale no nosso site:\n"
         f"🔗 {SITE} (link na bio)\n\n"
         f"Siga @radioscnews e fique por dentro de tudo que acontece no Norte de SC.\n\n"
         f"Fonte: {news['source']}\n\n"

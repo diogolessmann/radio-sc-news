@@ -2,7 +2,7 @@
 *Filosofia: 1% melhor por dia. Pequenas melhorias constantes > grandes reformas raras.
 A cada sessão, a gente tira 1-2 itens daqui. Foco regional: Jaraguá · Schroeder · Guaramirim · Joinville.*
 
-**Marco:** 600 → 2.297 seguidores (jun/2026). Snowball rolando.
+**Marco:** 600 → 6.242 seguidores · 842 mil views/30d (01/jul/2026). Avalanche rolando.
 
 ---
 
@@ -23,22 +23,45 @@ A cada sessão, a gente tira 1-2 itens daqui. Foco regional: Jaraguá · Schroed
       categoria com MAIS acertos. Bug era substring: "preso" casava dentro de "Caropreso". Testado 6/6.
 
 ### Medir pra guiar o kaizen
-- [ ] **Health check / métricas** — relatório simples: posts/dia, % com foto, % por cidade,
-      erros no log, qual categoria bomba. Sem medir, kaizen é chute.
+- [x] **Health check / métricas** — FEITO (metricas.py + /admin/saude + placar.py + insights.py).
+      ⏳ O DADO real ainda não flui: abrir /admin/insights-debug e validar o token (ver Auditoria 3).
+
+### 🔍 Da AUDITORIA 3 (skill auditing-instagram-engine, 01/jul/2026) — placar 7.7/10
+*(nota caiu vs 8.2 porque agora SABEMOS que o loop de dados está quebrado — antes era invisível)*
+- [ ] **🔴 (DONO, 1 clique) Fechar o loop de dados** — abrir `/admin/insights-debug` e colar o
+      JSON; se faltar permissão `instagram_manage_insights`, regenerar META_PAGE_TOKEN. Sem isso
+      Placar=0, LEARN_ON cego, horário-por-dado impossível, relatório de patrocinador impossível.
+- [ ] **🟡 Cidade REAL no TEXTO (mesmo bug da imagem, agora no texto)** — a legenda usa
+      `news["city"]` cru ("Marca quem é de X" + 📍, distribuidor.py:508) e a NARRAÇÃO do Reels
+      fala a cidade errada (reels.py:73). A imagem já usa `gi._cidade_real` (detecta pelo título);
+      aplicar nos dois. 2 linhas, pertencimento = gatilho nº1 de share.
+- [ ] **🟡 Filtro sensível prende notícia POSITIVA com criança** — "criança/menino/menina" sozinhos
+      seguram "menina de Jaraguá ganha medalha" (distribuidor.py:95-106). Exigir termo-de-menor +
+      termo-de-crime/tragédia JUNTOS. Libera o conteúdo positivo que o dono QUER postar.
+- [ ] **🟡 Teto diário de posts** — urgente a cada 20min sem cap; dia de temporal pode passar de
+      10 posts (cadência anômala + caminha pro limite Meta de 100 publicações/24h, nunca checado).
+      Env POSTS_MAX_DIA (default ~8) + contador por social_posted_at do dia.
+- [ ] **🟡 (DONO) Ligar "O Vale em 60s"** — RESUMO_ON=1 já gera todo dia 20h30 pra revisão em
+      /admin/resumo; revisar uns dias e setar RESUMO_POST=1. Reels diário de HÁBITO, zero código.
+- [ ] **🟢 gen_instagram.py:606 ainda promete "OUÇA em áudio no site"** — áudio foi removido do
+      site; trocar por "mais notícias no site" (caminho Redação/CLI; o autopost já foi corrigido).
+- [ ] **🟢 bom_dia.py:298 com 8 hashtags** — enxugar pra 4-5 e incluir #joinville/#corupa.
+- [ ] **🟢 Carrossel até 7 slides** — ótimo 2026 é 8-10; esticar +1 corpo quando a notícia é rica.
+- [ ] **📖 TÁTICAS MANUAIS (API não faz):** Trial Reels (toggle no app, 1-2/semana — 80% mais
+      alcance de não-seguidor) · post COLLAB com marca local (dobra alcance — usar quando fechar
+      patrocinador) · sticker de enquete diário (a arte já sai pronta em /admin/enquete).
 
 ### 🔍 Da AUDITORIA 2 (skill auditing-instagram-engine, 17/jun/2026) — placar 8.2/10 ⬆️
-- [ ] **🟡 alt_text (SEO de imagem)** — nenhum post manda `alt_text` (distribuidor.py:566,
-      reels.py:162). IG indexa a descrição da imagem → alcance em busca. Add tema+cidade nos
-      filhos do carrossel e no Reels. Fix barato, impacto direto em descoberta.
-- [ ] **🟡 Abrir a narração do Reel com o gancho** — `_narration_script` começa "Cidade.
-      Título." (reels.py:67). Os 3 primeiros seg decidem retenção → abrir com `flash_manchete`.
-- [ ] **🟢 Enxugar BASE_TAGS** — hoje ~8-10 hashtags/post (gen_instagram.py:96); playbook 2026
-      pede 3-5. Menos genérica, mais peso na local.
+- [x] **🟡 alt_text (SEO de imagem)** — FEITO (commit f1b3dcf): alt tema+cidade no carrossel/foto
+      (distribuidor.alt_text:540, publish_real:735). Reels não suporta alt na Graph.
+- [x] **🟡 Abrir a narração do Reel com o gancho** — FEITO: `_narration_script` abre com o flash
+      punchy e FECHA com CTA "Siga a Rádio SC News" (reels.py:67-81).
+- [x] **🟢 Enxugar BASE_TAGS** — FEITO: 3 tags base (gen_instagram.py:98), total 3-6 por post.
 - [x] **OBSOLETO: cover_hook (gancho dourado)** — REMOVIDO na faxina de 17/jun. O TikTok mode
       (flash_manchete: notícia inteira em 2 linhas na capa) virou o gancho — melhor que o kicker.
-- [ ] **(DONO) GEO_LOCATIONS no Railway** — pôr os 4 Place ids (Schroeder/Jaraguá/Guaramirim/
-      Joinville) p/ garantir geotag certo, em vez de depender da busca automática.
-- [ ] **(DONO) /anuncie 99k→113k** — atualizar o número de views na página de venda (app.py:995).
+- [ ] **(DONO) GEO_LOCATIONS no Railway** — env está VAZIA (geotag depende da busca automática,
+      hit incerto). Pôr os 5 Place ids garante o sinal nº1 de busca local.
+- [x] **(DONO) /anuncie 99k→113k** — FEITO (01/jul): 842 mil + preços unificados com o KIT.
 
 ### 🔍 Da AUDITORIA MONSTRO (skill auditing-instagram-engine, jun/2026) — placar 6.2/10
 - [x] **🔴 Geotag por cidade (location_id)** — FEITO. `geo.py` resolve env GEO_LOCATIONS → cache

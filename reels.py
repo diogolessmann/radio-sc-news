@@ -70,7 +70,8 @@ def _narration_script(news, resumo, gancho=None):
     resumo (sem emoji). Sem gancho, cai no título cru."""
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip().rstrip(".")
     corpo = dist._short_resumo(resumo, max_chars=320)
-    city = news["city"] or "Santa Catarina"
+    # cidade REAL pelo título (campo city às vezes vem errado) — a NARRAÇÃO fala a cidade certa
+    city = gi._cidade_real(news)
     abertura = re.sub(r"\s+", " ", (gancho or title)).strip().rstrip(".")
     partes = [f"{abertura}."]
     if city and city.lower() not in abertura.lower():
