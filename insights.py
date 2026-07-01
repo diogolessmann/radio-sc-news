@@ -23,7 +23,10 @@ GRAPH = "https://graph.facebook.com/v21.0"
 POST_METRICS = "reach,saved,shares,likes,comments,total_interactions"
 # ESCADA de fallback: se a Graph reclamar de algum metric (varia por tipo de post / versão),
 # vai afinando até pegar pelo menos reach+saved. Degrada com elegância em vez de voltar 0.
+# 'views' (Graph nova) / 'plays' (antiga) no topo: sem eles o Placar não separa Reels de carrossel.
 _METRIC_LADDER = (
+    "reach,saved,shares,likes,comments,total_interactions,views",
+    "reach,saved,shares,likes,comments,total_interactions,plays",
     "reach,saved,shares,likes,comments,total_interactions",
     "reach,saved,shares,total_interactions",
     "reach,saved,total_interactions",
@@ -84,6 +87,19 @@ def coletar_post(media_id, token=None):
     return {}
 
 
+def _media_product_type(media_id, token):
+    """'REELS' / 'FEED' / 'STORY'... do post. 'views' (Graph nova) existe pra QUALQUER mídia,
+    então só gravamos plays quando o post é Reels de verdade — é o que separa formato no Placar."""
+    try:
+        r = requests.get(f"{GRAPH}/{media_id}",
+                         params={"fields": "media_product_type", "access_token": token}, timeout=20)
+        if r.ok:
+            return (r.json().get("media_product_type") or "").upper()
+    except Exception:
+        pass
+    return ""
+
+
 def coletar_conta(token=None, ig_user_id=None):
     """Métricas da CONTA do dia: seguidores, alcance, visitas ao perfil."""
     tk, ig = _token()
@@ -92,20 +108,28 @@ def coletar_conta(token=None, ig_user_id=None):
     if not (token and ig_user_id):
         return {}
     global _LAST_ERR
-    try:
-        r = requests.get(f"{GRAPH}/{ig_user_id}/insights",
-                         params={"metric": "follower_count,reach,profile_views",
-                                 "period": "day", "access_token": token}, timeout=20)
-        if r.ok:
-            out = {}
+    out = {}
+    # cada grupo em chamada PRÓPRIA: 1 metric inválido derruba a chamada inteira na Graph
+    # (profile_views nas versões novas exige metric_type=total_value) -> isolado, o resto sobrevive.
+    for params in (
+        {"metric": "follower_count,reach", "period": "day"},
+        {"metric": "profile_views", "period": "day", "metric_type": "total_value"},
+    ):
+        try:
+            r = requests.get(f"{GRAPH}/{ig_user_id}/insights",
+                             params={**params, "access_token": token}, timeout=20)
+            if not r.ok:
+                _LAST_ERR = f"HTTP {r.status_code}: {r.text[:300]}"
+                continue
             for m in r.json().get("data", []):
                 vals = m.get("values") or [{}]
-                out[m.get("name")] = vals[-1].get("value")   # valor mais recente
-            return out
-        _LAST_ERR = f"HTTP {r.status_code}: {r.text[:300]}"
-    except Exception as e:
-        _LAST_ERR = f"EXC: {e}"
-    return {}
+                v = vals[-1].get("value")                       # formato period=day
+                if v is None:                                   # formato metric_type=total_value
+                    v = (m.get("total_value") or {}).get("value")
+                out[m.get("name")] = v
+        except Exception as e:
+            _LAST_ERR = f"EXC: {e}"
+    return out
 
 
 def diagnostico():
@@ -171,11 +195,17 @@ def atualizar_recentes(dias=3):
         conn.close()
         return 0
 
+    tk = _token()[0]
     n = 0
     for r in rows:
-        m = coletar_post(r["ig_media_id"])
+        m = coletar_post(r["ig_media_id"], tk)
         if not m:
             continue
+        # plays: 'views' (nova) > 'plays' (antiga) > legado. Só grava se o post for REELS —
+        # 'views' de carrossel marcaria formato errado no Placar.
+        plays = m.get("views") or m.get("plays") or m.get("ig_reels_video_view_total")
+        if plays and _media_product_type(r["ig_media_id"], tk) != "REELS":
+            plays = None
         conn.execute(
             """INSERT INTO post_insights
                (news_id, reach, saved, shares, likes, comments, interactions, plays, coletado_em)
@@ -187,7 +217,7 @@ def atualizar_recentes(dias=3):
                  coletado_em=excluded.coletado_em""",
             (r["id"], m.get("reach"), m.get("saved"), m.get("shares"),
              m.get("likes"), m.get("comments"), m.get("total_interactions"),
-             m.get("ig_reels_video_view_total"),
+             plays,
              datetime.now().isoformat(timespec="seconds")),
         )
         n += 1

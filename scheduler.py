@@ -299,15 +299,31 @@ def cleanup_job():
                     except Exception:
                         pass
 
-        result = conn.execute("""
-            DELETE FROM news
-            WHERE created_at < datetime('now', '-7 days')
-        """)
+        # MEMÓRIA DO MOTOR: notícia POSTADA nunca é apagada — o Placar/LEARN cruza post_insights
+        # com news (JOIN); apagar limitaria o aprendizado a 7 dias de histórico PARA SEMPRE.
+        # Só limpa o áudio dela (arquivo já foi removido acima) e apaga as NÃO postadas.
+        try:
+            conn.execute("""
+                UPDATE news SET audio_file = NULL
+                WHERE created_at < datetime('now', '-7 days')
+                AND social_posted_at IS NOT NULL AND social_posted_at != ''
+            """)
+            result = conn.execute("""
+                DELETE FROM news
+                WHERE created_at < datetime('now', '-7 days')
+                AND (social_posted_at IS NULL OR social_posted_at = '')
+            """)
+        except Exception:
+            # banco antigo sem a coluna social_posted_at -> comportamento original
+            result = conn.execute("""
+                DELETE FROM news
+                WHERE created_at < datetime('now', '-7 days')
+            """)
         deleted = result.rowcount
         conn.commit()
         conn.close()
 
-        logger.info(f"🧹 Limpeza: {deleted} notícias antigas (>7 dias) removidas. Restam: {total - deleted}.")
+        logger.info(f"🧹 Limpeza: {deleted} notícias antigas (>7 dias) removidas (postadas preservadas p/ o Placar). Restam: {total - deleted}.")
     except Exception as e:
         logger.error(f"❌ Erro na limpeza: {e}")
 

@@ -33,17 +33,29 @@ if _vol and not os.environ.get('DB_PATH'):
     logging.getLogger(__name__).info("💾 DB no volume persistente: %s", os.environ['DB_PATH'])
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'radio-sc-secret-2024-xk91')
+# SECRET_KEY: env > derivada da senha admin. O default antigo era um valor FIXO no código
+# (público no GitHub) -> qualquer um forjava o cookie de sessão e entrava no painel.
+# Derivar da ADMIN_PASSWORD mantém a sessão estável entre deploys SEM segredo no repo.
+_sk = os.environ.get('SECRET_KEY')
+if not _sk:
+    import hashlib as _hl
+    _sk = _hl.sha256(('rsc-secret-' + os.environ.get('ADMIN_PASSWORD', '')).encode()).hexdigest()
+app.secret_key = _sk
 
 DB_PATH       = os.environ.get('DB_PATH', 'radio_sc.db')
 AUDIO_DIR     = os.environ.get('AUDIO_DIR', 'audio')
 UPLOAD_DIR    = os.environ.get('UPLOAD_DIR', 'uploads')
-_admin_pw_env = os.environ.get('ADMIN_PASSWORD', 'julia181014')
-# Aceita hash bcrypt na env var (recomendado) ou plain text com hash gerado em runtime
+_admin_pw_env = os.environ.get('ADMIN_PASSWORD', '')
+# Aceita hash bcrypt na env var (recomendado) ou plain text com hash gerado em runtime.
+# SEM senha na env -> senha aleatória (login desabilitado até setar ADMIN_PASSWORD) —
+# o default hardcoded antigo estava no repo público.
 if _admin_pw_env.startswith('$2b$') or _admin_pw_env.startswith('$2a$'):
     ADMIN_PASSWORD_HASH = _admin_pw_env
-else:
+elif _admin_pw_env:
     ADMIN_PASSWORD_HASH = generate_password_hash(_admin_pw_env)
+else:
+    import secrets as _sec
+    ADMIN_PASSWORD_HASH = generate_password_hash(_sec.token_hex(16))
 
 ALLOWED_IMAGE = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 MAX_UPLOAD_MB = 10
