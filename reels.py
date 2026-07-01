@@ -74,7 +74,13 @@ def _narration_script(news, resumo, gancho=None):
     city = gi._cidade_real(news)
     abertura = re.sub(r"\s+", " ", (gancho or title)).strip().rstrip(".")
     partes = [f"{abertura}."]
-    if city and city.lower() not in abertura.lower():
+    # "já citada?" ignora acento (título sem acento fazia a voz repetir a cidade 2x)
+    try:
+        import genericbg
+        _ja_citada = genericbg._norm(city) in genericbg._norm(abertura)
+    except Exception:
+        _ja_citada = city.lower() in abertura.lower()
+    if city and not _ja_citada:
         partes.append(f"{city}.")
     if corpo:
         partes.append(corpo)
