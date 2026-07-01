@@ -532,7 +532,7 @@ def social_caption(news, resumo):
         f"➕ Segue @radioscnews — o Norte de SC em 1 minuto\n\n"
         f"{bloco_canal}"
         f"👀 Viu algo na sua cidade? Manda no direct — a próxima notícia pode ser sua.\n"
-        f"📍 {city}  ·  🎧 áudio + matéria completa no site (link na bio)\n\n"
+        f"📍 {city}  ·  ➕ mais notícias do Vale no site (link na bio)\n\n"
         + " ".join(uniq)
     )
 

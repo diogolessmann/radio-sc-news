@@ -218,7 +218,7 @@ def publipost_caption(sponsor):
         linhas.append(f"📱 Contato: {fone}")
     linhas += ["", "Prestigie quem é daqui. 💚", "",
                "Sua marca aqui também? Chama a gente no direct.", "",
-               "#comercio #vale #valedoitapocu #apoieocomerciolocal #radioscnews #nortedesc"]
+               "#publi #comercio #vale #valedoitapocu #apoieocomerciolocal #radioscnews #nortedesc"]
     return "\n".join(linhas)
 
 
@@ -236,7 +236,25 @@ def run_publipost(post=False, sponsor=None):
         f.write(cap)
     if post:
         import distribuidor as dist
-        dist.publish_single(f"publi_{sponsor['id']}", img, cap)
+        res = dist.publish_single(f"publi_{sponsor['id']}", img, cap)
+        # RELATÓRIO DE RESULTADO: guarda o id do post no IG — é o que permite puxar o alcance
+        # depois e mandar "teu post alcançou X mil" pro cliente (renovação = provar resultado).
+        try:
+            mid = ((res or {}).get("instagram") or {}).get("id")
+            if mid:
+                import sqlite3
+                _c = sqlite3.connect(os.environ.get("DB_PATH", "radio_sc.db"), timeout=10)
+                _c.execute("""CREATE TABLE IF NOT EXISTS sponsor_posts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT, sponsor_id INTEGER, sponsor_name TEXT,
+                    ig_media_id TEXT, posted_at TEXT)""")
+                _c.execute("INSERT INTO sponsor_posts (sponsor_id, sponsor_name, ig_media_id, posted_at)"
+                           " VALUES (?,?,?,?)",
+                           (sponsor["id"], sponsor.get("name"), str(mid),
+                            datetime.now().isoformat(timespec="seconds")))
+                _c.commit()
+                _c.close()
+        except Exception:
+            pass
     return {"ok": True, "sponsor": sponsor["name"], "img": img, "outdir": outdir, "postado": bool(post)}
 
 

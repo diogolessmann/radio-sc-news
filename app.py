@@ -395,6 +395,67 @@ def noticia_permalink(news_id):
                            portal_url=PORTAL_URL)
 
 
+# ── SEO: fundação (robots + sitemap + RSS) ───────────────────────────────────
+# A home é 100% renderizada em JS -> sem sitemap o Google não enxerga NENHUMA
+# notícia. Portal local vive de busca/Discover; isto é o mapa pro crawler.
+@app.route('/robots.txt')
+def robots_txt():
+    from flask import Response
+    return Response(f"User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: {PORTAL_URL}/sitemap.xml\n",
+                    mimetype='text/plain')
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    from flask import Response
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT id, published_at, created_at FROM news WHERE active=1 "
+        "ORDER BY datetime(published_at) DESC LIMIT 1000").fetchall()
+    conn.close()
+    urls = [f"<url><loc>{PORTAL_URL}/</loc><changefreq>hourly</changefreq></url>"]
+    for r in rows:
+        lastmod = ((r['published_at'] or r['created_at'] or '')[:10])
+        lm = f"<lastmod>{lastmod}</lastmod>" if lastmod else ""
+        urls.append(f"<url><loc>{PORTAL_URL}/noticia/{r['id']}</loc>{lm}</url>")
+    xml = ('<?xml version="1.0" encoding="UTF-8"?>'
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+           + "".join(urls) + '</urlset>')
+    return Response(xml, mimetype='application/xml')
+
+
+@app.route('/rss')
+@app.route('/feed')
+def rss_feed():
+    """RSS próprio (nosso texto): distribui p/ agregadores e assina 'veículo de verdade'."""
+    from flask import Response
+    from xml.sax.saxutils import escape as _esc
+    from email.utils import format_datetime as _fmtdt
+    from datetime import datetime as _dt
+    conn = get_db()
+    rows = conn.execute(
+        "SELECT * FROM news WHERE active=1 ORDER BY datetime(published_at) DESC LIMIT 30").fetchall()
+    conn.close()
+    items = []
+    for r in rows:
+        r = dict(r)
+        t = _esc(r.get('title_own') or r.get('title') or '')
+        desc = _esc((r.get('resumo_own') or r.get('summary') or '')[:400])
+        link = f"{PORTAL_URL}/noticia/{r['id']}"
+        try:
+            pub = _fmtdt(_dt.fromisoformat((r.get('published_at') or '').replace('Z', '+00:00')))
+        except Exception:
+            pub = ''
+        items.append(f"<item><title>{t}</title><link>{link}</link><guid>{link}</guid>"
+                     f"<description>{desc}</description><pubDate>{pub}</pubDate></item>")
+    xml = ('<?xml version="1.0" encoding="UTF-8"?><rss version="2.0"><channel>'
+           f'<title>Rádio SC News</title><link>{PORTAL_URL}</link>'
+           '<description>Notícias do Norte de Santa Catarina — Jaraguá do Sul, Schroeder, '
+           'Guaramirim, Joinville e Corupá.</description>'
+           + "".join(items) + '</channel></rss>')
+    return Response(xml, mimetype='application/rss+xml')
+
+
 _ENQUETE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1"><title>Enquete do Vale</title>
 <style>
@@ -1466,32 +1527,33 @@ _ANUNCIE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 <div class=sub>O portal que o Norte de SC acompanha todo dia — Jaraguá do Sul · Schroeder · Guaramirim · Joinville · Corupá.</div>
 
 <div class=stats>
- <div class=stat><b>+113 mil</b><span>visualizações por mês</span></div>
- <div class=stat><b>Norte de SC</b><span>público 100% local</span></div>
- <div class=stat><b>Diário</b><span>notícia, agenda e bom dia</span></div>
+ <div class=stat><b>+842 mil</b><span>visualizações em 30 dias</span></div>
+ <div class=stat><b>+6,2 mil</b><span>seguidores — dobrando por mês</span></div>
+ <div class=stat><b>100% local</b><span>Jaraguá, Schroeder, Guaramirim, Joinville, Corupá</span></div>
 </div>
+<div class=obs style="text-align:left;margin:-14px 0 24px">Números reais do Instagram @radiosc.news (painel profissional) — crescimento 100% orgânico, sem anúncio pago.</div>
 
 <h2>Escolha seu plano</h2>
 <div class=planos>
  <div class=plano>
-  <h3>🥉 Selo Patrocinador</h3>
-  <div class=preco>R$ 197<small>/mês</small></div>
-  <ul><li>Sua marca no "Bom dia, Vale" todo dia</li><li>Menção na legenda</li><li>Logo no rodapé</li></ul>
+  <h3>📰 Reportagem da sua Marca</h3>
+  <div class=preco>R$ 350<small>/post avulso</small></div>
+  <ul><li>Sua HISTÓRIA contada como reportagem (origem, família, equipe) — credibilidade de notícia, não cara de anúncio</li><li>Carrossel no feed + story</li><li>Versão TURBINADA R$ 450: impulsionamento pago incluso na sua cidade</li></ul>
  </div>
  <div class="plano dest">
-  <h3>🥈 Parceiro do Vale</h3>
-  <div class=preco>R$ 397<small>/mês</small></div>
-  <ul><li>Tudo do Selo</li><li>2 publiposts no mês</li><li>1 story por semana</li><li>Rotação de destaque</li></ul>
+  <h3>💙 Parceiro do Vale</h3>
+  <div class=preco>R$ 890<small>/mês</small></div>
+  <ul><li>Selo "Oferecimento" no Bom dia, Vale (o post que a região vê toda manhã)</li><li>3 publiposts no mês</li><li>Impulsionamento incluso (R$150)</li><li>Relatório de alcance no fim do mês</li></ul>
  </div>
  <div class=plano>
-  <h3>🥇 Apresentador</h3>
-  <div class=preco>R$ 697<small>/mês</small></div>
-  <ul><li>Tudo do Parceiro</li><li>Publipost toda semana</li><li>"Agenda do Vale apresentada por você"</li><li>Prioridade total</li></ul>
+  <h3>👑 Parceiro Master</h3>
+  <div class=preco>R$ 1.500<small>/mês</small></div>
+  <ul><li>Tudo do Parceiro do Vale</li><li>4 posts + 1 Reels narrado da sua marca</li><li>Impulsionamento turbinado (R$250)</li><li>Prioridade total no calendário</li></ul>
  </div>
 </div>
 
 <a class=cta href="{{wa}}">📲 Quero anunciar — falar agora</a>
-<div class=obs>Valores de lançamento. Pacotes personalizados sob consulta.</div>
+<div class=obs>Valores de lançamento — sobem conforme a audiência cresce. Pacotes personalizados sob consulta. Conteúdo pago identificado (#publi).</div>
 </div></body></html>"""
 
 
