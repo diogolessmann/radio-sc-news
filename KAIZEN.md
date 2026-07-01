@@ -38,9 +38,9 @@ A cada sessão, a gente tira 1-2 itens daqui. Foco regional: Jaraguá · Schroed
 - [ ] **🟡 Filtro sensível prende notícia POSITIVA com criança** — "criança/menino/menina" sozinhos
       seguram "menina de Jaraguá ganha medalha" (distribuidor.py:95-106). Exigir termo-de-menor +
       termo-de-crime/tragédia JUNTOS. Libera o conteúdo positivo que o dono QUER postar.
-- [ ] **🟡 Teto diário de posts** — urgente a cada 20min sem cap; dia de temporal pode passar de
-      10 posts (cadência anômala + caminha pro limite Meta de 100 publicações/24h, nunca checado).
-      Env POSTS_MAX_DIA (default ~8) + contador por social_posted_at do dia.
+- [x] **Teto de posts → FUSÍVEL anti-bug (decisão do dono: "mais é mais")** — teto editorial
+      REJEITADO (o volume ~10/dia é o que fez crescer). POSTS_MAX_DIA=30 default só segura job
+      em loop por bug; 0 desliga. Lição gravada no PLAYBOOK_2026.md (não relitigar).
 - [ ] **🟡 (DONO) Ligar "O Vale em 60s"** — RESUMO_ON=1 já gera todo dia 20h30 pra revisão em
       /admin/resumo; revisar uns dias e setar RESUMO_POST=1. Reels diário de HÁBITO, zero código.
 - [ ] **🟢 gen_instagram.py:606 ainda promete "OUÇA em áudio no site"** — áudio foi removido do

@@ -112,6 +112,11 @@ Joinville) e fala como vizinho, não como agência.
 - Preferir fixes **grátis** e **sem dependência** (a régua do projeto).
 
 ## Lições já aprendidas (FLAGAR se violado, NÃO relitigar)
+- **VOLUME é a estratégia validada desta conta (decisão do dono, jul/2026):** ~10 posts/dia
+  levaram de 600 seguidores a 842 mil views/30d. Para conta de NOTÍCIA LOCAL (plantão/utilidade),
+  "mais é mais" — a regra genérica "3 Reels bons > 7 medíocres" NÃO se aplica aqui. Não recomendar
+  reduzir cadência nem teto editorial; o POSTS_MAX_DIA=30 existente é só fusível anti-bug
+  (job em loop), nunca freio de pauta.
 - **IA de imagem (Nano Banana) está OFF para notícia dura** — o dono testou ao vivo e não gostou
   (ilustrações genéricas "storybook" que não casam com a notícia). Módulo fica pronto, só
   desligado. Serviria só p/ conteúdo leve/aspiracional. **Não recomendar religar p/ hard news.**
