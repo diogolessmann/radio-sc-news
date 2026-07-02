@@ -16,8 +16,8 @@ from PIL import Image, ImageDraw
 import gen_instagram as gi
 
 # ── NÚMEROS (atualizar aqui e regerar) ───────────────────────────────────────
-VIEWS_30D = "842 MIL"
-SEGUIDORES = "6,2 MIL"
+VIEWS_30D = "1 MILHÃO"
+SEGUIDORES = "6,5 MIL"
 POSTS_MES = "+300"
 WHATS_VENDA = "(47) 99101-1351"
 
@@ -70,7 +70,7 @@ def slide_numeros(outdir):
     c, d = _canvas()
     _center(d, "NÚMEROS QUE FALAM SOZINHOS", gi.font(44, impact=True), 190, gi.GOLD)
     stats = [
-        (VIEWS_30D, "visualizações nos últimos 30 dias"),
+        (VIEWS_30D, "de visualizações nos últimos 30 dias"),
         (SEGUIDORES, "seguidores — e dobrando a cada mês"),
         (POSTS_MES, "posts por mês, 7 dias por semana"),
         ("100%", "orgânico — zero anúncio pago"),

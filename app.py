@@ -1544,8 +1544,8 @@ _ANUNCIE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 <div class=sub>O portal que o Norte de SC acompanha todo dia — Jaraguá do Sul · Schroeder · Guaramirim · Joinville · Corupá.</div>
 
 <div class=stats>
- <div class=stat><b>+842 mil</b><span>visualizações em 30 dias</span></div>
- <div class=stat><b>+6,2 mil</b><span>seguidores — dobrando por mês</span></div>
+ <div class=stat><b>1 MILHÃO</b><span>de visualizações em 30 dias</span></div>
+ <div class=stat><b>+6,5 mil</b><span>seguidores — dobrando por mês</span></div>
  <div class=stat><b>100% local</b><span>Jaraguá, Schroeder, Guaramirim, Joinville, Corupá</span></div>
 </div>
 <div class=obs style="text-align:left;margin:-14px 0 24px">Números reais do Instagram @radiosc.news (painel profissional) — crescimento 100% orgânico, sem anúncio pago.</div>
