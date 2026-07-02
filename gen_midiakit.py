@@ -49,9 +49,11 @@ def _save(c, outdir, nome):
 
 def slide_capa(outdir):
     c, d = _canvas()
-    _center(d, "MÍDIA KIT", gi.font(150, impact=True), 340, gi.WHITE)
-    _center(d, "2026", gi.font(96, impact=True), 520, gi.GOLD)
-    _center(d, "Sua marca na frente do Vale inteiro", gi.font(42), 700, gi.WHITE)
+    _center(d, "MÍDIA KIT", gi.font(140, impact=True), 300, gi.WHITE)
+    # O GANCHO já na capa: o número que ninguém ignora
+    _center(d, "1 MILHÃO", gi.font(110, impact=True), 490, gi.GOLD)
+    _center(d, "de visualizações por mês", gi.font(40), 625, gi.WHITE)
+    _center(d, "Sua marca na frente do Vale inteiro", gi.font(36), 730, gi.MUTED)
     f = gi.font(30)
 
     def _pills(row, y):
@@ -60,10 +62,67 @@ def slide_capa(outdir):
         for t in row:
             x = gi.pill(d, x, y, t, f, gi.RED, gi.WHITE) + 16
 
-    _pills(["JARAGUÁ DO SUL", "SCHROEDER", "GUARAMIRIM"], 860)
-    _pills(["JOINVILLE", "CORUPÁ"], 950)
+    _pills(["JARAGUÁ DO SUL", "SCHROEDER", "GUARAMIRIM"], 880)
+    _pills(["JOINVILLE", "CORUPÁ"], 970)
     gi.footer_site(d)
     return _save(c, outdir, "midiakit_1_capa.jpg")
+
+
+def slide_prova(outdir):
+    """PROVA > promessa: números REAIS de posts (prints de jun-jul/2026)."""
+    c, d = _canvas()
+    _center(d, "A REGIÃO NÃO SÓ VÊ.", gi.font(52, impact=True), 190, gi.WHITE)
+    _center(d, "ELA COMPARTILHA.", gi.font(52, impact=True), 265, gi.GOLD)
+    stats = [
+        ("61 MIL", "visualizações num ÚNICO post (alerta de vento)"),
+        ("202", "compartilhamentos num só alerta — vizinho avisando vizinho"),
+        ("+4 MIL", "seguidores novos num único mês"),
+    ]
+    y = 420
+    for num, lab in stats:
+        _center(d, num, gi.font(100, impact=True), y, gi.WHITE)
+        f = gi.font(29)
+        lines = gi.wrap(d, lab, f, W - 240)
+        yy = y + 118
+        for ln in lines:
+            w = d.textlength(ln, font=f)
+            d.text(((W - w) / 2, yy), ln, font=f, fill=gi.MUTED)
+            yy += 38
+        y += 245
+    _center(d, "Números reais do painel profissional — junho/julho 2026",
+            gi.font(24, bold=False), 1200, gi.MUTED)
+    gi.footer_site(d)
+    return _save(c, outdir, "midiakit_3_prova.jpg")
+
+
+def slide_comofunciona(outdir):
+    """Mata a objeção 'isso vai me dar trabalho': 3 passos, 15 minutos do cliente."""
+    c, d = _canvas()
+    _center(d, "COMO FUNCIONA", gi.font(46, impact=True), 180, gi.GOLD)
+    _center(d, "(sem trabalho nenhum pra você)", gi.font(32), 250, gi.WHITE)
+    blocos = [
+        ("1", "VOCÊ CONTA SUA HISTÓRIA",
+         "Um papo de 15 minutos no WhatsApp — origem, família, o que faz sua marca ser sua."),
+        ("2", "A GENTE PRODUZ TUDO",
+         "Texto, arte, publicação e impulsionamento. Você aprova antes de ir pro ar."),
+        ("3", "VOCÊ VÊ O RESULTADO",
+         "Post no ar pro Vale inteiro + relatório de alcance direto no seu zap."),
+    ]
+    y = 380
+    for num, tit, txt in blocos:
+        d.ellipse([70, y, 150, y + 80], fill=gi.GOLD)
+        fnum = gi.font(46, impact=True)
+        wnum = d.textlength(num, font=fnum)
+        d.text((70 + (80 - wnum) / 2, y + 12), num, font=fnum, fill=gi.BLACK)
+        d.text((180, y - 2), tit, font=gi.font(38, impact=True), fill=gi.WHITE)
+        f = gi.font(29)
+        lines = gi.wrap(d, txt, f, W - 180 - 70)
+        gi.draw_lines(d, lines, f, 180, y + 56, gi.MUTED, 39)
+        y += 88 + len(lines) * 39 + 60
+    _center(d, "15 minutos do seu tempo. O resto é com a gente.",
+            gi.font(30), 1150, gi.GOLD)
+    gi.footer_site(d)
+    return _save(c, outdir, "midiakit_5_comofunciona.jpg")
 
 
 def slide_numeros(outdir):
@@ -108,7 +167,7 @@ def slide_produto(outdir):
         gi.draw_lines(d, lines, f, 180, y + 58, gi.MUTED, 40)
         y += 90 + len(lines) * 40 + 62
     gi.footer_site(d)
-    return _save(c, outdir, "midiakit_3_produto.jpg")
+    return _save(c, outdir, "midiakit_4_produto.jpg")
 
 
 def slide_planos(outdir):
@@ -148,7 +207,7 @@ def slide_planos(outdir):
             gi.pill(d, W - 60 - tw - 70, y - 22, "MAIS PROCURADO", f2, gi.GOLD, gi.BLACK, pad_x=20, pad_y=8)
         y += 336
     gi.footer_site(d)
-    return _save(c, outdir, "midiakit_4_planos.jpg")
+    return _save(c, outdir, "midiakit_6_planos.jpg")
 
 
 def slide_conta(outdir):
@@ -173,7 +232,7 @@ def slide_conta(outdir):
     _center(d, "Valores de lançamento — sobem conforme a audiência cresce.",
             gi.font(24, bold=False), 1090, gi.MUTED)
     gi.footer_site(d)
-    return _save(c, outdir, "midiakit_5_conta.jpg")
+    return _save(c, outdir, "midiakit_7_conta.jpg")
 
 
 def slide_fechamento(outdir):
@@ -193,20 +252,22 @@ def slide_fechamento(outdir):
     _center(d, "Norte de Santa Catarina — Jaraguá, Schroeder, Guaramirim, Joinville e Corupá",
             gi.font(24, bold=False), 1030, gi.MUTED)
     gi.footer_site(d)
-    return _save(c, outdir, "midiakit_6_contato.jpg")
+    return _save(c, outdir, "midiakit_8_contato.jpg")
 
 
 def main():
     outdir = os.path.join(os.path.expanduser("~"), "Desktop", "MIDIA_KIT_RADIO_SC")
     os.makedirs(outdir, exist_ok=True)
     print("Gerando midia kit em", outdir)
-    slide_capa(outdir)
-    slide_numeros(outdir)
-    slide_produto(outdir)
-    slide_planos(outdir)
-    slide_conta(outdir)
-    slide_fechamento(outdir)
-    print("PRONTO: 6 cards. Manda os 6 juntos no WhatsApp do cliente.")
+    slide_capa(outdir)          # 1. gancho: 1 MILHÃO já na capa
+    slide_numeros(outdir)       # 2. escala
+    slide_prova(outdir)         # 3. PROVA (números reais de post)
+    slide_produto(outdir)       # 4. o que fazemos
+    slide_comofunciona(outdir)  # 5. mata a objeção "dá trabalho"
+    slide_planos(outdir)        # 6. oferta
+    slide_conta(outdir)         # 7. a conta (R$26/dia)
+    slide_fechamento(outdir)    # 8. CTA
+    print("PRONTO: 8 cards. Manda os 8 juntos no WhatsApp do cliente (ou o PDF).")
 
 
 if __name__ == "__main__":
