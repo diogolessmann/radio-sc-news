@@ -125,6 +125,31 @@ def insights_job():
         logger.error(f"❌ Insights falhou: {e}")
 
 
+def vigia_job():
+    """O VIGIA (dead-man switch): confere se a fábrica postou hoje; se não, manda ZAP pro
+    dono via Evolution. Dormente até configurar EVOLUTION_URL/APIKEY/INSTANCE + VIGIA_ZAP."""
+    try:
+        import vigia
+        if not vigia.ligado():
+            return
+        r = vigia.checar_dia()
+        logger.info(f"👁️ Vigia: {r}")
+    except Exception as e:
+        logger.error(f"❌ Vigia falhou: {e}")
+
+
+def vigia_semana_job():
+    """Resumo semanal + BACKUP do banco no zap do dono (único backup fora do Railway)."""
+    try:
+        import vigia
+        if not vigia.ligado():
+            return
+        r = vigia.resumo_semana()
+        logger.info(f"👁️ Vigia semana: {r}")
+    except Exception as e:
+        logger.error(f"❌ Vigia semanal falhou: {e}")
+
+
 def comunidade_job():
     """Franquia de COMUNIDADE ('Diz Aí, Vale' — pergunta da semana). Puxa comentário.
     Só posta se autopost ligado; senão gera só o preview."""
@@ -441,6 +466,23 @@ def start_scheduler(interval_minutes=60):
         trigger=CronTrigger(hour=23, minute=30, timezone='America/Sao_Paulo'),
         id='insights_loop',
         name='Loop de Insights (alcance/saves/seguidor por post)',
+        replace_existing=True
+    )
+
+    # 👁️ O VIGIA — dead-man switch diário 21h30 (fábrica parou? zap na hora) +
+    # resumo semanal com BACKUP do banco domingo 21h. Dormente sem as env vars.
+    _scheduler.add_job(
+        func=vigia_job,
+        trigger=CronTrigger(hour=21, minute=30, timezone='America/Sao_Paulo'),
+        id='vigia_diario',
+        name='Vigia (dead-man switch: avisa no zap se a fábrica parar)',
+        replace_existing=True
+    )
+    _scheduler.add_job(
+        func=vigia_semana_job,
+        trigger=CronTrigger(day_of_week='sun', hour=21, minute=0, timezone='America/Sao_Paulo'),
+        id='vigia_semana',
+        name='Vigia semanal (resumo + backup do banco no zap)',
         replace_existing=True
     )
 
