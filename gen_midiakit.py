@@ -113,29 +113,67 @@ def slide_produto(outdir):
 
 def slide_planos(outdir):
     c, d = _canvas()
-    _center(d, "PLANOS — MENOS POR MAIS", gi.font(44, impact=True), 190, gi.GOLD)
+    _center(d, "OS PLANOS", gi.font(46, impact=True), 175, gi.GOLD)
     planos = [
-        ("REPORTAGEM DA SUA MARCA", "R$ 350", "post avulso — versão TURBINADA com impulsionamento: R$ 450", False),
-        ("PARCEIRO DO VALE", "R$ 890/mês", "selo diário no Bom dia + 3 posts + impulsionamento + relatório de alcance", True),
-        ("PARCEIRO MASTER", "R$ 1.500/mês", "tudo do Parceiro + 4 posts + Reels narrado + prioridade total", False),
+        ("REPORTAGEM DA SUA MARCA", "R$ 480", "pagamento único",
+         ["1 reportagem storytelling (carrossel) + story",
+          "Impulsionamento incluso na sua cidade",
+          "Print de resultado em 7 dias"], False),
+        ("PARCEIRO DO VALE", "R$ 780/mês", "= R$ 26 por dia",
+         ["Selo TODO DIA no Bom dia, Vale (30x/mês)",
+          "2 posts da sua marca por mês (feed + story)",
+          "Impulsionamento + relatório mensal de alcance"], True),
+        ("PARCEIRO MASTER", "R$ 1.290/mês", "= R$ 43 por dia",
+         ["Tudo do Parceiro + 4 posts (1 por semana)",
+          "1 Reels narrado/mês + reportagem de estreia",
+          "Impulsionamento turbinado + prioridade total"], False),
     ]
-    y = 300
-    for tit, preco, desc, destaque in planos:
-        d.rounded_rectangle([60, y, W - 60, y + 258], radius=24, fill=CARD_BG,
+    y = 255
+    for tit, preco, sub, bullets, destaque in planos:
+        d.rounded_rectangle([60, y, W - 60, y + 308], radius=24, fill=CARD_BG,
                             outline=gi.GOLD if destaque else BORDA, width=4 if destaque else 2)
-        d.text((100, y + 26), tit, font=gi.font(36, impact=True), fill=gi.WHITE)
-        d.text((100, y + 82), preco, font=gi.font(62, impact=True), fill=gi.GOLD)
-        f = gi.font(27)
-        lines = gi.wrap(d, desc, f, W - 200)
-        gi.draw_lines(d, lines, f, 100, y + 172, gi.MUTED, 36)
+        d.text((100, y + 22), tit, font=gi.font(34, impact=True), fill=gi.WHITE)
+        d.text((100, y + 68), preco, font=gi.font(56, impact=True), fill=gi.GOLD)
+        fw = gi.font(26)
+        pw = d.textlength(preco, font=gi.font(56, impact=True))
+        d.text((100 + pw + 24, y + 96), sub, font=fw, fill=gi.MUTED)
+        fb = gi.font(25)
+        yy = y + 158
+        for b in bullets:
+            d.text((100, yy), "• " + b, font=fb, fill=gi.MUTED)
+            yy += 42
         if destaque:
             f2 = gi.font(24)
             tw = d.textlength("MAIS PROCURADO", font=f2)
             gi.pill(d, W - 60 - tw - 70, y - 22, "MAIS PROCURADO", f2, gi.GOLD, gi.BLACK, pad_x=20, pad_y=8)
-        y += 298
-    _center(d, "Valores de lançamento — sobem conforme a audiência cresce.", gi.font(24, bold=False), 1215, gi.MUTED)
+        y += 336
     gi.footer_site(d)
     return _save(c, outdir, "midiakit_4_planos.jpg")
+
+
+def slide_conta(outdir):
+    """O card do 'é bom investimento?': a matemática que fecha a venda."""
+    c, d = _canvas()
+    _center(d, "ISSO É UM BOM INVESTIMENTO?", gi.font(44, impact=True), 185, gi.GOLD)
+    _center(d, "A conta é simples:", gi.font(34), 290, gi.WHITE)
+    # o número herói
+    _center(d, "R$ 26/dia", gi.font(120, impact=True), 370, gi.WHITE)
+    _center(d, "menos que um almoço", gi.font(32), 510, gi.MUTED)
+    # o que compra
+    f = gi.font(32)
+    _center(d, "pra sua marca aparecer TODOS os dias", f, 610, gi.WHITE)
+    _center(d, "pra uma audiência de 1 MILHÃO de views/mês", f, 660, gi.WHITE)
+    # comparação
+    d.rounded_rectangle([60, 760, W - 60, 1010], radius=24, fill=CARD_BG, outline=BORDA, width=2)
+    fc = gi.font(28)
+    d.text((100, 795), "• Outdoor: R$ 2-4 mil/mês — parado numa rua só", font=fc, fill=gi.MUTED)
+    d.text((100, 850), "• Jornal impresso: caro e cada vez menos lido", font=fc, fill=gi.MUTED)
+    d.text((100, 905), "• Rádio SC News: o Vale inteiro no celular,", font=fc, fill=gi.WHITE)
+    d.text((100, 950), "  com RELATÓRIO do alcance real da sua marca", font=fc, fill=gi.WHITE)
+    _center(d, "Valores de lançamento — sobem conforme a audiência cresce.",
+            gi.font(24, bold=False), 1090, gi.MUTED)
+    gi.footer_site(d)
+    return _save(c, outdir, "midiakit_5_conta.jpg")
 
 
 def slide_fechamento(outdir):
@@ -155,7 +193,7 @@ def slide_fechamento(outdir):
     _center(d, "Norte de Santa Catarina — Jaraguá, Schroeder, Guaramirim, Joinville e Corupá",
             gi.font(24, bold=False), 1030, gi.MUTED)
     gi.footer_site(d)
-    return _save(c, outdir, "midiakit_5_contato.jpg")
+    return _save(c, outdir, "midiakit_6_contato.jpg")
 
 
 def main():
@@ -166,8 +204,9 @@ def main():
     slide_numeros(outdir)
     slide_produto(outdir)
     slide_planos(outdir)
+    slide_conta(outdir)
     slide_fechamento(outdir)
-    print("PRONTO: 5 cards. Manda os 5 juntos no WhatsApp do cliente.")
+    print("PRONTO: 6 cards. Manda os 6 juntos no WhatsApp do cliente.")
 
 
 if __name__ == "__main__":

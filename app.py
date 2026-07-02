@@ -1554,18 +1554,18 @@ _ANUNCIE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 <div class=planos>
  <div class=plano>
   <h3>📰 Reportagem da sua Marca</h3>
-  <div class=preco>R$ 350<small>/post avulso</small></div>
-  <ul><li>Sua HISTÓRIA contada como reportagem (origem, família, equipe) — credibilidade de notícia, não cara de anúncio</li><li>Carrossel no feed + story</li><li>Versão TURBINADA R$ 450: impulsionamento pago incluso na sua cidade</li></ul>
+  <div class=preco>R$ 480<small> — pagamento único</small></div>
+  <ul><li>Sua HISTÓRIA contada como reportagem (origem, família, equipe) — credibilidade de notícia, não cara de anúncio</li><li>Carrossel no feed + story</li><li>Impulsionamento pago incluso na sua cidade</li><li>Print de resultado em 7 dias</li></ul>
  </div>
  <div class="plano dest">
   <h3>💙 Parceiro do Vale</h3>
-  <div class=preco>R$ 890<small>/mês</small></div>
-  <ul><li>Selo "Oferecimento" no Bom dia, Vale (o post que a região vê toda manhã)</li><li>3 publiposts no mês</li><li>Impulsionamento incluso (R$150)</li><li>Relatório de alcance no fim do mês</li></ul>
+  <div class=preco>R$ 780<small>/mês (= R$ 26/dia)</small></div>
+  <ul><li>Selo "Oferecimento" TODO DIA no Bom dia, Vale (30x/mês)</li><li>2 posts da sua marca por mês (feed + story)</li><li>Impulsionamento incluso na sua cidade</li><li>Relatório mensal de alcance</li></ul>
  </div>
  <div class=plano>
   <h3>👑 Parceiro Master</h3>
-  <div class=preco>R$ 1.500<small>/mês</small></div>
-  <ul><li>Tudo do Parceiro do Vale</li><li>4 posts + 1 Reels narrado da sua marca</li><li>Impulsionamento turbinado (R$250)</li><li>Prioridade total no calendário</li></ul>
+  <div class=preco>R$ 1.290<small>/mês (= R$ 43/dia)</small></div>
+  <ul><li>Tudo do Parceiro do Vale</li><li>4 posts/mês (1 por semana) + 1 Reels narrado</li><li>Reportagem storytelling de estreia</li><li>Impulsionamento turbinado + prioridade total</li></ul>
  </div>
 </div>
 
