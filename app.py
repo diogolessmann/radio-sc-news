@@ -728,6 +728,23 @@ def admin_insights_debug():
     return jsonify(insights.diagnostico())
 
 
+@app.route('/admin/vigia-teste')
+@login_required
+def admin_vigia_teste():
+    """Testa o Vigia AGORA: manda uma mensagem de teste pro zap do dono via Evolution.
+    ok:true = chegou; ok:false = conferir EVOLUTION_URL/APIKEY/INSTANCE + VIGIA_ZAP."""
+    import vigia
+    if not vigia.ligado():
+        return jsonify({'ok': False,
+                        'erro': 'Vigia dormente — faltam env vars no Railway: '
+                                'EVOLUTION_URL, EVOLUTION_APIKEY, EVOLUTION_INSTANCE, VIGIA_ZAP.'})
+    ok = vigia.send_zap('👁️ VIGIA Rádio SC News: teste OK — tô de guarda! '
+                        '(alerta diário 21h30 · resumo+backup domingo 21h)')
+    return jsonify({'ok': bool(ok),
+                    'dica': 'ok:true = mensagem chegou no teu zap. '
+                            'ok:false = confere a URL (https, sem barra no fim), a apikey e se a instância está CONECTADA.'})
+
+
 _RESUMO_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1"><title>O Vale em 60s</title>
 <style>
