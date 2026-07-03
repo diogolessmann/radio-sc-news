@@ -97,18 +97,22 @@ def checar_dia():
     if os.environ.get("SOCIAL_AUTOPOST", "0") != "1":
         return {"ok": False, "motivo": "autopost off"}
     minimo = int(os.environ.get("VIGIA_MIN_POSTS", "4") or 4)
-    hoje = _q("SELECT COUNT(*) FROM news WHERE social_posted_at >= date('now','localtime')")
+    # Janela ROLANTE de 24h, não "dia calendário": o container roda em UTC — às 21h30 de
+    # Brasília já é "amanhã" em UTC e a contagem zerava (alarme falso no 1º disparo real).
+    # replace(T->espaço): social_posted_at é isoformat com 'T'; datetime() do SQLite usa espaço.
+    posts24 = _q("SELECT COUNT(*) FROM news WHERE replace(social_posted_at,'T',' ') "
+                 ">= datetime('now','-24 hours')")
     fila = _q("SELECT COUNT(*) FROM news WHERE social_hold IS NOT NULL AND social_hold != '' "
               "AND (social_posted_at IS NULL OR social_posted_at='') AND active=1")
-    if hoje < minimo:
-        send_zap(f"🚨 VIGIA Rádio SC: só {hoje} post(s) saíram hoje (mínimo esperado: {minimo}).\n"
+    if posts24 < minimo:
+        send_zap(f"🚨 VIGIA Rádio SC: só {posts24} post(s) nas últimas 24h (mínimo esperado: {minimo}).\n"
                  f"A fábrica pode ter PARADO — confere o token Meta e os logs do Railway."
                  + (f"\n📋 E tem {fila} matéria(s) esperando na fila /revisar." if fila else ""))
-        return {"ok": True, "alerta": True, "posts": hoje}
+        return {"ok": True, "alerta": True, "posts": posts24}
     if fila >= 5:
         send_zap(f"📋 VIGIA Rádio SC: {fila} matérias paradas na fila /revisar — "
                  f"dá uma olhada (aprovar ou descartar).")
-    return {"ok": True, "alerta": False, "posts": hoje, "fila": fila}
+    return {"ok": True, "alerta": False, "posts": posts24, "fila": fila}
 
 
 def resumo_semana():
@@ -116,8 +120,10 @@ def resumo_semana():
     É o único backup FORA do Railway — guarda o arquivo que chegar."""
     if not ligado():
         return {"ok": False, "motivo": "vigia off"}
-    posts7 = _q("SELECT COUNT(*) FROM news WHERE social_posted_at >= datetime('now','-7 days','localtime')")
-    novas7 = _q("SELECT COUNT(*) FROM news WHERE created_at >= datetime('now','-7 days')")
+    posts7 = _q("SELECT COUNT(*) FROM news WHERE replace(social_posted_at,'T',' ') "
+                ">= datetime('now','-7 days')")
+    novas7 = _q("SELECT COUNT(*) FROM news WHERE replace(created_at,'T',' ') "
+                ">= datetime('now','-7 days')")
     fila = _q("SELECT COUNT(*) FROM news WHERE social_hold IS NOT NULL AND social_hold != '' "
               "AND (social_posted_at IS NULL OR social_posted_at='') AND active=1")
     send_zap(f"📊 VIGIA Rádio SC — resumo da semana:\n"

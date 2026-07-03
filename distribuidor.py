@@ -775,10 +775,13 @@ def post_specific(news_id):
 
 
 def _posts_hoje(conn):
-    """Quantos posts de noticia JA sairam hoje (social_posted_at de hoje) — base do teto."""
+    """Quantos posts sairam nas ULTIMAS 24h — base do fusivel. Janela rolante (nao dia
+    calendario): o container roda em UTC e 'hoje' virava a meia-noite UTC (21h em Brasilia),
+    zerando a contagem. replace(T->espaco) alinha o isoformat com o datetime() do SQLite."""
     try:
         return conn.execute(
-            "SELECT COUNT(*) FROM news WHERE social_posted_at >= date('now','localtime')"
+            "SELECT COUNT(*) FROM news WHERE replace(social_posted_at,'T',' ') "
+            ">= datetime('now','-24 hours')"
         ).fetchone()[0]
     except Exception:
         return 0
