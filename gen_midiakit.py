@@ -74,8 +74,8 @@ def slide_prova(outdir):
     _center(d, "A REGIÃO NÃO SÓ VÊ.", gi.font(52, impact=True), 190, gi.WHITE)
     _center(d, "ELA COMPARTILHA.", gi.font(52, impact=True), 265, gi.GOLD)
     stats = [
-        ("61 MIL", "visualizações num ÚNICO post (alerta de vento)"),
-        ("202", "compartilhamentos num só alerta — vizinho avisando vizinho"),
+        ("147 MIL", "visualizações num ÚNICO post (alerta de ciclone)"),
+        ("1.563", "compartilhamentos num só alerta — vizinho avisando vizinho"),
         ("+4 MIL", "seguidores novos num único mês"),
     ]
     y = 420
