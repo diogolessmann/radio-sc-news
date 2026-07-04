@@ -9,7 +9,10 @@ def _startup():
     time.sleep(2)
     try:
         from scheduler import start_scheduler
-        start_scheduler(interval_minutes=60)
+        # CHIP Stage 2 (03/jul): coleta a cada 30min (era 60) — o plantão urgente roda a cada
+        # 20min mas só posta o que a COLETA já viu; coleta 2x mais rápida = a gente publica o
+        # fato antes da concorrência postar no Instagram. "Mais é mais" (decisão do dono).
+        start_scheduler(interval_minutes=30)
     except Exception as e:
         logger.warning(f"Scheduler não iniciado: {e}")
     try:

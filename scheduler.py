@@ -240,8 +240,11 @@ def agenda_job():
 
 
 def palpite_job():
-    """Palpite do Vale (Copa): posta o VOTA do jogo do dia e a REVELA quando o jogo acaba.
-    Roda a cada 2h. Pula sozinho se não há jogo / sem chave da API. Só posta se autopost ligado."""
+    """Palpite do Vale (Copa). DESLIGADO por decisão editorial (03/jul/2026): os dados provaram
+    que é poluição — posts de interação fazendo 0-107 views contra 400-1.700 das notícias.
+    Religa com PALPITE_ON=1 se um dia fizer sentido (ex: final de Copa com aposta da cidade)."""
+    if os.environ.get('PALPITE_ON', '0') != '1':
+        return
     try:
         import palpite
         r = palpite.run_auto(post=_autopost_on())
