@@ -169,6 +169,46 @@ RSS_FEEDS = [
         'category': 'geral',
         'priority': True
     },
+    # ── CHIP Stage 4 (04/jul/2026) — garimpo total do Vale (agentes + curl) ──
+    # POLÍCIA: feeds de CATEGORIA segurança pré-filtrados (menos ruído que o feed geral).
+    # O filtro editorial segura morte/sexual/menor; o resto (preso/apreensão/operação) posta.
+    {
+        'url': 'https://www.schpost.com.br/feed/seguranca',
+        'source': 'Portal de Schroeder – Segurança',
+        'city': None,          # alta concentração Schroeder/Guaramirim/Jaraguá — keyword decide
+        'category': 'policial',
+        'priority': True
+    },
+    {
+        'url': 'https://www.diariodajaragua.com.br/seguranca/feed/',
+        'source': 'Diário da Jaraguá – Segurança',
+        'city': None,          # foco Jaraguá/Guaramirim, com imagem no RSS
+        'category': 'policial',
+        'priority': True
+    },
+    # OFICIAIS: as ÚNICAS 2 fontes de governo com RSS vivo (o resto é anti-robô/SPA).
+    {
+        'url': 'https://schroeder.sc.gov.br/feed/',
+        'source': 'Prefeitura de Schroeder',
+        'city': 'Schroeder',   # notícia oficial (obra, vacina, evento); 403 no 1º hit -> fallback pega
+        'category': 'local',
+        'priority': True
+    },
+    {
+        'url': 'https://www.jaraguadosul.sc.leg.br/feed/',
+        'source': 'Câmara de Jaraguá do Sul',
+        'city': 'Jaraguá do Sul',   # sessões, projetos, vereadores — política local
+        'category': 'local',
+        'priority': True
+    },
+    # PORTAL novo de Joinville (o gap da maior cidade) — cobre a região, com imagem.
+    {
+        'url': 'https://joinvillenoticias.com.br/feed/rss/ultimas',
+        'source': 'Joinville Notícias',
+        'city': None,          # cobre Joinville + região (Guaramirim/Jaraguá aparecem) — keyword
+        'category': 'geral',
+        'priority': True
+    },
     # ── Norte de SC — OCP News (regional) ───────
     {
         'url': 'https://ocp.news/feed/',
