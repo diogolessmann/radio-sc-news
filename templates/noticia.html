@@ -40,6 +40,7 @@
  "headline":{{ n.title | tojson }},
  "description":{{ (n.summary or n.title)[:160] | tojson }},
  "datePublished":{{ (n.published_at or '') | tojson }},
+ {% if n.materia_texto %}"articleBody":{{ n.materia_texto | tojson }},{% endif %}
  "mainEntityOfPage":{{ og_url | tojson }},
  {% if og_image %}"image":[{{ og_image | tojson }}],{% endif %}
  "publisher":{"@type":"Organization","name":"Rádio SC News","url":{{ portal_url | tojson }}},
@@ -66,6 +67,8 @@
   .meta span{display:flex;align-items:center;gap:4px}
   .hero-img{width:100%;border-radius:14px;margin-bottom:20px;display:block;max-height:420px;object-fit:cover}
   .summary{font-size:15px;line-height:1.75;color:#c8c8d8;background:#1a1a24;border-left:3px solid #e94560;border-radius:0 10px 10px 0;padding:16px 18px;margin-bottom:24px}
+  .materia{margin-bottom:26px}
+  .materia p{font-size:15.5px;line-height:1.85;color:#d8d8e4;margin:0 0 16px}
   .source-link{display:inline-flex;align-items:center;gap:6px;padding:10px 18px;background:#22222f;border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#9090a8;font-size:13px;text-decoration:none;transition:.2s;margin-bottom:28px}
   .source-link:hover{border-color:rgba(255,255,255,.25);color:#e8e8f0}
   .share-section{background:#1a1a24;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:20px;margin-bottom:24px}
@@ -133,6 +136,12 @@
 
   {% if n.summary %}
   <div class="summary">{{ n.summary }}</div>
+  {% endif %}
+
+  {% if n.paragrafos %}
+  <div class="materia">
+    {% for p in n.paragrafos %}<p>{{ p }}</p>{% endfor %}
+  </div>
   {% endif %}
 
   {% if n.link %}

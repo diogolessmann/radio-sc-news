@@ -375,6 +375,11 @@ def noticia_permalink(news_id):
     # TEXTO NOSSO: site mostra a nossa reescrita (fallback no original se ainda não reescrita)
     n['title'] = n.get('title_own') or n['title']
     n['summary'] = n.get('resumo_own') or n['summary']
+    # MATÉRIA COMPLETA nossa: parágrafos pro corpo da página (o conteúdo que o Google ranqueia).
+    # Sem matéria (notícia antiga/fonte curta) -> página segue só com o resumo, nada quebra.
+    _mat = (n.get('materia_own') or '').strip()
+    n['materia_texto'] = _mat
+    n['paragrafos'] = [p.strip() for p in _mat.split('\n') if p.strip()] if _mat else []
     # IMAGEM NOSSA: notícia sem foto (ex OCP/Schroeder bloqueados) usa o arsenal
     if not n.get('admin_image') and not n.get('image_url'):
         try:

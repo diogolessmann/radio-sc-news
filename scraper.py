@@ -453,6 +453,8 @@ def _ensure_text_cols(conn):
             conn.execute("ALTER TABLE news ADD COLUMN title_own TEXT")
         if 'resumo_own' not in cols:
             conn.execute("ALTER TABLE news ADD COLUMN resumo_own TEXT")
+        if 'materia_own' not in cols:
+            conn.execute("ALTER TABLE news ADD COLUMN materia_own TEXT")
         conn.commit()
     except Exception as e:
         logger.error(f"_ensure_text_cols falhou: {e}")
@@ -474,6 +476,41 @@ def _reescreve(art):
     except Exception as e:
         logger.error(f"reescrita falhou p/ '{(art.get('title') or '')[:40]}': {e}")
     return None, None
+
+
+def _gerar_materia(art):
+    """MATÉRIA COMPLETA nossa (3-5 parágrafos) pro SITE — o conteúdo que o Google ranqueia
+    (a página de notícia com ~250 chars é rasa demais pra busca/Discover). Só gera quando a
+    fonte tem material (summary >= 350 chars). Trava MATERIA_ON (default ligado); None se
+    IA falhar — a página cai no resumo curto, nada quebra. Custo: ~centavos (Gemini flash)."""
+    if os.environ.get("MATERIA_ON", "1").strip() == "0":
+        return None
+    if os.environ.get("REWRITE_ON", "1").strip() == "0":
+        return None
+    fonte = (art.get('summary') or '').strip()
+    if len(fonte) < 350:
+        return None                      # sem material -> matéria inventada, não fazemos isso
+    try:
+        import cerebro
+        prompt = (
+            "Você é o redator do Rádio SC News (Vale do Itapocu, Norte de SC). Reescreva a "
+            "notícia abaixo como uma MATÉRIA COMPLETA de portal, com as SUAS palavras (nunca "
+            "copie frases da fonte):\n"
+            "- 3 a 5 parágrafos curtos (2-3 frases cada), separados por UMA linha em branco\n"
+            "- 1º parágrafo é o lide: o fato principal, com a cidade e quando\n"
+            "- Apenas FATOS do texto-fonte; PROIBIDO inventar dado, número, nome ou declaração\n"
+            "- Tom claro e direto de portal local, sem opinião, sem clickbait, sem emoji, sem hashtag\n"
+            "Responda SÓ os parágrafos.\n\n"
+            f"TÍTULO: {art.get('title') or ''}\n"
+            f"CIDADE: {art.get('city') or ''}\n"
+            f"TEXTO-FONTE: {fonte[:3000]}"
+        )
+        m = (cerebro.completar(prompt) or "").strip()
+        if 200 <= len(m) <= 4500:
+            return m
+    except Exception as e:
+        logger.error(f"matéria falhou p/ '{(art.get('title') or '')[:40]}': {e}")
+    return None
 
 
 def save_articles(articles):
@@ -529,13 +566,15 @@ def save_articles(articles):
             title_own, resumo_own = _reescreve(art)
             if title_own:
                 logger.info(f"✍️ reescrito p/ '{art['title'][:45]}' -> '{title_own[:45]}'")
+            # MATÉRIA COMPLETA nossa pro site (SEO/Discover) — None se fonte curta/IA off
+            materia_own = _gerar_materia(art)
 
             cur = conn.execute('''
-                INSERT INTO news (title, summary, title_own, resumo_own, link, source, city, category,
-                                  published_at, image_url, priority, audio_file, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
+                INSERT INTO news (title, summary, title_own, resumo_own, materia_own, link, source,
+                                  city, category, published_at, image_url, priority, audio_file, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)
             ''', (
-                art['title'], art['summary'], title_own, resumo_own, art['link'],
+                art['title'], art['summary'], title_own, resumo_own, materia_own, art['link'],
                 art['source'], art['city'], art['category'],
                 art['published_at'], art.get('image_url'), int(art.get('priority', False)),
                 datetime.now().isoformat()
@@ -586,11 +625,32 @@ def backfill_text(conn, limit=8):
         return 0
     n = 0
     for r in rows:
-        t, c = _reescreve({'title': r['title'], 'summary': r['summary'],
-                           'source': r['source'], 'city': r['city']})
+        art = {'title': r['title'], 'summary': r['summary'],
+               'source': r['source'], 'city': r['city']}
+        t, c = _reescreve(art)
         if t:
-            conn.execute("UPDATE news SET title_own=?, resumo_own=? WHERE id=?", (t, c, r['id']))
+            m = _gerar_materia(art)      # matéria completa junto (SEO das páginas antigas)
+            conn.execute("UPDATE news SET title_own=?, resumo_own=?, materia_own=? WHERE id=?",
+                         (t, c, m, r['id']))
             n += 1
+    # 2º passe: notícia que JÁ tem o texto curto mas ainda NÃO tem matéria completa
+    # (as páginas antigas que o Google vai visitar) — um punhado por coleta.
+    try:
+        rows2 = conn.execute(
+            "SELECT id, title, summary, source, city FROM news "
+            "WHERE active=1 AND title_own IS NOT NULL AND title_own != '' "
+            "AND (materia_own IS NULL OR materia_own='') "
+            "AND length(COALESCE(summary,'')) >= 350 "
+            "ORDER BY datetime(published_at) DESC LIMIT 4"
+        ).fetchall()
+        for r in rows2:
+            m = _gerar_materia({'title': r['title'], 'summary': r['summary'],
+                                'source': r['source'], 'city': r['city']})
+            if m:
+                conn.execute("UPDATE news SET materia_own=? WHERE id=?", (m, r['id']))
+                n += 1
+    except Exception:
+        pass
     if n:
         conn.commit()
         logger.info(f"✍️ backfill: {n} notícia(s) antiga(s) reescrita(s) no nosso tom.")
