@@ -87,6 +87,35 @@ RSS_FEEDS = [
         'priority': True,
         'max_entries': 15
     },
+    # ── CHIP Stage 3 (04/jul/2026, garimpo por agentes — feeds testados vivos) ──
+    {
+        'url': 'https://fm105.com.br/feed/',
+        'source': 'Rádio 105 FM',
+        'city': None,          # sede em Guaramirim, cobre Jaraguá/Schroeder/Guaramirim — keyword
+        'category': 'geral',   # RSS sem imagem -> og:image da página resolve (Fase 1)
+        'priority': True
+    },
+    {
+        'url': 'https://www.diariodajaragua.com.br/onde/jaragua-do-sul/feed/',
+        'source': 'Diário da Jaraguá',
+        'city': None,          # feed geral do site (tags não filtram de verdade) — keyword decide
+        'category': 'geral',   # imagem via <enclosure>; pubDate fora do RFC822 -> parser cai no now()
+        'priority': True
+    },
+    {
+        'url': 'https://nossa.fm/feed/',
+        'source': 'Nossa FM 99,9',
+        'city': None,          # foco Jaraguá + pautas estaduais — keyword decide
+        'category': 'geral',
+        'priority': True
+    },
+    {
+        'url': 'https://www.pensejornal.com.br/rss.xml',
+        'source': 'Pense Jornal',
+        'city': None,          # sediado em Jaraguá mas pauta estadual — keyword filtra o local
+        'category': 'geral',
+        'priority': False
+    },
     # ── Norte de SC — Guaramirim ────────────────
     {
         'url': 'https://ocp.news/tag/guaramirim/feed/',
@@ -122,6 +151,21 @@ RSS_FEEDS = [
         'url': 'https://ndmais.com.br/tag/schroeder/feed/',
         'source': 'ND Mais – Schroeder',
         'city': 'Schroeder',
+        'category': 'geral',
+        'priority': True
+    },
+    # ── Norte de SC — CORUPÁ (saiu do zero! CHIP Stage 3, 04/jul/2026) ──
+    {
+        'url': 'http://noticiascorupa.blogspot.com/feeds/posts/default?alt=rss',
+        'source': 'Notícias Corupá',
+        'city': 'Corupá',      # blog 100% dedicado, vivo, media:thumbnail em todos os itens
+        'category': 'local',
+        'priority': True
+    },
+    {
+        'url': 'https://ndmais.com.br/tag/corupa/feed/',
+        'source': 'ND Mais – Corupá',
+        'city': 'Corupá',      # fluxo baixo (~2-4/mês) mas filtro real e com imagem
         'category': 'geral',
         'priority': True
     },
