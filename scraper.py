@@ -444,6 +444,12 @@ def fetch_article_text(link, min_total=180, max_total=1400):
     return None
 
 
+# Idade MÁXIMA (dias) da notícia pra entrar no motor. Evita que o HISTÓRICO antigo de um feed
+# novo (que traz semanas de matéria) seja ingerido e postado como se fosse fresco. Ajuste via
+# env MAX_NEWS_AGE_DIAS. Só filtra quando o feed dá data REAL; sem data -> trata como fresca.
+MAX_NEWS_AGE_DIAS = int(os.environ.get("MAX_NEWS_AGE_DIAS", "3") or 3)
+
+
 def fetch_feed(feed_config):
     """Coleta notícias de um feed RSS."""
     url = feed_config['url']
@@ -480,13 +486,20 @@ def fetch_feed(feed_config):
         
         # Data de publicação
         published = None
+        published_dt = None
         if hasattr(entry, 'published_parsed') and entry.published_parsed:
             try:
-                published = datetime(*entry.published_parsed[:6]).isoformat()
+                published_dt = datetime(*entry.published_parsed[:6])
+                published = published_dt.isoformat()
             except Exception:
                 pass
         if not published:
             published = datetime.now().isoformat()
+
+        # 🛑 GUARDA DE IDADE (coleta): pula notícia VELHA — o feed novo não despeja mais o
+        # histórico antigo no banco. Só filtra quando a data é real (senão, ingere).
+        if published_dt is not None and (datetime.now() - published_dt).days > MAX_NEWS_AGE_DIAS:
+            continue
 
         # Imagem da notícia
         image_url = None

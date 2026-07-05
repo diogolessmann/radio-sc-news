@@ -323,11 +323,19 @@ def pick_next(conn, only_id=None, limit=1):
     if only_id:
         return conn.execute("SELECT * FROM news WHERE id=?", (only_id,)).fetchall()
 
+    # 🛑 GUARDA DE IDADE (postagem): rede de segurança — NUNCA auto-posta notícia mais velha que
+    # MAX_NEWS_AGE_DIAS (default 3). Mesmo que algo velho tenha entrado no banco, não vai pro ar.
+    try:
+        _maxd = int(_env("MAX_NEWS_AGE_DIAS", "3"))
+    except Exception:
+        _maxd = 3
     rows = conn.execute(
         "SELECT * FROM news WHERE active=1 "
         "AND (social_posted_at IS NULL OR social_posted_at='') "
         "AND (social_hold IS NULL OR social_hold='') "
-        "ORDER BY priority DESC, datetime(published_at) DESC LIMIT 200"
+        "AND published_at IS NOT NULL AND datetime(published_at) >= datetime('now', ?) "
+        "ORDER BY priority DESC, datetime(published_at) DESC LIMIT 200",
+        (f"-{_maxd} days",)
     ).fetchall()
 
     local = [r for r in rows if (r["city"] in gi.NORTE_SC)]
