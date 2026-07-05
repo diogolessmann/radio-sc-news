@@ -50,6 +50,20 @@ def _hora(r):
         return None
 
 
+def _cidade(r):
+    """Cidade REAL do post: detecta pelo TÍTULO (o campo city vem genérico 'Santa Catarina' mesmo
+    quando a notícia é de uma cidade -> Jaraguá aparecia subcontada). Mesmo critério da imagem/
+    legenda (gi._cidade_real). Sem cidade no título, cai no campo city."""
+    try:
+        import genericbg
+        c = genericbg.cidade_no_titulo(r["title_own"] or r["title"] or "")
+        if c:
+            return c
+    except Exception:
+        pass
+    return r["city"] or "(sem cidade)"
+
+
 def _agg(scored, keyfn, minimo=2):
     """Agrega a lista [(row, score)] por uma dimensão. Ignora grupos com poucos posts (ruído)."""
     buckets = {}
@@ -99,13 +113,13 @@ def painel(dias=90):
     top = sorted(scored, key=lambda x: -x[1])[:6]
     top_posts = [{
         "titulo": (r["title_own"] or r["title"] or "")[:70],
-        "cidade": r["city"], "categoria": r["category"], "formato": _formato(r),
+        "cidade": _cidade(r), "categoria": r["category"], "formato": _formato(r),
         "reach": r["reach"] or 0, "saves": r["saved"] or 0, "shares": r["shares"] or 0,
         "score": round(sc, 1),
     } for r, sc in top]
 
     por_categoria = _agg(scored, lambda r: (r["category"] or "outros").lower())
-    por_cidade = _agg(scored, lambda r: r["city"] or "(sem cidade)")
+    por_cidade = _agg(scored, _cidade)      # cidade REAL (pelo título), não o campo cru
     por_formato = _agg(scored, _formato, minimo=1)
     por_hora = _agg(scored, _hora, minimo=1)
 
