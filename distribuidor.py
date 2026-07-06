@@ -171,14 +171,28 @@ def _overlap(a, b):
     return len(ka & kb) / min(len(ka), len(kb))
 
 
-def duplicate_of(news, others, thresh=0.55):
-    """Se 'news' for o mesmo fato de alguma 'others', devolve o id dela; senao None."""
-    base = news["title"] or ""
+def _best_title(r):
+    """Titulo p/ dedup: prefere o NOSSO (title_own, ja padronizado na COLETA). Fontes
+    diferentes escrevem o MESMO fato com palavras diferentes -> no titulo CRU o overlap
+    caia abaixo do corte e a duplicata vazava (mesmo acidente/incendio postado 2x, 3x).
+    Comparar pelo nosso titulo padroniza e pega o mesmo fato. Cai no cru se nao houver."""
+    def _get(key):
+        try:
+            return r[key] if not isinstance(r, dict) else r.get(key)
+        except (KeyError, IndexError):
+            return None
+    return _get("title_own") or _get("title") or ""
+
+
+def duplicate_of(news, others, thresh=0.45):
+    """Se 'news' for o mesmo fato de alguma 'others', devolve o id dela; senao None.
+    Compara pelo NOSSO titulo (title_own) -> pega o mesmo fato vindo de fontes diferentes."""
+    base = _best_title(news)
     for o in others:
         oid = o["id"] if not isinstance(o, dict) else o.get("id")
         if oid == news["id"]:
             continue
-        if _overlap(base, (o["title"] if not isinstance(o, dict) else o.get("title")) or "") >= thresh:
+        if _overlap(base, _best_title(o)) >= thresh:
             return oid
     return None
 
@@ -186,7 +200,7 @@ def duplicate_of(news, others, thresh=0.55):
 def recent_posted(conn, limit=100):
     """Titulos ja postados (p/ comparar e nao repetir o mesmo fato)."""
     return conn.execute(
-        "SELECT id, title FROM news "
+        "SELECT id, title, title_own FROM news "
         "WHERE social_posted_at IS NOT NULL AND social_posted_at!='' "
         "ORDER BY social_posted_at DESC LIMIT ?",
         (limit,),
@@ -202,15 +216,15 @@ def mark_dup(conn, news_id, dup_id):
     conn.commit()
 
 
-def mark_cluster(conn, posted_news, thresh=0.6):
+def mark_cluster(conn, posted_news, thresh=0.45):
     """BLINDAGEM: apos postar uma materia, marca TODAS as outras nao-postadas do
     MESMO fato (titulo parecido) como duplicadas. Assim nenhum motor (carrossel
     OU reels) posta a mesma noticia de novo, independente de id, timing ou linha
-    duplicada no banco. Retorna quantas foram seguradas."""
+    duplicada no banco. Compara pelo NOSSO titulo (title_own). Retorna quantas seguradas."""
     pid = posted_news["id"]
-    ptitle = posted_news["title"] or ""
+    ptitle = _best_title(posted_news)
     rows = conn.execute(
-        "SELECT id, title FROM news WHERE active=1 "
+        "SELECT id, title, title_own FROM news WHERE active=1 "
         "AND (social_posted_at IS NULL OR social_posted_at='') "
         "AND (social_hold IS NULL OR social_hold='') AND id != ?",
         (pid,),
@@ -218,7 +232,7 @@ def mark_cluster(conn, posted_news, thresh=0.6):
     stamp = datetime.now().isoformat(timespec="seconds")
     n = 0
     for r in rows:
-        if _overlap(ptitle, r["title"] or "") >= thresh:
+        if _overlap(ptitle, _best_title(r)) >= thresh:
             conn.execute("UPDATE news SET social_hold=? WHERE id=?",
                          (f"duplicada de #{pid} @ {stamp}", r["id"]))
             n += 1
@@ -242,6 +256,9 @@ def ensure_column(conn):
     if "social_hold" not in cols:
         # materia segurada pelo filtro editorial (tema sensivel) — nao posta sozinha
         conn.execute("ALTER TABLE news ADD COLUMN social_hold TEXT")
+    if "title_own" not in cols:
+        # nosso titulo reescrito (padronizado na coleta) — usado tbm no dedup
+        conn.execute("ALTER TABLE news ADD COLUMN title_own TEXT")
     # Central do Canal: mensagem pronta + midia + controle de "ja enviei no Canal"
     if "zap_text" not in cols:
         conn.execute("ALTER TABLE news ADD COLUMN zap_text TEXT")
