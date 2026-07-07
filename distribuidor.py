@@ -171,39 +171,128 @@ def _overlap(a, b):
     return len(ka & kb) / min(len(ka), len(kb))
 
 
+def _get(r, key):
+    """Acesso seguro a um campo de row (sqlite) OU dict."""
+    try:
+        return r[key] if not isinstance(r, dict) else r.get(key)
+    except (KeyError, IndexError, TypeError):
+        return None
+
+
 def _best_title(r):
-    """Titulo p/ dedup: prefere o NOSSO (title_own, ja padronizado na COLETA). Fontes
-    diferentes escrevem o MESMO fato com palavras diferentes -> no titulo CRU o overlap
-    caia abaixo do corte e a duplicata vazava (mesmo acidente/incendio postado 2x, 3x).
-    Comparar pelo nosso titulo padroniza e pega o mesmo fato. Cai no cru se nao houver."""
-    def _get(key):
-        try:
-            return r[key] if not isinstance(r, dict) else r.get(key)
-        except (KeyError, IndexError):
-            return None
-    return _get("title_own") or _get("title") or ""
+    """Nosso titulo (title_own) se houver, senao o cru. E UM dos sinais do dedup — NAO o unico:
+    a reescrita TikTok da IA DIVERGE entre gemeas do mesmo fato (cada uma criativa), enquanto o
+    titulo CRU compartilha o vocabulario factual (BR-280, cidade, numeros). Por isso comparamos os
+    DOIS e pegamos o maior (ver _mesmo_fato). Corrige o erro de so comparar title_own (recall caiu)."""
+    return _get(r, "title_own") or _get(r, "title") or ""
+
+
+# Familias de EVENTO (sinonimos) -> chave canonica. Duas fontes contam o mesmo fato com palavras
+# diferentes, mas quase sempre com o(s) mesmo(s) TIPO(s) de evento. Base do fingerprint.
+_EVENTOS = [
+    ("MORTE",    re.compile(r"\bmort|[óo]bito|\bmorre|\bmatou|\bmata\b|falec|sem vida|cad[áa]ver|v[íi]tima fatal", re.I)),
+    ("ACIDENTE", re.compile(r"acidente|colis[ãa]o|batida|capot|atropel|abalro|engavet|\btomb", re.I)),
+    ("PRISAO",   re.compile(r"\bpres[oa]\b|prend|detid|apreend|flagrante|capturad|indiciad", re.I)),
+    ("INCENDIO", re.compile(r"inc[êe]ndio|\bfogo\b|chamas|queimad", re.I)),
+    ("TIRO",     re.compile(r"\btiro|balead|disparo|homic[íi]d|assassin|esfaque|facada", re.I)),
+    ("ROUBO",    re.compile(r"roubo|assalt|furto|arromb", re.I)),
+    ("RESGATE",  re.compile(r"resgat|bombeir|soterr|afogament|desabam", re.I)),
+    ("OBRA",     re.compile(r"\bobra|pavimenta|asfalt|interdi|recape|bloqueio de", re.I)),
+    ("CLIMA",    re.compile(r"chuva|temporal|alagament|vendaval|granizo|geada|enchente|estiagem|ciclone", re.I)),
+]
+
+
+def _eventos_de(texto):
+    """Conjunto de eventos que o texto casa (um fato pode ser acidente E morte ao mesmo tempo)."""
+    return frozenset(nome for nome, rgx in _EVENTOS if rgx.search(texto or ""))
+
+
+def _cidade_detectada(r):
+    """SO a cidade REGIONAL detectada no titulo (Jaragua/Schroeder/Guaramirim/Corupa/Joinville);
+    None se nao achar. Usada no VETO: duas cidades regionais DIFERENTES = fatos diferentes."""
+    try:
+        import genericbg
+        c = genericbg.cidade_no_titulo((_get(r, "title_own") or _get(r, "title") or ""))
+        return c.lower() if c else None
+    except Exception:
+        return None
+
+
+def _cidade_fp(r):
+    """Cidade p/ o fingerprint: regional detectada, senao o campo city."""
+    return _cidade_detectada(r) or (_get(r, "city") or "?").lower()
+
+
+_LOCAL_RE = re.compile(r"\b(?:br|sc)[-\s]?\d{2,3}\b|"
+                       r"\b(?:rua|avenida|av|rodovia|estrada|acesso)\s+([a-zà-ú0-9]+)", re.I)
+
+
+def _local_tokens(r):
+    """Tokens de LOCAL especifico (rodovia BR-280/SC-108, nome da rua/avenida) — o que DISTINGUE
+    dois fatos do mesmo tipo na mesma cidade. Manchete de acidente e TEMPLADA ('Acidente na X deixa
+    ferido em Y'), entao overlap alto engana; o local desempata."""
+    txt = (_get(r, "title_own") or "") + " " + (_get(r, "title") or "")
+    toks = set()
+    for m in _LOCAL_RE.finditer(txt):
+        toks.add(m.group(1).lower() if m.group(1) else re.sub(r"[-\s]", "", m.group(0).lower()))
+    return toks
+
+
+def _blob(r):
+    return " ".join(x for x in (_get(r, "title_own"), _get(r, "title"), _get(r, "summary")) if x)
+
+
+def _dia(r):
+    return (_get(r, "published_at") or _get(r, "social_posted_at") or "")[:10]
+
+
+def _mesmo_fato(a, b):
+    """True se a e b sao a MESMA noticia (fato), mesmo vindas de fontes com textos diferentes.
+    VETOS (impedem juntar fatos DIFERENTES parecidos): (1) cidade regional detectada diferente;
+    (2) ambos citam LOCAL (rodovia/rua) e nenhum em comum.
+    SINAIS: (1) overlap MAXIMO (cru x cru, own x own) >=0.45 — o cru compartilha o vocabulario
+    factual, a reescrita de IA diverge; (2) fingerprint evento:cidade:dia (eventos se intersectam +
+    mesma cidade + mesmo dia) com piso baixo de overlap (0.15) — pega a gemea semantica de overlap baixo."""
+    # VETO 1: cidades regionais diferentes
+    ca, cb = _cidade_detectada(a), _cidade_detectada(b)
+    if ca and cb and ca != cb:
+        return False
+    # VETO 2: locais especificos conflitantes (rodovia/rua diferentes)
+    la, lb = _local_tokens(a), _local_tokens(b)
+    if la and lb and not (la & lb):
+        return False
+    # SINAL 1: overlap alto (pega o maior de cru/own)
+    ov = max(_overlap(_get(a, "title") or "", _get(b, "title") or ""),
+             _overlap(_best_title(a), _best_title(b)))
+    if ov >= 0.45:
+        return True
+    # SINAL 2: fingerprint evento:cidade:dia + piso baixo
+    ea, eb = _eventos_de(_blob(a)), _eventos_de(_blob(b))
+    if ea and eb and (ea & eb) and _cidade_fp(a) == _cidade_fp(b) and _dia(a) and _dia(a) == _dia(b) and ov >= 0.15:
+        return True
+    return False
 
 
 def duplicate_of(news, others, thresh=0.45):
-    """Se 'news' for o mesmo fato de alguma 'others', devolve o id dela; senao None.
-    Compara pelo NOSSO titulo (title_own) -> pega o mesmo fato vindo de fontes diferentes."""
-    base = _best_title(news)
+    """Se 'news' for o MESMO fato de alguma 'others', devolve o id dela; senao None."""
+    nid = _get(news, "id")
     for o in others:
-        oid = o["id"] if not isinstance(o, dict) else o.get("id")
-        if oid == news["id"]:
+        if _get(o, "id") == nid:
             continue
-        if _overlap(base, _best_title(o)) >= thresh:
-            return oid
+        if _mesmo_fato(news, o):
+            return _get(o, "id")
     return None
 
 
-def recent_posted(conn, limit=100):
-    """Titulos ja postados (p/ comparar e nao repetir o mesmo fato)."""
+def recent_posted(conn, dias=10, limit=400):
+    """Ja postadas nos ultimos N DIAS (nao so as ultimas 100): a dor 'postou 2x na semana' pede
+    janela por DATA, nao por contagem. Traz os campos que o fingerprint usa (summary/city/data)."""
     return conn.execute(
-        "SELECT id, title, title_own FROM news "
+        "SELECT id, title, title_own, summary, city, published_at, social_posted_at FROM news "
         "WHERE social_posted_at IS NOT NULL AND social_posted_at!='' "
+        "AND datetime(replace(social_posted_at,'T',' ')) >= datetime('now', ?) "
         "ORDER BY social_posted_at DESC LIMIT ?",
-        (limit,),
+        (f"-{dias} days", limit),
     ).fetchall()
 
 
@@ -220,11 +309,10 @@ def mark_cluster(conn, posted_news, thresh=0.45):
     """BLINDAGEM: apos postar uma materia, marca TODAS as outras nao-postadas do
     MESMO fato (titulo parecido) como duplicadas. Assim nenhum motor (carrossel
     OU reels) posta a mesma noticia de novo, independente de id, timing ou linha
-    duplicada no banco. Compara pelo NOSSO titulo (title_own). Retorna quantas seguradas."""
+    duplicada no banco. Usa _mesmo_fato (overlap cru+own + fingerprint). Retorna quantas seguradas."""
     pid = posted_news["id"]
-    ptitle = _best_title(posted_news)
     rows = conn.execute(
-        "SELECT id, title, title_own FROM news WHERE active=1 "
+        "SELECT id, title, title_own, summary, city, published_at FROM news WHERE active=1 "
         "AND (social_posted_at IS NULL OR social_posted_at='') "
         "AND (social_hold IS NULL OR social_hold='') AND id != ?",
         (pid,),
@@ -232,7 +320,7 @@ def mark_cluster(conn, posted_news, thresh=0.45):
     stamp = datetime.now().isoformat(timespec="seconds")
     n = 0
     for r in rows:
-        if _overlap(ptitle, _best_title(r)) >= thresh:
+        if _mesmo_fato(posted_news, r):
             conn.execute("UPDATE news SET social_hold=? WHERE id=?",
                          (f"duplicada de #{pid} @ {stamp}", r["id"]))
             n += 1
