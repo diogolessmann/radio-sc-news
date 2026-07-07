@@ -37,7 +37,16 @@ GEMEAS = [
      "Chuva forte deixa ruas alagadas no centro de Joinville"),
     ("Jovem e baleado durante assalto no centro de Corupa",
      "Homem leva tiro em tentativa de roubo no centro de Corupa"),
+    # casos REAIS do feed (07/jul): aviao em Navegantes + Rio Canoas 2x
+    ("Aviao cai em Navegantes e tripulantes ficam internados",
+     "Aviao bimotor caiu na restinga da Meia Praia em Navegantes"),
+    ("Rio Canoas sobe para 6 metros e alaga ruas em Otacilio Costa",
+     "Rio Canoas sobe para 6,18m e alaga ruas em dois bairros de Otacilio Costa"),
 ]
+# LIMITACAO CONHECIDA (keyword nao pega, fica p/ o 2o andar de IA no futuro):
+# 'SERIPA investiga acidente aereo em Navegantes' x 'Aviao bimotor caiu em Navegantes' -> overlap
+# 0.14 (frame investigacao vs queda). Baixar o corte pra pegar isso juntaria fatos diferentes
+# (perde precisao), entao mantemos o corte seguro. Ainda assim, colapsa 3 posts do aviao em 2.
 _rec_ok = 0
 for a, b in GEMEAS:
     na, nb = _n(a, city="x"), _n(b, city="x")

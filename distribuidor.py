@@ -192,13 +192,14 @@ def _best_title(r):
 _EVENTOS = [
     ("MORTE",    re.compile(r"\bmort|[óo]bito|\bmorre|\bmatou|\bmata\b|falec|sem vida|cad[áa]ver|v[íi]tima fatal", re.I)),
     ("ACIDENTE", re.compile(r"acidente|colis[ãa]o|batida|capot|atropel|abalro|engavet|\btomb", re.I)),
+    ("AEREO",    re.compile(r"avi[ãa]o|aeronave|a[ée]reo|helic[óo]pter|queda de avi|bimotor", re.I)),
     ("PRISAO",   re.compile(r"\bpres[oa]\b|prend|detid|apreend|flagrante|capturad|indiciad", re.I)),
     ("INCENDIO", re.compile(r"inc[êe]ndio|\bfogo\b|chamas|queimad", re.I)),
     ("TIRO",     re.compile(r"\btiro|balead|disparo|homic[íi]d|assassin|esfaque|facada", re.I)),
     ("ROUBO",    re.compile(r"roubo|assalt|furto|arromb", re.I)),
     ("RESGATE",  re.compile(r"resgat|bombeir|soterr|afogament|desabam", re.I)),
     ("OBRA",     re.compile(r"\bobra|pavimenta|asfalt|interdi|recape|bloqueio de", re.I)),
-    ("CLIMA",    re.compile(r"chuva|temporal|alagament|vendaval|granizo|geada|enchente|estiagem|ciclone", re.I)),
+    ("CLIMA",    re.compile(r"chuva|temporal|alag|cheia|transbord|vendaval|granizo|geada|enchente|estiagem|ciclone|deslizament", re.I)),
 ]
 
 
