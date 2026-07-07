@@ -460,6 +460,20 @@ _JURIDICO_SUB = [
     (re.compile(r"\bmatou\b", re.I), "teria matado"),
     (re.compile(r"\bcometeu\b", re.I), "teria cometido"),
     (re.compile(r"\bcausou\b", re.I), "teria causado"),
+    # + crimes afirmativos (verbo/substantivo) -> suspeita (ampliado pelo red-team 07/jul)
+    (re.compile(r"\bestupr(ou|aram)\b", re.I), "teria estuprado"),
+    (re.compile(r"\bestuprador(es|a|as)?\b", re.I), "suspeito"),
+    (re.compile(r"\btrafic(ou|ava|aram)\b", re.I), "teria traficado"),
+    (re.compile(r"\btraficante(s)?\b", re.I), "suspeito"),
+    (re.compile(r"\broubou\b", re.I), "teria roubado"),
+    (re.compile(r"\bfurtou\b", re.I), "teria furtado"),
+    (re.compile(r"\bladr(ão|ao|ões|oes)\b", re.I), "suspeito"),
+    (re.compile(r"\bsequestr(ou|aram)\b", re.I), "teria sequestrado"),
+    (re.compile(r"\bespanc(ou|aram)\b", re.I), "teria espancado"),
+    (re.compile(r"\bagred(iu|iram)\b", re.I), "teria agredido"),
+    (re.compile(r"\besfaque(ou|aram)\b", re.I), "teria esfaqueado"),
+    (re.compile(r"\b(planejou|arquitetou)\b", re.I), "teria planejado"),
+    (re.compile(r"\bpego\s+em\s+flagrante\b|\bflagrado\b", re.I), "detido"),
 ]
 
 

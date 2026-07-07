@@ -355,16 +355,23 @@ def slide_cover_foto_faixa(news, img_path, outdir, manchete=None, credito=None):
 _FOTO_SENSIVEL = re.compile(
     r"pol[ií]ci|\bprend|preso|pres[ao]s?\b|pris[ãa]o|detid|apreend|flagrante|delegacia|"
     r"homic[ií]d|assassin|\bmatou|\bmort|[óo]bito|v[ií]tima|cad[áa]ver|\bcorpo\b|"
-    r"esfaquead|balead|\btiro|tiroteio|estupr|abus|feminic[ií]d|latroc[ií]n|assalt|"
-    r"\broub|\bfurt|\barma\b|acidente|colis[ãa]o|atropel|afogad|suic[ií]d|inc[êe]ndio|"
-    r"facada|espancad|agress|\bbriga|tr[áa]fico|\bdrog|overdose|sequestr|c[áa]rcere|"
-    r"\bresgat|bombeir|socorr|\bferid|\bqueda|desmoron|soterr|carboniz|naufrag",
+    r"esfaquead|esfaque|balead|\btiro|tiroteio|estupr|abus|feminic[ií]d|latroc[ií]n|assalt|"
+    r"\broub|\bfurt|\barma\b|muni[çc]|acidente|colis[ãa]o|atropel|afogad|suic[ií]d|inc[êe]ndio|"
+    r"facada|espanc|agress|\bbriga|tr[áa]fico|traficant|\bdrog|overdose|sequestr|c[áa]rcere|"
+    r"\bresgat|bombeir|socorr|\bferid|\bqueda|desmoron|soterr|carboniz|naufrag|"
+    r"condenad|julgament|\bacusad|denunciad|indiciad|linchad|degolad|decapit|chacina|"
+    r"execu[çc]|emboscad|ref[ée]m|penitenci|pres[íi]dio|carcereir|estelionat|golpe do pix|"
+    r"menor infrator|ato infracional|fac[çc][ãa]o|\bPCC\b|ossada|restos mortais|cova rasa|"
+    r"encontrad[oa]s?\s+(?:mort|sem vida)|\bsem vida\b|espancament|"
+    r"avi[ãa]o.{0,25}(?:cai|despenc|tombou|acident)|aeronave|helic[óo]ptero|acidente a[ée]reo|"
+    r"\bcapotou\b|queda de avi",
     re.IGNORECASE)
 
 
 def _foto_sensivel(news):
-    """True se a FOTO pode mostrar vítima/suspeito/cena forte. Nesses casos NUNCA usamos foto de
-    terceiro (mesmo com ANTI_STRIKE=0): cai no arsenal neutro. Protege direito de imagem + o perfil."""
+    """True se a matéria é sensível (crime/violência/vítima/tragédia). Nesses casos NUNCA usamos
+    foto de terceiro (mesmo com ANTI_STRIKE=0): cai no arsenal neutro. Lê TÍTULO **E CORPO** — o
+    crime pode estar só no texto (título limpo furava a trava). Protege imagem + presunção de inoc."""
     try:
         cat = (news["category"] or "").lower()
     except (KeyError, IndexError, TypeError):
@@ -372,7 +379,7 @@ def _foto_sensivel(news):
     if cat in ("policial", "policia", "polícia", "poli", "seguranca", "segurança"):
         return True
     blob = ""
-    for k in ("title_own", "title"):
+    for k in ("title_own", "title", "resumo_own", "summary", "materia_own"):
         try:
             v = news[k]
             if v:
@@ -388,7 +395,7 @@ def _foto_sensivel(news):
 # _foto_sensivel. Editável via env FOTO_LIBERADA_CATS.
 _FOTO_LIBERADA_CATS = [c.strip().lower() for c in
                        os.environ.get("FOTO_LIBERADA_CATS",
-                                      "esporte,clima,economia,geral,turismo,evento").split(",") if c.strip()]
+                                      "esporte,clima,economia,geral,turismo").split(",") if c.strip()]
 
 
 def _foto_liberada(news):
@@ -449,8 +456,10 @@ def slide_cover(news, outdir, manchete=None):
                 ilustrativa = True
         except Exception:
             pass
-    if not bg and not anti:
-        # fotobusca (foto de OUTRO portal, com crédito) — só FORA do modo anti-strike
+    if not bg and not anti and os.environ.get("FOTOBUSCA_ON", "0") == "1":
+        # 🔒 fotobusca DESLIGADO por padrão (FOTOBUSCA_ON=1 p/ religar): puxa a foto que OUTRO
+        # portal publicou p/ o mesmo fato — pode ter rosto de pessoa privada (mesmo risco do
+        # incidente de 06/jul). Fica off até haver acordo de imagem com a fonte.
         try:
             import fotobusca
             try:
