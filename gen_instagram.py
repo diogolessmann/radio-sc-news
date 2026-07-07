@@ -347,11 +347,50 @@ def slide_cover_foto_faixa(news, img_path, outdir, manchete=None, credito=None):
     return path
 
 
+# 🚨 FOTO SENSÍVEL: matéria policial/violenta NUNCA pode usar foto de TERCEIRO — rosto de VÍTIMA
+# ou de PRESO = direito de imagem + presunção de inocência (preso ≠ condenado; se for absolvido,
+# processo na certa). Mesmo com ANTI_STRIKE=0, essas caem no arsenal NEUTRO (policial/incendio/
+# acidente). Regex generosa DE PROPÓSITO: falso-positivo só troca a foto por um fundo nosso (ganho
+# zero de risco), enquanto deixar um rosto vazar é grave.
+_FOTO_SENSIVEL = re.compile(
+    r"pol[ií]ci|\bprend|preso|pres[ao]s?\b|pris[ãa]o|detid|apreend|flagrante|delegacia|"
+    r"homic[ií]d|assassin|\bmatou|\bmort|[óo]bito|v[ií]tima|cad[áa]ver|\bcorpo\b|"
+    r"esfaquead|balead|\btiro|tiroteio|estupr|abus|feminic[ií]d|latroc[ií]n|assalt|"
+    r"\broub|\bfurt|\barma\b|acidente|colis[ãa]o|atropel|afogad|suic[ií]d|inc[êe]ndio|"
+    r"facada|espancad|agress|\bbriga|tr[áa]fico|\bdrog|overdose|sequestr|c[áa]rcere|"
+    r"\bresgat|bombeir|socorr|\bferid|\bqueda|desmoron|soterr|carboniz|naufrag",
+    re.IGNORECASE)
+
+
+def _foto_sensivel(news):
+    """True se a FOTO pode mostrar vítima/suspeito/cena forte. Nesses casos NUNCA usamos foto de
+    terceiro (mesmo com ANTI_STRIKE=0): cai no arsenal neutro. Protege direito de imagem + o perfil."""
+    try:
+        cat = (news["category"] or "").lower()
+    except (KeyError, IndexError, TypeError):
+        cat = ""
+    if cat in ("policial", "policia", "polícia", "poli", "seguranca", "segurança"):
+        return True
+    blob = ""
+    for k in ("title_own", "title"):
+        try:
+            v = news[k]
+            if v:
+                blob += " " + v
+        except (KeyError, IndexError, TypeError):
+            pass
+    return bool(_FOTO_SENSIVEL.search(blob))
+
+
 def slide_cover(news, outdir, manchete=None):
     # 🛡️ ANTI-PROCESSO: por padrão NÃO usa foto de TERCEIRO (nem a og:image da fonte, nem foto de
     # outro portal). O FATO é livre; a FOTO deles não é. Só foto PRÓPRIA (admin), stock regional
     # (própria), arte de IA ou card de marca. Desliga com ANTI_STRIKE=0 (por sua conta e risco).
     anti = os.environ.get("ANTI_STRIKE", "1").strip() != "0"
+    # 🚨 TRAVA DURA: policial/violência força o modo neutro, mesmo com ANTI_STRIKE=0 (rosto de
+    # vítima/preso NUNCA sai). Foto do dono (admin) continua valendo — é escolha editorial dele.
+    if _foto_sensivel(news):
+        anti = True
     bg = cover_image(None if anti else news["image_url"], news["admin_image"])
     foto_credito = None
     ilustrativa = False
