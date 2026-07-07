@@ -443,6 +443,45 @@ def _fallback_summary(news):
     return hook
 
 
+# ---------------------------------------------------------------- filtro juridico (presuncao de inocencia)
+# So roda em materia SENSIVEL (gi._foto_sensivel — a MESMA deteccao da trava de foto). Suaviza
+# AFIRMACAO de culpa -> linguagem de SUSPEITA (preso/acusado != condenado; se absolvido, e processo).
+# Deterministico: cobre tbm o FALLBACK (titulo cru da fonte, que afirma o crime). Nao depende de IA.
+_JURIDICO_SUB = [
+    (re.compile(r"\bconfess(ou|aram|a)\b", re.I), "teria confessado"),
+    (re.compile(r"\bconfiss[ãa]o\b", re.I), "suposta confissão"),
+    (re.compile(r"\bassumiu\b", re.I), "teria assumido"),
+    (re.compile(r"\bautores\s+d", re.I), "suspeitos d"),
+    (re.compile(r"\bautor\s+d", re.I), "suspeito d"),
+    (re.compile(r"\bo\s+autor\b", re.I), "o suspeito"),
+    (re.compile(r"\bculpad([oa]s?)\b", re.I), r"suspeit\1"),
+    (re.compile(r"\bcriminos([oa]s?)\b", re.I), r"suspeit\1"),
+    (re.compile(r"\bassassin([oa])\b", re.I), r"suspeit\1"),
+    (re.compile(r"\bmatou\b", re.I), "teria matado"),
+    (re.compile(r"\bcometeu\b", re.I), "teria cometido"),
+    (re.compile(r"\bcausou\b", re.I), "teria causado"),
+]
+
+
+def neutralizar_juridico(texto):
+    """Presuncao de inocencia: troca AFIRMACAO de culpa por SUSPEITA. Chamar SO em materia sensivel.
+    Nao inventa nada — so suaviza o que veio da fonte (o 'foi preso' continua, mas como suspeita)."""
+    if not texto:
+        return texto
+    out = texto
+    for rgx, rep in _JURIDICO_SUB:
+        out = rgx.sub(rep, out)
+    return out
+
+
+def _sensivel(news):
+    """Materia policial/violencia — reusa a MESMA deteccao da trava de foto (fonte unica da verdade)."""
+    try:
+        return gi._foto_sensivel(news)
+    except Exception:
+        return False
+
+
 def groq_summary(news):
     """Reescreve em ~5 linhas com pegada de rede social. HÍBRIDO: Gemini -> Groq -> local."""
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip()
@@ -467,14 +506,22 @@ def groq_summary(news):
         "'clique aqui'.\n\n"
         f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
     )
+    sensivel = _sensivel(news)
+    if sensivel:
+        prompt += ("\nATENCAO JURIDICA (tema policial): PRESUNCAO DE INOCENCIA. Trate como SUSPEITA, "
+                   "nunca afirme culpa. Use 'suspeito', 'teria', 'segundo a policia'. NAO escreva "
+                   "'confessou/e o autor/culpado'. Foque no FATO, nao na pessoa. NAO cite nome de "
+                   "pessoa comum.")
     try:
         import cerebro
         txt = cerebro.completar(prompt)          # Gemini -> Groq
         if txt:
-            return txt.strip('"').strip() or _fallback_summary(news)
+            r = txt.strip('"').strip() or _fallback_summary(news)
+            return neutralizar_juridico(r) if sensivel else r
     except Exception as e:
         print(f"   ! IA indisponivel ({e}) — usando resumo local")
-    return _fallback_summary(news)
+    r = _fallback_summary(news)
+    return neutralizar_juridico(r) if sensivel else r
 
 
 # ---------------------------------------------------------------- TIKTOK MODE (notícia em 2 linhas)
@@ -497,16 +544,21 @@ def flash_manchete(news):
         "chamada, sem aspas.\n\n"
         f"TITULO: {title}\nTEXTO: {body}"
     )
+    sensivel = _sensivel(news)
+    if sensivel:
+        prompt += ("\nATENCAO JURIDICA (tema policial): PRESUNCAO DE INOCENCIA — trate como SUSPEITA, "
+                   "nunca afirme culpa. Use 'suspeito/teria/segundo a policia'. NAO escreva 'confessou/"
+                   "e o autor/culpado'. Foque no FATO, nao na pessoa. NAO cite nome de pessoa comum.")
     try:
         import cerebro
         m = (cerebro.completar(prompt) or "").strip().strip('"').strip()
         m = re.sub(r"#\S+", "", m)              # capa não é lugar de hashtag
         m = re.sub(r"\s+", " ", m).strip()
         if m and len(m) <= 160:        # guarda-corpo: descarta resposta longa/estranha
-            return m
+            return neutralizar_juridico(m) if sensivel else m
     except Exception:
         pass
-    return title          # fallback seguro: o título (já é nosso ponto de partida)
+    return neutralizar_juridico(title) if sensivel else title   # fallback: título cru neutralizado se sensível
 
 
 # ---------------------------------------------------------------- links
@@ -529,6 +581,8 @@ def _short_resumo(resumo, max_chars=240):
 def whatsapp_message(news, resumo):
     """Mensagem pronta pro WhatsApp Canal (curta, com *negrito*, emoji e link que abre card)."""
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip().rstrip(".")
+    if _sensivel(news):
+        title = neutralizar_juridico(title)   # presunção de inocência tbm no WhatsApp (título cru)
     city = news["city"] or "Santa Catarina"
     corpo = _short_resumo(resumo)
     selo = "🚨" if (news["category"] or "") in ("policial", "clima") else "📰"

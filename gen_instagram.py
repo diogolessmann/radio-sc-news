@@ -382,6 +382,25 @@ def _foto_sensivel(news):
     return bool(_FOTO_SENSIVEL.search(blob))
 
 
+# ✅ ALLOWLIST DE FOTO: com ANTI_STRIKE=1 (bloqueia foto de terceiro em TUDO por padrão), estas
+# categorias SEGURAS podem usar a foto real da fonte (esporte/cidade/clima/economia) — visual bem
+# melhor, risco baixo. Sensível (policial/crime/acidente) NUNCA entra: é barrado ANTES por
+# _foto_sensivel. Editável via env FOTO_LIBERADA_CATS.
+_FOTO_LIBERADA_CATS = [c.strip().lower() for c in
+                       os.environ.get("FOTO_LIBERADA_CATS",
+                                      "esporte,clima,economia,geral,turismo,evento").split(",") if c.strip()]
+
+
+def _foto_liberada(news):
+    """Categoria SEGURA onde a foto real da fonte pode passar mesmo com ANTI_STRIKE=1.
+    Sensível NUNCA chega aqui (checado antes). Fora da lista → segue bloqueado (arsenal)."""
+    try:
+        cat = (news["category"] or "").lower()
+    except (KeyError, IndexError, TypeError):
+        cat = ""
+    return cat in _FOTO_LIBERADA_CATS
+
+
 def slide_cover(news, outdir, manchete=None):
     # 🛡️ ANTI-PROCESSO: por padrão NÃO usa foto de TERCEIRO (nem a og:image da fonte, nem foto de
     # outro portal). O FATO é livre; a FOTO deles não é. Só foto PRÓPRIA (admin), stock regional
@@ -391,6 +410,10 @@ def slide_cover(news, outdir, manchete=None):
     # vítima/preso NUNCA sai). Foto do dono (admin) continua valendo — é escolha editorial dele.
     if _foto_sensivel(news):
         anti = True
+    # ✅ ALLOWLIST: categoria segura (esporte/cidade/clima/economia) libera a foto real da fonte
+    # mesmo com ANTI_STRIKE=1. Só chega aqui se NÃO for sensível (o if acima barra o perigoso).
+    elif anti and _foto_liberada(news):
+        anti = False
     bg = cover_image(None if anti else news["image_url"], news["admin_image"])
     foto_credito = None
     ilustrativa = False
