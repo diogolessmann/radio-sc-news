@@ -119,8 +119,8 @@ def insights_job():
     try:
         import insights
         n = insights.atualizar_recentes()
-        conta = insights.coletar_conta()
-        logger.info(f"📈 Insights: {n} post(s) atualizado(s). Conta: {conta}")
+        conta = insights.snapshot_conta()   # GRAVA seguidores/alcance do dia em conta_dia (serie temporal)
+        logger.info(f"📈 Insights: {n} post(s) atualizado(s). Conta gravada: {conta}")
     except Exception as e:
         logger.error(f"❌ Insights falhou: {e}")
 

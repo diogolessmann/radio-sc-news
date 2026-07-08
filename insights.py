@@ -132,6 +132,77 @@ def coletar_conta(token=None, ig_user_id=None):
     return out
 
 
+def _conta_basica(token, ig_user_id):
+    """Campos BÁSICOS da conta (followers_count/follows_count/media_count). Só precisa de
+    instagram_basic — funciona MESMO sem a permissão de insights (que é a que costuma travar).
+    É o número que mais importa pra conversão: SEGUIDORES por dia."""
+    try:
+        r = requests.get(f"{GRAPH}/{ig_user_id}",
+                         params={"fields": "followers_count,follows_count,media_count",
+                                 "access_token": token}, timeout=20)
+        if r.ok:
+            return r.json()
+    except Exception:
+        pass
+    return {}
+
+
+def _ensure_conta_dia(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS conta_dia (
+        dia TEXT PRIMARY KEY,
+        followers INTEGER, follows INTEGER, media_count INTEGER,
+        reach INTEGER, profile_views INTEGER,
+        coletado_em TEXT
+    )""")
+    conn.commit()
+
+
+def snapshot_conta(dia=None):
+    """Grava 1 linha por DIA em conta_dia: seguidores (básico, sempre pega) + alcance/visitas
+    (insights, best-effort — vem vazio se faltar a permissão). É a SÉRIE TEMPORAL que faltava:
+    sem ela, todo kaizen de conversão (view->seguidor) é achismo. Idempotente por dia (UPSERT)."""
+    token, ig = _token()
+    if not (token and ig):
+        return {}
+    dia = dia or datetime.now().strftime("%Y-%m-%d")
+    basica = _conta_basica(token, ig)      # followers_count etc (basic — funciona sem insights)
+    ins = coletar_conta(token, ig)         # reach, profile_views (precisa insights; pode vir {})
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        _ensure_conta_dia(conn)
+        conn.execute(
+            """INSERT INTO conta_dia (dia, followers, follows, media_count, reach, profile_views, coletado_em)
+               VALUES (?,?,?,?,?,?,?)
+               ON CONFLICT(dia) DO UPDATE SET
+                 followers=COALESCE(excluded.followers, conta_dia.followers),
+                 follows=COALESCE(excluded.follows, conta_dia.follows),
+                 media_count=COALESCE(excluded.media_count, conta_dia.media_count),
+                 reach=COALESCE(excluded.reach, conta_dia.reach),
+                 profile_views=COALESCE(excluded.profile_views, conta_dia.profile_views),
+                 coletado_em=excluded.coletado_em""",
+            (dia, basica.get("followers_count"), basica.get("follows_count"), basica.get("media_count"),
+             ins.get("reach"), ins.get("profile_views"),
+             datetime.now().isoformat(timespec="seconds")),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return {"dia": dia, "followers": basica.get("followers_count"),
+            "reach": ins.get("reach"), "profile_views": ins.get("profile_views")}
+
+
+def serie_conta(dias=30):
+    """Últimos N dias de conta_dia (p/ ver a curva de seguidores/alcance no /admin)."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    try:
+        _ensure_conta_dia(conn)
+        rows = conn.execute("SELECT * FROM conta_dia ORDER BY dia DESC LIMIT ?", (dias,)).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
 def diagnostico():
     """POR QUE o Placar está em 0? Distingue as 2 causas possíveis:
       - ig_media_id não salvo  -> 'marcados_3d':0  (a publicação não guardou o ID)
