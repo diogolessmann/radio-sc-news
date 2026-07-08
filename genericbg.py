@@ -42,6 +42,7 @@ _SITUACOES = [
     (rf"(?=.*(ciclista|bicicleta|de bike))(?=.*{_AC})", "acidente_bicicleta"),
     (rf"(?=.*(caminh[ãa]o|carreta|bitrem|ca[çc]amba))(?=.*{_AC})", "acidente_caminhao"),
     (rf"(?=.*([ôo]nibus|coletivo|micro-?[ôo]nibus))(?=.*{_AC})", "acidente_onibus"),
+    (r"(avi[ãa]o|aeronave|helic[óo]pter|bimotor).{0,30}(cai|caiu|queda|despenc|acident|tomb|restinga|internad)|queda de (avi|helic)|acidente a[ée]reo", "acidente_aviao"),
     (r"\bBR[-\s]?\d{2,3}\b|\bSC[-\s]?\d{2,3}\b|rodovia|acostament", "acidente_rodovia"),
     (r"acidente|colis|bati(d|u)|capot|tomba|atropel", "acidente_carro"),
     (r"inc[êe]ndi|fogo|chamas|bombeir", "incendio"),
