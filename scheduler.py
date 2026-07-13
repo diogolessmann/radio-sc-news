@@ -86,6 +86,20 @@ def urgent_news_job():
         logger.error(f"❌ Urgente falhou: {e}")
 
 
+def clima_news_job():
+    """🌧️ Clima passa-tudo: posta todo evento de clima/chuva/alagamento recente (deduped + safety).
+    Só age se autopost ligado."""
+    if not _autopost_on():
+        return
+    try:
+        import distribuidor
+        r = distribuidor.run_clima(post=True)
+        if r['postadas'] or r['seguradas']:
+            logger.info(f"🌧️ CLIMA passa-tudo: {r['postadas']} postada(s) · seguradas: {r['seguradas']}")
+    except Exception as e:
+        logger.error(f"❌ Clima falhou: {e}")
+
+
 def marca_job(brand_key):
     """Posta 1 carrossel (IG) + foto (FB) + Story da MARCA por dia.
     Só age se autopost ligado E se os tokens Meta daquela marca existirem.
@@ -460,6 +474,15 @@ def start_scheduler(interval_minutes=60):
         trigger=IntervalTrigger(minutes=20),
         id='urgent_news',
         name='Plantão de notícia urgente (tempo real)',
+        replace_existing=True
+    )
+
+    # 🌧️ Clima passa-tudo: chuva/alagamento/temporal vão pro ar sem o funil — checa a cada 20 min
+    _scheduler.add_job(
+        func=clima_news_job,
+        trigger=IntervalTrigger(minutes=20),
+        id='clima_news',
+        name='Clima passa-tudo (chuva/alagamento em tempo real)',
         replace_existing=True
     )
 

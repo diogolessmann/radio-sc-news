@@ -422,8 +422,22 @@ def slide_cover(news, outdir, manchete=None):
     elif anti and _foto_liberada(news):
         anti = False
     bg = cover_image(None if anti else news["image_url"], news["admin_image"])
+    # 👁️ VISÃO IA (camada anti-Chapecó): o motor é CEGO — casa nome de arquivo com palavra do
+    # título e nunca vê o pixel. Aqui uma IA barata (Gemini Flash) OLHA a foto REAL da fonte:
+    # se tiver rosto/corpo/sangue/criança (o que o regex de TEXTO não pega), NÃO usa — cai pro
+    # Street View/arsenal (imagem NOSSA, segura). FAIL-OPEN: Gemini fora do ar não trava o post.
+    if bg is not None:
+        try:
+            import visao_imagem
+            _perigo = visao_imagem.foto_perigosa(bg)
+            if _perigo:
+                print(f"   👁️ VISÃO IA barrou a foto da fonte ({_perigo}) — usando imagem NOSSA")
+                bg = None
+        except Exception:
+            pass
     foto_credito = None
     ilustrativa = False
+    arte_ia = False
     # foto REAL da matéria (quando ANTI_STRIKE=0): credita a fonte na capa (atribuição). Fontes
     # litigiosas (OCP/Schroeder) já vêm SEM image_url do coletor, então nunca caem aqui.
     if bg and not anti and not news["admin_image"] and news["image_url"]:
@@ -442,11 +456,13 @@ def slide_cover(news, outdir, manchete=None):
                                               credito="Imagem: Google Street View")
         except Exception:
             pass
-    # B) ARSENAL PRÓPRIO: a NOSSA imagem (cidade/situação/categoria) em static/bg/.
+    # B) ARSENAL ESPECÍFICO: a NOSSA imagem (situação/cidade/categoria) — arsenal fixo + acervo IA.
+    #    permitir_generico=False: para no específico; o genérico vira fallback FINAL (depois da IA),
+    #    pra a IA poder preencher o buraco com imagem sob medida (e salvá-la no acervo p/ reuso).
     if not bg:
         try:
             import genericbg
-            _bp = genericbg.buscar(news)
+            _bp = genericbg.buscar(news, permitir_generico=False)
             if _bp:
                 _bi = Image.open(_bp).convert("RGB")
                 _sc = max(W / _bi.width, H / _bi.height)
@@ -506,12 +522,30 @@ def slide_cover(news, outdir, manchete=None):
         except Exception:
             pass
     if not bg:
-        # 3) Fallback IA (Nano Banana: seletivo, capado). Off por padrão (NANOBANANA_ON).
+        # 3) Fallback IA (Nano Banana): FOTO editorial IA só p/ notícia SEM foto E SEM acervo.
+        #    Off por padrão (NANOBANANA_ON=1 liga). Guarda-corpo: sensível NUNCA gera (não simula cena).
         try:
             import nanobanana
-            _nb = nanobanana.gerar_capa(news["title"], news["category"], news["city"], outdir)
+            _nb = nanobanana.gerar_capa(news["title"], news["category"], news["city"], outdir,
+                                        sensivel=_foto_sensivel(news))
             if _nb:
                 bg = Image.open(_nb).convert("RGB")
+                arte_ia = True
+        except Exception:
+            pass
+    if not bg:
+        # B2) GENÉRICO do arsenal (fallback FINAL antes do card): imagem ilustrativa do Vale.
+        #     Só chega aqui se a IA estava OFF/falhou — senão a IA teria preenchido sob medida.
+        try:
+            import genericbg
+            _bp = genericbg.buscar(news, permitir_generico=True)
+            if _bp:
+                _bi = Image.open(_bp).convert("RGB")
+                _sc = max(W / _bi.width, H / _bi.height)
+                _bi = _bi.resize((int(_bi.width * _sc), int(_bi.height * _sc)))
+                bg = _bi.crop(((_bi.width - W) // 2, (_bi.height - H) // 2,
+                               (_bi.width - W) // 2 + W, (_bi.height - H) // 2 + H))
+                ilustrativa = True
         except Exception:
             pass
     if bg:
@@ -554,6 +588,12 @@ def slide_cover(news, outdir, manchete=None):
     # crédito da foto emprestada de outro portal (atribuição)
     if foto_credito:
         ftxt = f"Foto: {foto_credito}"
+        fc = font(26, bold=False)
+        cw = d.textlength(ftxt, font=fc)
+        d.text((W - 56 - cw, H - 104), ftxt, font=fc, fill=MUTED)
+    # honestidade: imagem GERADA por IA (não é foto real do fato)
+    elif arte_ia:
+        ftxt = "Arte IA"
         fc = font(26, bold=False)
         cw = d.textlength(ftxt, font=fc)
         d.text((W - 56 - cw, H - 104), ftxt, font=fc, fill=MUTED)

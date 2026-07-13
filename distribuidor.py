@@ -35,7 +35,7 @@ import sys
 import textwrap
 import time
 import unicodedata
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import requests
 
@@ -431,21 +431,36 @@ def pick_next(conn, only_id=None, limit=1):
 
     # 🛑 GUARDA DE IDADE (postagem): rede de segurança — NUNCA auto-posta notícia mais velha que
     # MAX_NEWS_AGE_DIAS (default 3). Mesmo que algo velho tenha entrado no banco, não vai pro ar.
+    # 📍 REGIONAL "libera mais fácil": o que é do Norte de SC ganha janela MAIOR
+    # (MAX_NEWS_AGE_DIAS_REGIONAL, default 6) — mais chance de ir pro ar antes de envelhecer.
     try:
         _maxd = int(_env("MAX_NEWS_AGE_DIAS", "3"))
     except Exception:
         _maxd = 3
+    try:
+        _maxd_reg = int(_env("MAX_NEWS_AGE_DIAS_REGIONAL", "6"))
+    except Exception:
+        _maxd_reg = 6
+    _janela = max(_maxd, _maxd_reg)   # SQL puxa pela janela MAIOR; o corte fino do não-regional é no Python
     rows = conn.execute(
         "SELECT * FROM news WHERE active=1 "
         "AND (social_posted_at IS NULL OR social_posted_at='') "
         "AND (social_hold IS NULL OR social_hold='') "
         "AND published_at IS NOT NULL AND datetime(published_at) >= datetime('now', ?) "
-        "ORDER BY priority DESC, datetime(published_at) DESC LIMIT 200",
-        (f"-{_maxd} days",)
+        "ORDER BY priority DESC, datetime(published_at) DESC LIMIT 300",
+        (f"-{_janela} days",)
     ).fetchall()
 
+    _cut_std = (datetime.now() - timedelta(days=_maxd)).strftime("%Y-%m-%d")  # janela padrão (não-regional)
+    # regional: janela maior (garantida pelo SQL). não-regional: SÓ dentro da janela padrão.
     local = [r for r in rows if (r["city"] in gi.NORTE_SC)]
-    rest = [r for r in rows if r["city"] not in gi.NORTE_SC and not _fora_regiao(r["city"])]
+    rest = [r for r in rows if r["city"] not in gi.NORTE_SC and not _fora_regiao(r["city"])
+            and (r["published_at"] or "")[:10] >= _cut_std]
+    # 📉 REDUZIR ESPORTE (dado do Placar: esporte = pior nota; e o nacional/Brasil é o pior de todos).
+    # Corta esporte NÃO-regional (futebol nacional GE/Gazeta/Lance) do feed; esporte LOCAL (Norte
+    # de SC) segue valendo. Reversível: ESPORTE_NACIONAL_OFF=0 volta a postar esporte nacional.
+    if _env("ESPORTE_NACIONAL_OFF", "1").strip() != "0":
+        rest = [r for r in rest if (r["category"] or "").strip().lower() != "esporte"]
     ordered = _ranqueia_aprendido(local) + _ranqueia_aprendido(rest)
     return ordered[:limit]
 
@@ -1077,6 +1092,103 @@ def run_once(post=False, limit=1):
             msg = f"materia {news['id']}: {e}"
             print("   ! ERRO " + msg)
             erros.append(msg)
+    conn.close()
+    return {"postadas": done, "erros": erros, "seguradas": seguradas}
+
+
+# ---------------------------------------------------------------- clima (passa-tudo)
+# 🌧️ Decisão do dono: clima/chuva/alagamento é o que MAIS engaja no hiperlocal — "passa tudo".
+# Todo EVENTO de clima recente vai pro ar SEM o funil de 2 posts/dia. Mantém os 2 guarda-corpos:
+#   (a) dedup — não posta o MESMO alagamento de 5 fontes (posta o evento, não a repetição);
+#   (b) trava de sensível — chuva com morte/resgate vai pra REVISÃO (lição do caso do incêndio).
+# Trava CLIMA_PASSA_TUDO (default ligado). Janela CLIMA_AGE_DIAS (default 2 — clima velho é inútil).
+_CLIMA_RE = re.compile(
+    r"(temporal|tempestade|alagament|enchente|inunda|transbord|vendaval|ciclone|"
+    r"granizo|ressaca|mar[ée] alta|deslizament|frente fria|onda de (calor|frio)|geada|"
+    r"nevoeiro|neblina|apag[ãa]o|falta de (luz|energia)|sem energia|queda de [áa]rvore|"
+    r"chuva(s)? (fort|intens|persistent|volumos)|pancada(s)? de chuva|dia de chuva|"
+    r"previs[ãa]o (do tempo|de chuva)|defesa civil|alerta de (chuva|temporal|tempestade|tempo))",
+    re.IGNORECASE)
+
+
+def is_clima(news):
+    """True se a materia e de clima/tempo: categoria 'clima' OU palavra-chave de evento no texto."""
+    if (_get(news, "category") or "").strip().lower() == "clima":
+        return True
+    blob = f"{_get(news, 'title') or ''} {_get(news, 'summary') or ''}"
+    return bool(_CLIMA_RE.search(blob))
+
+
+def _clima_on():
+    return _env("CLIMA_PASSA_TUDO", "1").strip() != "0"
+
+
+def pick_clima(conn, dias=2, limit=20):
+    """TODAS as materias de clima ainda nao postadas (recentes, dentro da nossa regiao).
+    Regional primeiro. E o 'passa-tudo' — sem o funil apertado do pick_next."""
+    rows = conn.execute(
+        "SELECT * FROM news WHERE active=1 "
+        "AND (social_posted_at IS NULL OR social_posted_at='') "
+        "AND (social_hold IS NULL OR social_hold='') "
+        "AND published_at IS NOT NULL AND datetime(published_at) >= datetime('now', ?) "
+        "ORDER BY priority DESC, datetime(published_at) DESC LIMIT 150",
+        (f"-{dias} days",)
+    ).fetchall()
+    clima = [r for r in rows if is_clima(r) and not _fora_regiao(r["city"])]
+    local = [r for r in clima if r["city"] in gi.NORTE_SC]
+    rest = [r for r in clima if r["city"] not in gi.NORTE_SC]
+    return (local + rest)[:limit]
+
+
+def run_clima(post=True, limit=5):
+    """PASSA-TUDO de clima: posta todo evento de clima recente (deduped + safety).
+    Roda com frequencia (scheduler) e vai limpando o backlog. Retorna {postadas, erros, seguradas}."""
+    conn = get_db()
+    ensure_column(conn)
+    if not _clima_on():
+        conn.close()
+        return {"postadas": 0, "erros": [], "seguradas": []}
+    _teto = _teto_dia()
+    if post and _teto > 0 and _posts_hoje(conn) >= _teto:
+        conn.close()
+        print(f"[distribuidor] FUSIVEL: {_teto} posts hoje — clima pulado.")
+        return {"postadas": 0, "erros": [], "seguradas": []}
+    try:
+        _dias = int(_env("CLIMA_AGE_DIAS", "2"))
+    except Exception:
+        _dias = 2
+    try:
+        _cap = int(_env("CLIMA_MAX_RUN", str(limit)))
+    except Exception:
+        _cap = limit
+    pool = pick_clima(conn, dias=_dias, limit=max(_cap * 4, 20))
+    if not pool:
+        conn.close()
+        return {"postadas": 0, "erros": [], "seguradas": []}
+    day_dir = os.path.join(PREVIEW_BASE, datetime.now().strftime("%Y-%m-%d") + "_clima")
+    os.makedirs(day_dir, exist_ok=True)
+    vistos = list(recent_posted(conn))
+    done, erros, seguradas = 0, [], []
+    for news in pool:
+        if done >= _cap:
+            break
+        reason = sensitive_reason(news)   # guarda-corpo (b): sensível -> revisão humana
+        if reason:
+            mark_hold(conn, news["id"], f"sensivel:{reason} (clima — revise rapido)")
+            seguradas.append(f"materia {news['id']} clima+sensivel -> revisao ('{reason}')")
+            vistos.append(news)
+            continue
+        dup = duplicate_of(news, vistos)  # guarda-corpo (a): não repete o MESMO evento
+        if dup:
+            mark_dup(conn, news["id"], dup)
+            vistos.append(news)
+            continue
+        try:
+            process_one(conn, news, post, day_dir)
+            vistos.append(news)
+            done += 1
+        except Exception as e:
+            erros.append(f"materia {news['id']}: {e}")
     conn.close()
     return {"postadas": done, "erros": erros, "seguradas": seguradas}
 

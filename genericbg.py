@@ -19,6 +19,13 @@ import re
 import unicodedata
 
 BG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "bg")
+# 🎨 Acervo de imagens GERADAS por IA (nanobanana), salvas por SITUAÇÃO p/ REUSO (economiza $$):
+# gera 1x, reusa pra sempre. No Railway vai pro VOLUME persistente (senão sumiria a cada deploy);
+# local cai em static/bg_ia. Escaneado junto com o arsenal fixo (_file olha os dois).
+_VOL = os.environ.get("RAILWAY_VOLUME_MOUNT_PATH")
+IA_BG_DIR = os.environ.get("IA_BG_DIR") or (
+    os.path.join(_VOL, "bg_ia") if _VOL
+    else os.path.join(os.path.dirname(os.path.abspath(__file__)), "static", "bg_ia"))
 EXTS = (".jpg", ".jpeg", ".png", ".webp")
 
 
@@ -92,25 +99,44 @@ _CATEGORIA = {
 
 
 def _file(slug, seed=0):
-    """Acha static/bg/<slug>.<ext>, com rotação <slug>-1, <slug>-2... pela seed. None se não há."""
+    """Acha <slug>.<ext> (+ rotação <slug>-1, <slug>-2...) no arsenal fixo (static/bg) E no
+    acervo IA (volume). Rotaciona pela seed. None se não há em lugar nenhum."""
     if not slug:
         return None
     cands = []
-    for ext in EXTS:
-        base = os.path.join(BG_DIR, slug + ext)
-        if os.path.exists(base):
-            cands.append(base)
-        i = 1
-        while True:
-            v = os.path.join(BG_DIR, f"{slug}-{i}{ext}")
-            if os.path.exists(v):
-                cands.append(v)
-                i += 1
-            else:
-                break
+    for root in (BG_DIR, IA_BG_DIR):
+        if not os.path.isdir(root):
+            continue
+        for ext in EXTS:
+            base = os.path.join(root, slug + ext)
+            if os.path.exists(base):
+                cands.append(base)
+            i = 1
+            while True:
+                v = os.path.join(root, f"{slug}-{i}{ext}")
+                if os.path.exists(v):
+                    cands.append(v)
+                    i += 1
+                else:
+                    break
     if not cands:
         return None
     return cands[seed % len(cands)]
+
+
+def _situacao_slug(title):
+    """O slug de SITUAÇÃO que o título casa (temporal/alagamento/incendio...), ou None."""
+    for rx, slug in _SITUACOES:
+        if re.search(rx, title or "", re.IGNORECASE):
+            return slug
+    return None
+
+
+def slug_alvo(titulo, categoria):
+    """Slug sob o qual uma imagem IA deve ser SALVA (e que buscar prioriza) — a CHAVE do reuso.
+    Situação no título > categoria mapeada > categoria crua > 'geral'."""
+    cat = (categoria or "geral").strip().lower()
+    return _situacao_slug(titulo) or _CATEGORIA.get(cat) or cat or "geral"
 
 
 # Cidades do Vale: detecta no TÍTULO (mais confiável que o campo city, que às vezes vem errado/
@@ -129,41 +155,29 @@ def cidade_no_titulo(title):
     return min(achados)[1] if achados else None
 
 
-def buscar(news):
-    """Devolve o caminho da NOSSA imagem mais adequada à notícia, ou None (cai no próximo da
-    cascata). Prioridade: situação no título → cidade → categoria → genérico do Vale."""
-    if not _on():
-        return None
-    try:
-        seed = int(news["id"])
-    except Exception:
-        seed = 0
-    title = news["title"] or ""
-
-    # 1) situação no título (mais topical)
-    for rx, slug in _SITUACOES:
-        if re.search(rx, title, re.IGNORECASE):
-            p = _file(slug, seed)
-            if p:
-                return p
-
-    # 2) cidade — PREFERE a citada no TÍTULO (o campo city às vezes vem errado: notícia de
-    #    Jaraguá marcada como Schroeder). Assim a imagem é da cidade CERTA.
+def _especifico(news, seed, title):
+    """Match ESPECÍFICO: situação → cidade → categoria (inclui o acervo IA). None se nada casa."""
+    slug = _situacao_slug(title)
+    if slug:
+        p = _file(slug, seed)
+        if p:
+            return p
+    # cidade — PREFERE a citada no TÍTULO (o campo city às vezes vem errado).
     city = _norm(cidade_no_titulo(title) or news["city"])
     if city:
         p = _file("cidade_" + city, seed) or _file(city, seed)
         if p:
             return p
-
-    # 3) categoria
     slug = _CATEGORIA.get((news["category"] or "").strip().lower())
     if slug:
         p = _file(slug, seed)
         if p:
             return p
+    return None
 
-    # 4) genérico do Vale: cidade_geral/geral; senão rotaciona entre QUALQUER aérea de cidade que
-    #    exista (melhor uma cidade do Vale "ilustrativa" do que um card vazio na notícia estadual).
+
+def _generico(seed):
+    """Fallback GENÉRICO do Vale: cidade_geral/geral; senão QUALQUER aérea de cidade que exista."""
     p = _file("cidade_geral", seed) or _file("geral", seed)
     if p:
         return p
@@ -171,3 +185,21 @@ def buscar(news):
                      glob.glob(os.path.join(BG_DIR, "cidade_*.jpeg")) +
                      glob.glob(os.path.join(BG_DIR, "cidade_*.png")))
     return cidades[seed % len(cidades)] if cidades else None
+
+
+def buscar(news, permitir_generico=True):
+    """Caminho da NOSSA imagem (arsenal fixo static/bg + acervo IA no volume) mais adequada, ou
+    None. Prioridade: situação → cidade → categoria → [genérico do Vale].
+    permitir_generico=False PARA no específico — usado quando a IA (nanobanana) vai preencher o
+    buraco com uma imagem sob medida (e salvar no acervo p/ reuso). O genérico vira fallback final."""
+    if not _on():
+        return None
+    try:
+        seed = int(news["id"])
+    except Exception:
+        seed = 0
+    title = news["title"] or ""
+    p = _especifico(news, seed, title)
+    if p:
+        return p
+    return _generico(seed) if permitir_generico else None
