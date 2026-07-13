@@ -50,7 +50,11 @@ _SITUACOES = [
     (rf"(?=.*(caminh[ãa]o|carreta|bitrem|ca[çc]amba))(?=.*{_AC})", "acidente_caminhao"),
     (rf"(?=.*([ôo]nibus|coletivo|micro-?[ôo]nibus))(?=.*{_AC})", "acidente_onibus"),
     (r"(avi[ãa]o|aeronave|helic[óo]pter|bimotor).{0,30}(cai|caiu|queda|despenc|acident|tomb|restinga|internad)|queda de (avi|helic)|acidente a[ée]reo", "acidente_aviao"),
-    (r"\bBR[-\s]?\d{2,3}\b|\bSC[-\s]?\d{2,3}\b|rodovia|acostament", "acidente_rodovia"),
+    # radar/fiscalização É trânsito, não batida (fix 13/jul: notícia de radar saía com carro batido)
+    (r"radar|fiscaliza[çc]|blitz|lei seca", "transito"),
+    # rodovia/BR-xxx só vira foto de ACIDENTE se houver palavra de acidente junto (lookahead);
+    # senão "obras na BR-280" e "radar nas rodovias" puxavam carro batido (fix 13/jul)
+    (rf"(?=.*(\bBR[-\s]?\d{{2,3}}\b|\bSC[-\s]?\d{{2,3}}\b|rodovia|acostament))(?=.*{_AC})", "acidente_rodovia"),
     (r"acidente|colis|bati(d|u)|capot|tomba|atropel", "acidente_carro"),
     (r"inc[êe]ndi|fogo|chamas|bombeir", "incendio"),
     (r"resgat\w+ (de )?(animal|c[ãa]o|cachorro|gato)|maus-tratos.{0,12}animal|animal (preso|resgatad|abandonad)", "animais"),
@@ -59,7 +63,9 @@ _SITUACOES = [
     (r"dia de chuva|chuvos|garoa|guarda-chuva|pancada de chuva|chuva forte", "chuva"),
     (r"temporal|tempestade|vendaval|granizo|ciclone|ressaca|chuva", "temporal"),
     (r"alagament|enchente|inunda|transbord|cheia do rio", "alagamento"),
-    (r"neblina|nevoeiro|geada|frio intenso|onda de frio", "neblina_frio"),
+    # frio simples também casa (fix 13/jul: "terça GELADA / o FRIO continua" saía com foto de RAIO
+    # via fallback de categoria clima→temporal)
+    (r"neblina|nevoeiro|geada|\bfrio\b|gelad|friagem", "neblina_frio"),
     (r"dia de sol|ensolarad|sol forte|tempo firme|c[ée]u azul|sem previs[ãa]o de chuva", "sol"),
     (r"onda de calor|calor[ãa]o|calor intenso|altas temperaturas|ver[ãa]o", "calor"),
     (r"buraco|cratera|esburacad|asfalto destru|via destru", "buraco"),
@@ -91,9 +97,11 @@ _SITUACOES = [
 ]
 
 # CATEGORIA (fallback quando nada do título bateu) → slug.
+# "clima" SAIU do fallback (fix 13/jul): clima→temporal servia RAIO pra matéria de frio/sol.
+# Clima sem situação específica agora cai na IA-gen (imagem sob medida do tema) ou no genérico.
 _CATEGORIA = {
     "policial": "policial", "politica": "prefeitura", "saude": "saude",
-    "esporte": "esporte", "economia": "economia", "clima": "temporal",
+    "esporte": "esporte", "economia": "economia",
     "cultura": "evento",
 }
 

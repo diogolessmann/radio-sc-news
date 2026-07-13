@@ -515,10 +515,24 @@ def slide_cover(news, outdir, manchete=None):
                                (_si.width - W) // 2 + W, (_si.height - H) // 2 + H))
         except Exception:
             pass
+    if not bg:
+        # 3) IA SOB MEDIDA (Nano Banana) — AGORA ANTES do banco genérico (fix 13/jul: o Pexels
+        #    servia foto de GAMER pra futebol; imagem gerada do TEMA certo > stock sem nexo).
+        #    Gera 1x, salva no acervo por situação e reusa de graça. Off por padrão (NANOBANANA_ON).
+        #    Guarda-corpo: sensível NUNCA gera (não simula cena).
+        try:
+            import nanobanana
+            _nb = nanobanana.gerar_capa(news["title"], news["category"], news["city"], outdir,
+                                        sensivel=_foto_sensivel(news))
+            if _nb:
+                bg = Image.open(_nb).convert("RGB")
+                arte_ia = True
+        except Exception:
+            pass
     _cat = (news["category"] or "").strip().lower()
     if not bg and _cat in _ILUSTRA_CATS:
-        # 2.5) IMAGEM LIVRE (Pexels): FOTO REAL ilustrativa SÓ nas categorias onde a imagem
-        #      genérica combina (esporte/clima). Fora disso, card de marca > foto sem nexo.
+        # 3.5) IMAGEM LIVRE (Pexels) — fallback DEPOIS da IA (só quando IA off/cap estourado):
+        #      foto real ilustrativa só nas categorias onde a genérica combina (esporte/clima).
         try:
             import imagemlivre
             try:
@@ -530,18 +544,6 @@ def slide_cover(news, outdir, manchete=None):
                 bg = cover_image(_il, None)
                 if bg:
                     ilustrativa = True
-        except Exception:
-            pass
-    if not bg:
-        # 3) Fallback IA (Nano Banana): FOTO editorial IA só p/ notícia SEM foto E SEM acervo.
-        #    Off por padrão (NANOBANANA_ON=1 liga). Guarda-corpo: sensível NUNCA gera (não simula cena).
-        try:
-            import nanobanana
-            _nb = nanobanana.gerar_capa(news["title"], news["category"], news["city"], outdir,
-                                        sensivel=_foto_sensivel(news))
-            if _nb:
-                bg = Image.open(_nb).convert("RGB")
-                arte_ia = True
         except Exception:
             pass
     if not bg:

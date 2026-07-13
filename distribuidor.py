@@ -510,6 +510,10 @@ def pick_urgent(conn, minutes=120, limit=5):
     urg = [r for r in rows if is_urgent(r)]
     local = [r for r in urg if r["city"] in gi.NORTE_SC]
     rest = [r for r in urg if r["city"] not in gi.NORTE_SC and not _fora_regiao(r["city"])]
+    # 📉 mesmo filtro do pick_next (fix 13/jul): esporte NACIONAL não entra nem pelo plantão —
+    # foi por aqui que um jogo do Atlético-MG vazou (o filtro só existia no fluxo normal).
+    if _env("ESPORTE_NACIONAL_OFF", "1").strip() != "0":
+        rest = [r for r in rest if (r["category"] or "").strip().lower() != "esporte"]
     return (local + rest)[:limit]
 
 
@@ -1157,6 +1161,10 @@ def pick_clima(conn, dias=2, limit=20):
         (f"-{dias} days",)
     ).fetchall()
     clima = [r for r in rows if is_clima(r) and not _fora_regiao(r["city"])]
+    # esporte nunca entra pelo passa-tudo de clima ("chuva de gols" etc. — cinto e suspensório)
+    if _env("ESPORTE_NACIONAL_OFF", "1").strip() != "0":
+        clima = [r for r in clima if (r["category"] or "").strip().lower() != "esporte"
+                 or r["city"] in gi.NORTE_SC]
     local = [r for r in clima if r["city"] in gi.NORTE_SC]
     rest = [r for r in clima if r["city"] not in gi.NORTE_SC]
     return (local + rest)[:limit]
