@@ -1005,14 +1005,14 @@ def _posts_hoje(conn):
 
 
 def _teto_dia():
-    """FUSIVEL anti-bug (env POSTS_MAX_DIA, default 30; 0 = sem teto). NAO e freio editorial —
-    o dono cresceu com volume ("mais e mais") e a operacao real nunca chega perto de 30/dia.
-    So existe pra segurar um job em loop por bug (metralhar 40 posts = flag de spam na Meta,
-    que limita 100 publicacoes/24h)."""
+    """FUSIVEL anti-bug (env POSTS_MAX_DIA, default 50; 0 = sem teto). NAO e freio editorial —
+    o dono decidiu "MAIS E MAIS" pra noticia (12/jul: slots 8h-22h + clima passa-tudo), entao
+    o teto sobe p/ 50 pra nao engasgar dia de temporal. Segue sendo so anti-loop-de-bug:
+    a Meta limita ~100 publicacoes/24h, 50 mantem folga segura."""
     try:
-        return int(_env("POSTS_MAX_DIA", "30"))
+        return int(_env("POSTS_MAX_DIA", "50"))
     except Exception:
-        return 30
+        return 50
 
 
 @_serializa_post

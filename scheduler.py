@@ -426,14 +426,22 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
-    # 📣 Distribuição de notícia nas redes — 12h e 18h (2 posts/dia)
-    _scheduler.add_job(
-        func=social_news_job,
-        trigger=CronTrigger(hour='12,18', minute=0, timezone='America/Sao_Paulo'),
-        id='social_news',
-        name='Distribuidor de notícias (IG+FB)',
-        replace_existing=True
-    )
+    # 📣 Distribuição de notícia — "MAIS É MAIS" (decisão do dono, 12/jul): notícia é jogo de
+    # volume (61% do alcance é de não-seguidores = posts não canibalizam; público consome e
+    # volta com fome). Slot vazio é SEGURO: sem matéria boa/fresca na fila, o job simplesmente
+    # PULA (dedup + trava + fila) — volume escala com a notícia real, igual redação de verdade.
+    # Horários via env NOTICIA_HORAS (default 8h-22h a cada 2h). O Placar mede o alcance/post
+    # em 2 semanas: segurou = escala mais; despencou = tira slot. Dado decide.
+    _not_horas = [int(h) for h in os.environ.get('NOTICIA_HORAS', '8,10,12,14,16,18,20,22').split(',')
+                  if h.strip().isdigit()] or [12, 18]
+    for _h in _not_horas:
+        _scheduler.add_job(
+            func=social_news_job,
+            trigger=CronTrigger(hour=_h, minute=0, timezone='America/Sao_Paulo'),
+            id=f'social_news_{_h}',
+            name=f'Distribuidor de notícias {_h}h (IG+FB)',
+            replace_existing=True
+        )
 
     # 🎬 Reels (vídeo vertical narrado) — motor de ALCANCE (o formato que mais cresce). Configurável
     # via env REELS_HORAS (horas separadas por vírgula). Default 4x/dia (9,13,16,19), bem espaçado.
