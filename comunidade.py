@@ -91,7 +91,7 @@ def caption(selo, pergunta):
         f"🗣️ {selo}: {pergunta}\n\n"
         f"💬 Responde aqui embaixo — a gente lê TODOS os comentários!\n"
         f"🔁 Marca alguém do Vale pra dar o palpite  ·  🔖 Salva pra votar depois\n"
-        f"➕ Segue @radioscnews — o Norte de SC em 1 minuto\n\n"
+        f"➕ Segue @radiosc.news — o Norte de SC em 1 minuto\n\n"
         f"{bloco_canal}"
         + " ".join(tags)
     )

@@ -105,7 +105,7 @@ def _outro_card(outdir):
     fsub = gi.font(46)
     w = d.textlength(sub, font=fsub)
     d.text(((W - w) // 2, 1110), sub, font=fsub, fill=gi.MUTED)
-    handle = "@radioscnews"
+    handle = "@radiosc.news"
     fh = gi.font(64, impact=True)
     w = d.textlength(handle, font=fh)
     d.text(((W - w) // 2, 1260), handle, font=fh, fill=gi.GOLD)
@@ -138,7 +138,7 @@ def _legenda(dia, titulos):
     linhas = "\n".join(f"{nums[i]} {t}" for i, t in enumerate(titulos[:3]))
     return (f"🎙️ O VALE EM 60 SEGUNDOS — {dia.strftime('%d/%m')}\n\n"
             f"As principais de hoje no Vale:\n{linhas}\n\n"
-            f"Seguiu? Todo dia tem o resumo aqui. 👉 @radioscnews\n"
+            f"Seguiu? Todo dia tem o resumo aqui. 👉 @radiosc.news\n"
             f"Salva e marca um amigo do Vale 💚\n\n"
             f"#radioscnews #norteSC #valedoitapocu #jaraguadosul #schroeder #guaramirim #joinville #corupa")
 

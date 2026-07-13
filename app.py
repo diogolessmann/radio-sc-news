@@ -1303,6 +1303,61 @@ def admin_redacao_postar():
         return jsonify({'ok': False, 'erro': str(e)}), 500
 
 
+@app.route('/admin/acervo')
+@login_required
+def admin_acervo():
+    """🎨 Curadoria do ACERVO IA (fix da revisão independente): a 1ª imagem gerada p/ um slug
+    vira permanente (reuso) e não tinha como VER nem APAGAR (mora no volume). Aqui: galeria +
+    apagar — apagou a ruim, a próxima notícia do tema gera outra melhor no lugar."""
+    import genericbg
+    d = genericbg.IA_BG_DIR
+    files = []
+    if os.path.isdir(d):
+        files = sorted(f for f in os.listdir(d)
+                       if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp')))
+    cards = "".join(
+        f"<div class=card><img src='/admin/acervo/img/{f}' loading=lazy>"
+        f"<div class=nome>{f}</div>"
+        f"<form method=post action='/admin/acervo/apagar' "
+        f"onsubmit=\"return confirm('Apagar {f}? A próxima notícia do tema gera outra.')\">"
+        f"<input type=hidden name=f value='{f}'><button>🗑 apagar</button></form></div>"
+        for f in files)
+    return f"""<!doctype html><html><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1"><title>Acervo IA — Rádio SC News</title>
+<style>body{{background:#0c0c11;color:#eee;font-family:system-ui;padding:24px;max-width:1100px;margin:auto}}
+h1{{color:#F5C518}} .grid{{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}}
+.card{{background:#16161d;border-radius:12px;padding:10px}}
+.card img{{width:100%;border-radius:8px;aspect-ratio:4/5;object-fit:cover}}
+.nome{{font-size:13px;margin:8px 0;color:#aaa;word-break:break-all}}
+button{{background:#c0392b;color:#fff;border:0;padding:6px 12px;border-radius:8px;cursor:pointer}}
+a{{color:#F5C518}}</style></head><body>
+<h1>🎨 Acervo IA ({len(files)})</h1>
+<p>Imagens geradas pela IA e salvas por situação (reuso = custo zero nas próximas).
+Apague as ruins — a próxima notícia do tema gera uma nova no lugar.</p>
+<div class=grid>{cards or "<p>vazio ainda — nenhuma imagem IA gerada</p>"}</div>
+<p style="margin-top:24px"><a href='/admin'>← painel</a></p></body></html>"""
+
+
+@app.route('/admin/acervo/img/<path:nome>')
+@login_required
+def admin_acervo_img(nome):
+    """Serve a imagem do acervo IA (fica no volume, fora do static)."""
+    import genericbg
+    from flask import send_from_directory
+    return send_from_directory(genericbg.IA_BG_DIR, os.path.basename(nome))
+
+
+@app.route('/admin/acervo/apagar', methods=['POST'])
+@login_required
+def admin_acervo_apagar():
+    import genericbg
+    nome = os.path.basename(request.form.get('f', ''))   # basename = sem path traversal
+    p = os.path.join(genericbg.IA_BG_DIR, nome)
+    if nome and os.path.exists(p):
+        os.remove(p)
+    return redirect('/admin/acervo')
+
+
 @app.route('/admin/saude')
 @login_required
 def admin_saude():

@@ -282,7 +282,7 @@ def _cta(cidade, outdir, n):
     d.text(((gi.W - w) // 2, y), mark, font=fm, fill=gi.WHITE)
 
     y += 120
-    handle = "@radioscnews"
+    handle = "@radiosc.news"
     fh = gi.font(52)
     w = d.textlength(handle, font=fh)
     d.text(((gi.W - w) // 2, y), handle, font=fh, fill=gi.GOLD)
@@ -311,7 +311,7 @@ def _legenda(cidade, gancho, fatos):
     corpo = "\n".join(f"• {f}" for f in fatos)
     return (f"VOCÊ SABIA? 👀 {gancho} — {cidade}\n\n{corpo}\n\n"
             f"Marca quem é de {cidade} e compartilha esse orgulho! 💚\n"
-            f"Segue @radioscnews pra mais do Vale.\n\n{tags.strip()}")
+            f"Segue @radiosc.news pra mais do Vale.\n\n{tags.strip()}")
 
 
 def run(post=False, tema=None):

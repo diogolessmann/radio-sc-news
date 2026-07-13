@@ -213,7 +213,7 @@ def gerar_card_feed(pergunta, a="Sim", b="Não", outdir=OUT_DIR):
     d.text(((W - w) // 2, y + 46), cta, font=fc, fill=gi.WHITE)
 
     fh = gi.font(40)
-    handle = "@radioscnews"
+    handle = "@radiosc.news"
     w = d.textlength(handle, font=fh)
     d.text(((W - w) // 2, H - 86), handle, font=fh, fill=gi.GOLD)
 
@@ -230,7 +230,7 @@ def postar_feed(pergunta, a="Sim", b="Não"):
     cap = (f"🗳️ ENQUETE DO VALE\n\n{pergunta}\n\n"
            f"1️⃣ {a}\n2️⃣ {b}\n\n"
            f"Comenta 1 ou 2 aqui embaixo 👇 e marca um amigo do Vale pra votar também!\n"
-           f"Segue @radioscnews pra mais do Vale.\n\n"
+           f"Segue @radiosc.news pra mais do Vale.\n\n"
            f"#radioscnews #norteSC #valedoitapocu #enquete")
     try:
         dist.publish_single("enquete_feed", img, cap)

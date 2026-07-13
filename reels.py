@@ -279,11 +279,20 @@ def make_reel_for(news, day_dir, do_post=False):
 
 
 # ---------------------------------------------------------------- entrada p/ scheduler
+@dist._serializa_post
 def run_reel(post=False, limit=1):
     """Gera (e opcionalmente publica) Reels das próximas notícias. Mesmo filtro
-    editorial do distribuidor. Retorna {postadas, erros, seguradas}."""
+    editorial do distribuidor (+ mesmo LOCK de postagem e mesmo FUSÍVEL anti-loop).
+    Retorna {postadas, erros, seguradas}."""
     conn = dist.get_db()
     dist.ensure_column(conn)
+    # FUSÍVEL (fix da revisão): Reels agora respeitam o teto diário como os outros jobs —
+    # um bug em loop aqui não fica mais fora da contagem de POSTS_MAX_DIA.
+    _teto = dist._teto_dia()
+    if post and _teto > 0 and dist._posts_hoje(conn) >= _teto:
+        conn.close()
+        print(f"[reels] FUSIVEL: {_teto} posts hoje — reel pulado.")
+        return {"postadas": 0, "erros": [], "seguradas": []}
     pool = dist.pick_next(conn, only_id=None, limit=max(limit * 6, 12))
     if not pool:
         conn.close()

@@ -206,7 +206,7 @@ def _cta_slide(outdir, n):
         fb = gi.font(80, impact=True)
         w = d.textlength(ln, font=fb)
         d.text(((gi.W - w) // 2, 600 + i * 100), ln, font=fb, fill=gi.WHITE, stroke_width=2, stroke_fill=gi.BLACK)
-    handle = "@radioscnews"
+    handle = "@radiosc.news"
     fh = gi.font(60, impact=True)
     w = d.textlength(handle, font=fh)
     d.text(((gi.W - w) // 2, 980), handle, font=fh, fill=gi.GOLD)
@@ -226,7 +226,7 @@ def _legenda(num, titulos):
             f"Foram {num['total']} notícias cobertas em {num['n_cidades']} cidades do Vale. "
             f"{num['cidade']} foi a que mais apareceu e {num['assunto']} foi o assunto do momento.\n\n"
             f"O que mais mexeu com a gente:\n{tops}\n\n"
-            f"Seguiu? Toda semana tem a retrospectiva. 👉 @radioscnews\n"
+            f"Seguiu? Toda semana tem a retrospectiva. 👉 @radiosc.news\n"
             f"Salva e marca um amigo do Vale 💚\n\n"
             f"#radioscnews #norteSC #valedoitapocu #jaraguadosul #schroeder #guaramirim #joinville")
 

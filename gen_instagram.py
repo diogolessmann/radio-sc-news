@@ -425,14 +425,25 @@ def slide_cover(news, outdir, manchete=None):
     # 👁️ VISÃO IA (camada anti-Chapecó): o motor é CEGO — casa nome de arquivo com palavra do
     # título e nunca vê o pixel. Aqui uma IA barata (Gemini Flash) OLHA a foto REAL da fonte:
     # se tiver rosto/corpo/sangue/criança (o que o regex de TEXTO não pega), NÃO usa — cai pro
-    # Street View/arsenal (imagem NOSSA, segura). FAIL-OPEN: Gemini fora do ar não trava o post.
-    if bg is not None:
+    # Street View/arsenal (imagem NOSSA, segura). Fixes da revisão independente:
+    #   • foto do ADMIN (escolha humana deliberada) NÃO passa pela visão — humano manda;
+    #   • fail-CLOSED nas categorias LARGAS (VISAO_FAILCLOSED_CATS, default 'geral'): se a visão
+    #     FALHOU (erro/quota), a foto da fonte é descartada por cautela — 'geral' era exatamente
+    #     o balde do incidente de Chapecó e a visão é a única rede de pixel nele;
+    #   • visão desligada DE PROPÓSITO ('off') respeita o dono: comporta como antes (fail-open).
+    if bg is not None and not news["admin_image"]:
         try:
             import visao_imagem
-            _perigo = visao_imagem.foto_perigosa(bg)
-            if _perigo:
-                print(f"   👁️ VISÃO IA barrou a foto da fonte ({_perigo}) — usando imagem NOSSA")
+            _v = visao_imagem.avaliar(bg)
+            if _v == "perigosa":
+                print("   👁️ VISÃO IA barrou a foto da fonte — usando imagem NOSSA")
                 bg = None
+            elif _v == "erro":
+                _fc = {c.strip().lower() for c in
+                       os.environ.get("VISAO_FAILCLOSED_CATS", "geral").split(",") if c.strip()}
+                if (news["category"] or "").strip().lower() in _fc:
+                    print("   👁️ VISÃO IA falhou — foto da fonte descartada por CAUTELA (categoria larga)")
+                    bg = None
         except Exception:
             pass
     foto_credito = None
@@ -672,7 +683,7 @@ def slide_cta(news, outdir, n):
 
     # handle + CTA do Canal do WhatsApp (audiência própria — destino nº1)
     y += 120
-    handle = "@radioscnews"
+    handle = "@radiosc.news"
     fh = font(50)
     w = d.textlength(handle, font=fh)
     d.text(((W - w) // 2, y), handle, font=fh, fill=GOLD)
@@ -716,7 +727,7 @@ def make_caption(news):
         f"📍 {city}\n\n"
         f"👉 Mais notícias do Vale no nosso site:\n"
         f"🔗 {SITE} (link na bio)\n\n"
-        f"Siga @radioscnews e fique por dentro de tudo que acontece no Norte de SC.\n\n"
+        f"Siga @radiosc.news e fique por dentro de tudo que acontece no Norte de SC.\n\n"
         f"Fonte: {news['source']}\n\n"
         + " ".join(uniq)
     )

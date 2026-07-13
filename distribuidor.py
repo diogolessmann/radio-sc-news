@@ -48,6 +48,26 @@ except Exception:
 # Reaproveita TODO o gerador de imagem que ja existe e funciona
 import gen_instagram as gi
 
+# 🔒 LOCK GLOBAL DE POSTAGEM (fix da revisão independente): serializa run_once/run_urgent/
+# run_clima/reels no MESMO processo (deploy = 1 worker gunicorn, 1 scheduler in-process).
+# Sem isso, urgente e clima disparam no MESMO tick de 20min (_URGENT_RE e o clima compartilham
+# temporal/alagamento/enchente...) e podem postar a MESMA notícia 2x — a janela é o SELECT
+# acontecer nos dois antes de qualquer um dar mark_posted (30-90s de geração+publicação).
+# Com o lock, o 2º job espera e o SELECT dele já vê social_posted_at preenchido.
+import threading
+from functools import wraps as _wraps
+
+_POST_LOCK = threading.Lock()
+
+
+def _serializa_post(fn):
+    """Decorator: garante 1 job de postagem por vez (fila; não descarta execução)."""
+    @_wraps(fn)
+    def _wrapper(*a, **k):
+        with _POST_LOCK:
+            return fn(*a, **k)
+    return _wrapper
+
 # ---------------------------------------------------------------- config
 def _env(name, default=""):
     """Le variavel de ambiente TOLERANDO espacos acidentais no nome ou no valor
@@ -743,7 +763,7 @@ def social_caption(news, resumo):
     return (
         f"{resumo}\n\n"
         f"💬 Concorda? Comenta aqui 👇  ·  🔖 Salva  ·  🔁 {marca}\n"
-        f"➕ Segue @radioscnews — o Norte de SC em 1 minuto\n\n"
+        f"➕ Segue @radiosc.news — o Norte de SC em 1 minuto\n\n"
         f"{bloco_canal}"
         f"👀 Viu algo na sua cidade? Manda no direct — a próxima notícia pode ser sua.\n"
         f"📍 {city}  ·  ➕ mais notícias do Vale no site (link na bio)\n\n"
@@ -995,6 +1015,7 @@ def _teto_dia():
         return 30
 
 
+@_serializa_post
 def run_urgent(post=True, limit=1):
     """Posta NA HORA noticias urgentes recem-coletadas (plantao). Mesmo filtro
     editorial + dedup. Sensiveis vao p/ revisao marcadas como URGENTE."""
@@ -1037,6 +1058,7 @@ def run_urgent(post=True, limit=1):
     return {"postadas": done, "erros": erros, "seguradas": seguradas}
 
 
+@_serializa_post
 def run_once(post=False, limit=1):
     """Chamado pelo scheduler. Prepara (e opcionalmente posta) as proximas materias.
     FILTRO EDITORIAL: ao postar de verdade, materias com tema sensivel sao SEGURADAS
@@ -1140,6 +1162,7 @@ def pick_clima(conn, dias=2, limit=20):
     return (local + rest)[:limit]
 
 
+@_serializa_post
 def run_clima(post=True, limit=5):
     """PASSA-TUDO de clima: posta todo evento de clima recente (deduped + safety).
     Roda com frequencia (scheduler) e vai limpando o backlog. Retorna {postadas, erros, seguradas}."""

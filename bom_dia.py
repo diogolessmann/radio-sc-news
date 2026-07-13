@@ -35,7 +35,9 @@ DB_PATH = os.environ.get("DB_PATH", "radio_sc.db")
 SITE = gi.SITE
 W, H = gi.W, gi.H
 BG, RED, GOLD, WHITE, MUTED, BLACK = gi.BG, gi.RED, gi.GOLD, gi.WHITE, gi.MUTED, gi.BLACK
-WA_LINE = os.environ.get("WA_COMMUNITY", "(47) 99999-9999")  # numero p/ receber flagrantes
+# numero p/ receber flagrantes — default = o WhatsApp REAL da Rádio (fix da revisão: o
+# placeholder fake "(47) 99999-9999" ia pro ar quando a env WA_COMMUNITY não existia no Railway)
+WA_LINE = os.environ.get("WA_COMMUNITY", "(47) 99101-1351")
 
 OUT_BASE = "instagram_posts"
 

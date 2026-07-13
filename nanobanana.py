@@ -134,9 +134,10 @@ def _chamar(prompt, model=None):
     url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
            f"{model}:generateContent?key={GEMINI_API_KEY}")
     parts = [{"parts": [{"text": prompt}]}]
-    # QUALIDADE PRIMEIRO: pede 4K nativo no gemini-3 (env NANOBANANA_4K, default ligado).
-    # Se a API não aceitar o param (400), cai pros formatos padrão — nunca quebra.
-    q4k = os.environ.get("NANOBANANA_4K", "1").strip() != "0" and "gemini-3" in (model or "")
+    # 4K OFF por padrão (fix da revisão independente): o pipeline REDUZ tudo pra 1080x1350 em
+    # _cover() e o Instagram recomprime — 4K custa +79% ($0.24 vs $0.134) por pixels jogados
+    # fora. A qualidade vem do MODELO (gemini-3-pro), não do flag. Religa com NANOBANANA_4K=1.
+    q4k = os.environ.get("NANOBANANA_4K", "0").strip() == "1" and "gemini-3" in (model or "")
     bodies = []
     if q4k:
         bodies.append({"contents": parts, "generationConfig": {

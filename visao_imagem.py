@@ -76,14 +76,18 @@ def _to_jpeg_b64(img):
     return base64.b64encode(data).decode("ascii"), "image/jpeg"
 
 
-def foto_perigosa(img):
-    """Devolve um motivo (str curta) se a IA achar a foto PERIGOSA; None se OK / sem chave / erro.
-    FAIL-OPEN: qualquer falha -> None (não trava o post; as outras travas seguem valendo)."""
+def avaliar(img):
+    """Veredito da visão sobre a foto: 'perigosa' | 'ok' | 'off' | 'erro'.
+    - 'perigosa': a IA VIU rosto/corpo/sangue/criança -> não usar a foto.
+    - 'ok': a IA olhou e liberou.
+    - 'off': visão desligada DE PROPÓSITO (VISAO_IA_ON=0 ou sem chave) — respeita o dono.
+    - 'erro': a visão DEVIA ter olhado mas falhou (timeout/quota/resposta ruim) — quem chama
+      decide: fail-open (categorias estreitas) ou fail-CLOSED (categorias largas tipo 'geral')."""
     if not ativo():
-        return None
+        return "off"
     b64, mime = _to_jpeg_b64(img)
     if not b64:
-        return None
+        return "erro"
     url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
            f"{VISAO_MODEL}:generateContent?key={GEMINI_API_KEY}")
     parts = [{"text": _PROMPT}, {"inline_data": {"mime_type": mime, "data": b64}}]
@@ -103,10 +107,15 @@ def foto_perigosa(img):
             txt = "".join(p.get("text", "") for p in (cand.get("content") or {}).get("parts", []))
             txt = txt.strip().upper()
             if "PERIGOSA" in txt:
-                return "visao_ia: rosto/corpo/cena sensivel"
+                return "perigosa"
             if "OK" in txt:
-                return None                                # veredito claro: liberada
+                return "ok"                                # veredito claro: liberada
         except Exception as e:
-            print(f"[visao_imagem] falhou (fail-open, nao trava o post): {e}")
+            print(f"[visao_imagem] falhou ({e})")
             break
-    return None
+    return "erro"
+
+
+def foto_perigosa(img):
+    """Compat: motivo (str) se PERIGOSA; None nos demais casos (ok/off/erro = fail-open)."""
+    return "visao_ia: rosto/corpo/cena sensivel" if avaliar(img) == "perigosa" else None
