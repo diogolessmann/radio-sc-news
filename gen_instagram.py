@@ -467,10 +467,58 @@ def slide_cover(news, outdir, manchete=None):
                                               credito="Imagem: Google Street View")
         except Exception:
             pass
+    # 🎨 CURADOR — o Editor de Fotografia IA (ideia do dono, 13/jul): LÊ a notícia + o catálogo
+    # do acervo e DECIDE (usar slug / gerar sob medida / card), com a visão CONFERINDO a escolha.
+    # FAIL-SAFE: qualquer falha -> o fluxo regex de sempre decide (zero regressão). Sensível nunca gera.
+    _pula_arsenal = False
+    if not bg:
+        _dec = None
+        try:
+            import curador
+            if curador.ativo():
+                _dec = curador.escolher(news, sensivel=_foto_sensivel(news))
+        except Exception:
+            _dec = None
+        if _dec:
+            try:
+                import genericbg
+                import nanobanana
+                try:
+                    _seed = int(news["id"])
+                except Exception:
+                    _seed = 0
+                _nb = None
+                if _dec["acao"] == "usar" and _dec["slug"]:
+                    _p = genericbg._file(_dec["slug"], _seed)
+                    if _p and curador.combina(_p, news):
+                        _bi = Image.open(_p).convert("RGB")
+                        _sc = max(W / _bi.width, H / _bi.height)
+                        _bi = _bi.resize((int(_bi.width * _sc), int(_bi.height * _sc)))
+                        bg = _bi.crop(((_bi.width - W) // 2, (_bi.height - H) // 2,
+                                       (_bi.width - W) // 2 + W, (_bi.height - H) // 2 + H))
+                        ilustrativa = True
+                    elif not _foto_sensivel(news):
+                        # a escolhida não convenceu a visão -> gera sob medida no lugar
+                        _nb = nanobanana.gerar_capa(news["title"], news["category"], news["city"],
+                                                    outdir, sensivel=False,
+                                                    cena=_dec.get("cena"), slug_forcado=_dec.get("slug"))
+                elif _dec["acao"] == "gerar":
+                    _nb = nanobanana.gerar_capa(news["title"], news["category"], news["city"],
+                                                outdir, sensivel=_foto_sensivel(news),
+                                                cena=_dec.get("cena"), slug_forcado=_dec.get("slug"))
+                elif _dec["acao"] == "card":
+                    # o curador olhou o catálogo e nada serve: card de marca > imagem sem nexo
+                    _pula_arsenal = True
+                if _nb:
+                    bg = Image.open(_nb).convert("RGB")
+                    arte_ia = True
+            except Exception:
+                pass
     # B) ARSENAL ESPECÍFICO: a NOSSA imagem (situação/cidade/categoria) — arsenal fixo + acervo IA.
     #    permitir_generico=False: para no específico; o genérico vira fallback FINAL (depois da IA),
     #    pra a IA poder preencher o buraco com imagem sob medida (e salvá-la no acervo p/ reuso).
-    if not bg:
+    #    (FALLBACK do curador: só roda se o curador falhou/off — e nunca quando ele mandou "card".)
+    if not bg and not _pula_arsenal:
         try:
             import genericbg
             _bp = genericbg.buscar(news, permitir_generico=False)
@@ -515,7 +563,7 @@ def slide_cover(news, outdir, manchete=None):
                                (_si.width - W) // 2 + W, (_si.height - H) // 2 + H))
         except Exception:
             pass
-    if not bg:
+    if not bg and not _pula_arsenal:
         # 3) IA SOB MEDIDA (Nano Banana) — AGORA ANTES do banco genérico (fix 13/jul: o Pexels
         #    servia foto de GAMER pra futebol; imagem gerada do TEMA certo > stock sem nexo).
         #    Gera 1x, salva no acervo por situação e reusa de graça. Off por padrão (NANOBANANA_ON).
@@ -530,7 +578,7 @@ def slide_cover(news, outdir, manchete=None):
         except Exception:
             pass
     _cat = (news["category"] or "").strip().lower()
-    if not bg and _cat in _ILUSTRA_CATS:
+    if not bg and not _pula_arsenal and _cat in _ILUSTRA_CATS:
         # 3.5) IMAGEM LIVRE (Pexels) — fallback DEPOIS da IA (só quando IA off/cap estourado):
         #      foto real ilustrativa só nas categorias onde a genérica combina (esporte/clima).
         try:
@@ -546,7 +594,7 @@ def slide_cover(news, outdir, manchete=None):
                     ilustrativa = True
         except Exception:
             pass
-    if not bg:
+    if not bg and not _pula_arsenal:
         # B2) GENÉRICO do arsenal (fallback FINAL antes do card): imagem ilustrativa do Vale.
         #     Só chega aqui se a IA estava OFF/falhou — senão a IA teria preenchido sob medida.
         try:

@@ -96,8 +96,10 @@ def _incrementa():
 
 
 # ---- prompt (fotografia editorial profissional + guarda-corpos) -------------
-def montar_prompt(titulo, categoria, cidade):
-    cena = TEMA.get((categoria or "geral"), TEMA["geral"])
+def montar_prompt(titulo, categoria, cidade, cena=None):
+    """cena=None usa o TEMA da categoria; o CURADOR pode mandar uma cena sob medida da notícia
+    (as STRICT RULES abaixo valem SEMPRE — a cena custom não fura os guarda-corpos)."""
+    cena = (cena or "").strip() or TEMA.get((categoria or "geral"), TEMA["geral"])
     cidade = cidade or "Norte de Santa Catarina, Brazil"
     return (
         f"Professional editorial news photograph. {cena} "
@@ -172,13 +174,14 @@ def _cover(img):
     return img.crop(((iw - W) // 2, (ih - H) // 2, (iw - W) // 2 + W, (ih - H) // 2 + H))
 
 
-def _salvar_no_acervo(img, titulo, categoria):
+def _salvar_no_acervo(img, titulo, categoria, slug_forcado=None):
     """💾 Salva a imagem gerada no ACERVO IA (volume) sob o slug da situação, p/ REUSO futuro:
     gera 1x, o genericbg reusa de graça nas próximas. Devolve o caminho salvo (ou None).
-    1 imagem por slug = economia máxima (não sobrescreve; se já existe, o genericbg já teria pego)."""
+    1 imagem por slug = economia máxima (não sobrescreve; se já existe, o genericbg já teria pego).
+    slug_forcado = taxonomia do CURADOR (ex: 'radar', 'vacinacao') — o acervo cresce organizado."""
     try:
         import genericbg
-        slug = genericbg.slug_alvo(titulo, categoria)
+        slug = slug_forcado or genericbg.slug_alvo(titulo, categoria)
         d = genericbg.IA_BG_DIR
         os.makedirs(d, exist_ok=True)
         base = os.path.join(d, slug + ".jpg")
@@ -191,19 +194,20 @@ def _salvar_no_acervo(img, titulo, categoria):
         return None
 
 
-def gerar_capa(titulo, categoria, cidade, outdir, sensivel=False):
+def gerar_capa(titulo, categoria, cidade, outdir, sensivel=False, cena=None, slug_forcado=None):
     """Gera a imagem de fundo (1080x1350) p/ uma notícia SEM foto e SEM acervo.
     Devolve o caminho do PNG, ou None se: OFF, sensível, categoria sensível, cap estourado,
     sem chave, ou erro (billing). NUNCA quebra o fluxo — quem chama usa o card se None.
-    A imagem é SALVA no acervo IA (volume) sob o slug -> reuso grátis nas próximas."""
+    A imagem é SALVA no acervo IA (volume) sob o slug -> reuso grátis nas próximas.
+    cena/slug_forcado: direção de arte do CURADOR (cena sob medida + taxonomia do acervo)."""
     if (not LIGADO or not disponivel() or sensivel
             or not deve_gerar(categoria) or restante_hoje() <= 0):
         return None
     try:
-        img = _cover(_chamar(montar_prompt(titulo, categoria, cidade)))
+        img = _cover(_chamar(montar_prompt(titulo, categoria, cidade, cena=cena)))
         _incrementa()
         print(f"[nanobanana] 🎨 imagem IA gerada ({NB_MODEL}) p/ '{(titulo or '')[:40]}'")
-        acervo = _salvar_no_acervo(img, titulo, categoria)   # 💾 reuso futuro
+        acervo = _salvar_no_acervo(img, titulo, categoria, slug_forcado=slug_forcado)  # 💾 reuso
         if acervo:
             return acervo
         os.makedirs(outdir, exist_ok=True)
