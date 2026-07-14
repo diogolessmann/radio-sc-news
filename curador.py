@@ -125,7 +125,9 @@ def escolher(news, sensivel=False):
         f"{regras_gerar}"
         '3) Se nada serve: {"acao":"card"}\n\n'
         "REGRAS: o fundo é do TEMA, não da cena literal; prefira slug de SITUAÇÃO sobre slug de "
-        "cidade; slug de cidade só se a notícia é daquela cidade; em dúvida, \"card\". Só o JSON."
+        "cidade; slug de cidade só se a notícia é daquela cidade; ESPORTE pede campo de "
+        "jogo/estádio/quadra (NUNCA paisagem rural, trator ou e-sports); combine o CLIMA exato "
+        "(frio/geada ≠ tempestade ≠ sol); em dúvida, \"card\". Só o JSON."
     )
     txt = _gemini([{"text": prompt}])
     if not txt:
@@ -165,8 +167,13 @@ def combina(img_path, news):
         return True
     titulo = (news["title_own"] if _has(news, "title_own") else None) or news["title"] or ""
     parts = [
-        {"text": ("Esta imagem serve como FUNDO editorial (atmosférico, do TEMA) para esta "
-                  f"manchete de notícia local?\nMANCHETE: {titulo}\n"
+        {"text": ("Esta imagem serve como FUNDO editorial para esta manchete de notícia local?\n"
+                  f"MANCHETE: {titulo}\n\n"
+                  "Seja RIGOROSO: a imagem precisa combinar com o TEMA ESPECÍFICO da manchete, "
+                  "não só vagamente. Exemplos de reprovação: paisagem rural/trator NÃO serve para "
+                  "futebol (precisa de campo de jogo/estádio/bola); tempestade/raio NÃO serve para "
+                  "frio/geada; e-sports/gamer NÃO serve para futebol; praia NÃO serve para serra. "
+                  "Na dúvida, responda NAO.\n"
                   "Responda APENAS uma palavra: SIM ou NAO.")},
         {"inline_data": {"mime_type": "image/jpeg", "data": b64}},
     ]

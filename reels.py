@@ -323,6 +323,9 @@ def run_reel(post=False, limit=1):
                 seguradas.append(aviso)
                 vistos.append(news)
                 continue
+            if not dist._claim(conn, news["id"]):     # 🔐 trava atômica (janela de deploy)
+                vistos.append(news)
+                continue
         try:
             res = make_reel_for(news, day_dir, do_post=post)
             if post:
@@ -338,6 +341,8 @@ def run_reel(post=False, limit=1):
                 vistos.append(news)
             done += 1
         except Exception as e:
+            if post:
+                dist._unclaim(conn, news["id"])       # solta a trava: a notícia volta pra fila
             msg = f"materia {news['id']}: {e}"
             print("   ! ERRO " + msg)
             erros.append(msg)

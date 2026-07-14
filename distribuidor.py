@@ -517,9 +517,30 @@ def pick_urgent(conn, minutes=120, limit=5):
     return (local + rest)[:limit]
 
 
+def _claim(conn, news_id):
+    """🔐 Trava ATÔMICA no BANCO anti-post-duplo, à prova de MULTI-PROCESSO (fix 14/jul):
+    na janela de deploy o Railway roda 2 processos por instantes; o _POST_LOCK é in-process
+    e não cobre isso — foi assim que a 'Ottokar' saiu 2x. Só UM processo consegue marcar
+    social_hold='posting' (UPDATE condicional); o outro vê rowcount=0 e pula."""
+    cur = conn.execute(
+        "UPDATE news SET social_hold='posting' WHERE id=? "
+        "AND (social_posted_at IS NULL OR social_posted_at='') "
+        "AND (social_hold IS NULL OR social_hold='')", (news_id,))
+    conn.commit()
+    return cur.rowcount == 1
+
+
+def _unclaim(conn, news_id):
+    """Solta a trava se a publicação FALHOU (a notícia volta pra fila; não fica presa)."""
+    conn.execute("UPDATE news SET social_hold='' WHERE id=? AND social_hold='posting'", (news_id,))
+    conn.commit()
+
+
 def mark_posted(conn, news_id):
+    # limpa o hold 'posting' do _claim junto (postou = trava cumpriu o papel)
     conn.execute(
-        "UPDATE news SET social_posted_at=? WHERE id=?",
+        "UPDATE news SET social_posted_at=?, "
+        "social_hold=CASE WHEN social_hold='posting' THEN '' ELSE social_hold END WHERE id=?",
         (datetime.now().isoformat(timespec="seconds"), news_id),
     )
     conn.commit()
@@ -1052,11 +1073,16 @@ def run_urgent(post=True, limit=1):
             mark_dup(conn, news["id"], dup)
             vistos.append(news)
             continue
+        if post and not _claim(conn, news["id"]):     # 🔐 outro processo pegou (janela de deploy)
+            vistos.append(news)
+            continue
         try:
             process_one(conn, news, post, day_dir)
             vistos.append(news)
             done += 1
         except Exception as e:
+            if post:
+                _unclaim(conn, news["id"])
             erros.append(f"materia {news['id']}: {e}")
     conn.close()
     return {"postadas": done, "erros": erros, "seguradas": seguradas}
@@ -1109,12 +1135,17 @@ def run_once(post=False, limit=1):
                 seguradas.append(aviso)
                 vistos.append(news)
                 continue
+            if not _claim(conn, news["id"]):          # 🔐 outro processo pegou (janela de deploy)
+                vistos.append(news)
+                continue
         try:
             process_one(conn, news, post, day_dir)
             if post:
                 vistos.append(news)
             done += 1
         except Exception as e:
+            if post:
+                _unclaim(conn, news["id"])
             msg = f"materia {news['id']}: {e}"
             print("   ! ERRO " + msg)
             erros.append(msg)
@@ -1214,11 +1245,16 @@ def run_clima(post=True, limit=5):
             mark_dup(conn, news["id"], dup)
             vistos.append(news)
             continue
+        if post and not _claim(conn, news["id"]):     # 🔐 outro processo pegou (janela de deploy)
+            vistos.append(news)
+            continue
         try:
             process_one(conn, news, post, day_dir)
             vistos.append(news)
             done += 1
         except Exception as e:
+            if post:
+                _unclaim(conn, news["id"])
             erros.append(f"materia {news['id']}: {e}")
     conn.close()
     return {"postadas": done, "erros": erros, "seguradas": seguradas}
