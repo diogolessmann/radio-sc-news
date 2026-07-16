@@ -127,7 +127,9 @@ def escolher(news, sensivel=False):
         "REGRAS: o fundo é do TEMA, não da cena literal; prefira slug de SITUAÇÃO sobre slug de "
         "cidade; slug de cidade só se a notícia é daquela cidade; ESPORTE pede campo de "
         "jogo/estádio/quadra (NUNCA paisagem rural, trator ou e-sports); combine o CLIMA exato "
-        "(frio/geada ≠ tempestade ≠ sol); em dúvida, \"card\". Só o JSON."
+        "(frio/geada ≠ tempestade ≠ sol); ANIMAL: a espécie tem que bater — notícia de TARTARUGA "
+        "não usa slug de cachorro: prefira \"gerar\" com a espécie certa (ex.: slug tartaruga_marinha, "
+        "cena da espécie em ambiente natural, SEM pessoas); em dúvida, \"card\". Só o JSON."
     )
     txt = _gemini([{"text": prompt}])
     if not txt:
@@ -169,11 +171,15 @@ def combina(img_path, news):
     parts = [
         {"text": ("Esta imagem serve como FUNDO editorial para esta manchete de notícia local?\n"
                   f"MANCHETE: {titulo}\n\n"
-                  "Seja RIGOROSO: a imagem precisa combinar com o TEMA ESPECÍFICO da manchete, "
-                  "não só vagamente. Exemplos de reprovação: paisagem rural/trator NÃO serve para "
-                  "futebol (precisa de campo de jogo/estádio/bola); tempestade/raio NÃO serve para "
-                  "frio/geada; e-sports/gamer NÃO serve para futebol; praia NÃO serve para serra. "
-                  "Na dúvida, responda NAO.\n"
+                  "CRITÉRIO (criterioso, não perfeccionista):\n"
+                  "- SIM se o ASSUNTO CENTRAL da imagem combina com o TEMA da manchete. O fundo é "
+                  "ILUSTRATIVO do tema — NÃO precisa ser a cena nem o indivíduo exato da notícia "
+                  "(ex.: foto de um cachorro de rua SERVE para 'cachorro resgatado'; chuva serve "
+                  "para alagamento; um estádio serve para futebol).\n"
+                  "- NAO se o assunto central da imagem é OUTRO tema: rural/trator NÃO serve para "
+                  "futebol; tempestade/raio NÃO serve para frio/geada; e-sports/gamer NÃO serve "
+                  "para futebol; e em ANIMAIS a ESPÉCIE precisa bater (cachorro NÃO serve para "
+                  "tartaruga, e vice-versa).\n"
                   "Responda APENAS uma palavra: SIM ou NAO.")},
         {"inline_data": {"mime_type": "image/jpeg", "data": b64}},
     ]
