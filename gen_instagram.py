@@ -521,7 +521,7 @@ def slide_cover(news, outdir, manchete=None):
     if not bg and not _pula_arsenal:
         try:
             import genericbg
-            _bp = genericbg.buscar(news, permitir_generico=False)
+            _bp = genericbg.buscar(news, permitir_generico=False, sensivel=_foto_sensivel(news))
             if _bp:
                 _bi = Image.open(_bp).convert("RGB")
                 _sc = max(W / _bi.width, H / _bi.height)
@@ -599,7 +599,7 @@ def slide_cover(news, outdir, manchete=None):
         #     Só chega aqui se a IA estava OFF/falhou — senão a IA teria preenchido sob medida.
         try:
             import genericbg
-            _bp = genericbg.buscar(news, permitir_generico=True)
+            _bp = genericbg.buscar(news, permitir_generico=True, sensivel=_foto_sensivel(news))
             if _bp:
                 _bi = Image.open(_bp).convert("RGB")
                 _sc = max(W / _bi.width, H / _bi.height)

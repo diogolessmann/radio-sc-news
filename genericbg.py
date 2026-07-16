@@ -152,7 +152,21 @@ def slug_alvo(titulo, categoria):
 _CIDADES_VALE = [
     ("jaragua", "Jaraguá do Sul"), ("schroeder", "Schroeder"),
     ("guaramirim", "Guaramirim"), ("joinville", "Joinville"), ("corupa", "Corupá"),
+    # vizinhas cobertas (fix 16/jul: notícia de MASSARANDUBA saiu com pill "SCHROEDER" porque a
+    # cidade do título não era conhecida e valeu a city fixa do feed)
+    ("massaranduba", "Massaranduba"), ("barra velha", "Barra Velha"), ("pomerode", "Pomerode"),
 ]
+
+# 🔴 Slugs PROIBIDOS em notícia SENSÍVEL (fix 16/jul: a CÂMARA DE SCHROEDER — nome na fachada —
+# ilustrou notícia de LAVAGEM DE DINHEIRO): prédio público/lugar IDENTIFICÁVEL nunca ilustra
+# crime — associa a instituição/cidade ao delito (risco jurídico). Sensível usa só fundo
+# genérico neutro (policial/seguranca) ou card de marca.
+_PROIBIDOS_SENSIVEL = {"prefeitura", "camara", "escola", "igreja", "formatura", "feira",
+                       "comercio", "evento", "turismo", "saude"}
+
+
+def _slug_proibido_sensivel(slug):
+    return slug in _PROIBIDOS_SENSIVEL or (slug or "").startswith("cidade_")
 
 
 def cidade_no_titulo(title):
@@ -163,21 +177,24 @@ def cidade_no_titulo(title):
     return min(achados)[1] if achados else None
 
 
-def _especifico(news, seed, title):
-    """Match ESPECÍFICO: situação → cidade → categoria (inclui o acervo IA). None se nada casa."""
+def _especifico(news, seed, title, sensivel=False):
+    """Match ESPECÍFICO: situação → cidade → categoria (inclui o acervo IA). None se nada casa.
+    sensivel=True: pula slugs proibidos (prédio público/cidade identificável nunca ilustra crime)."""
     slug = _situacao_slug(title)
-    if slug:
+    if slug and not (sensivel and _slug_proibido_sensivel(slug)):
         p = _file(slug, seed)
         if p:
             return p
     # cidade — PREFERE a citada no TÍTULO (o campo city às vezes vem errado).
-    city = _norm(cidade_no_titulo(title) or news["city"])
-    if city:
-        p = _file("cidade_" + city, seed) or _file(city, seed)
-        if p:
-            return p
+    # 🔴 Em sensível, NUNCA: foto identificável da cidade + crime = associação indevida.
+    if not sensivel:
+        city = _norm(cidade_no_titulo(title) or news["city"])
+        if city:
+            p = _file("cidade_" + city, seed) or _file(city, seed)
+            if p:
+                return p
     slug = _CATEGORIA.get((news["category"] or "").strip().lower())
-    if slug:
+    if slug and not (sensivel and _slug_proibido_sensivel(slug)):
         p = _file(slug, seed)
         if p:
             return p
@@ -195,11 +212,13 @@ def _generico(seed):
     return cidades[seed % len(cidades)] if cidades else None
 
 
-def buscar(news, permitir_generico=True):
+def buscar(news, permitir_generico=True, sensivel=False):
     """Caminho da NOSSA imagem (arsenal fixo static/bg + acervo IA no volume) mais adequada, ou
     None. Prioridade: situação → cidade → categoria → [genérico do Vale].
     permitir_generico=False PARA no específico — usado quando a IA (nanobanana) vai preencher o
-    buraco com uma imagem sob medida (e salvar no acervo p/ reuso). O genérico vira fallback final."""
+    buraco com uma imagem sob medida (e salvar no acervo p/ reuso). O genérico vira fallback final.
+    sensivel=True (crime/tragédia): sem cidade identificável, sem prédio público, sem genérico de
+    cidade — só situação neutra (policial/seguranca) ou None (→ card de marca)."""
     if not _on():
         return None
     try:
@@ -207,7 +226,9 @@ def buscar(news, permitir_generico=True):
     except Exception:
         seed = 0
     title = news["title"] or ""
-    p = _especifico(news, seed, title)
+    p = _especifico(news, seed, title, sensivel=sensivel)
     if p:
         return p
+    if sensivel:
+        return None          # genérico é aéreo de CIDADE → proibido em crime; card resolve
     return _generico(seed) if permitir_generico else None

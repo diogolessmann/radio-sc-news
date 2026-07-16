@@ -129,7 +129,10 @@ def escolher(news, sensivel=False):
         "jogo/estádio/quadra (NUNCA paisagem rural, trator ou e-sports); combine o CLIMA exato "
         "(frio/geada ≠ tempestade ≠ sol); ANIMAL: a espécie tem que bater — notícia de TARTARUGA "
         "não usa slug de cachorro: prefira \"gerar\" com a espécie certa (ex.: slug tartaruga_marinha, "
-        "cena da espécie em ambiente natural, SEM pessoas); em dúvida, \"card\". Só o JSON."
+        "cena da espécie em ambiente natural, SEM pessoas); TEMA POLICIAL/CRIME: NUNCA slug de "
+        "cidade (cidade_*) nem de prédio público (prefeitura/camara/escola/igreja) — lugar "
+        "identificável associado a crime é risco jurídico; use \"policial\"/\"seguranca\" ou \"card\"; "
+        "em dúvida, \"card\". Só o JSON."
     )
     txt = _gemini([{"text": prompt}])
     if not txt:
@@ -153,6 +156,12 @@ def escolher(news, sensivel=False):
         return None                                    # escolheu slug que não existe -> fail-safe
     if acao == "gerar" and sensivel:
         acao, slug = "card", None                      # trava dura: sensível nunca gera
+    if acao == "usar" and sensivel:
+        # 🔴 trava dura (fix 16/jul: câmara de Schroeder ilustrou lavagem de dinheiro): em tema
+        # sensível, prédio público/cidade identificável NUNCA — só fundo neutro ou card.
+        import genericbg
+        if genericbg._slug_proibido_sensivel(slug):
+            acao, slug = "card", None
     cena = (dec.get("cena") or "").strip()[:220] or None
     print(f"[curador] 📖 decisão: {acao}" + (f" -> {slug}" if slug else ""))
     return {"acao": acao, "slug": slug, "cena": cena}

@@ -523,9 +523,16 @@ def fetch_feed(feed_config):
 
         full_text = f"{title} {summary}"
         city = feed_config.get('city') or detect_city(full_text)
-        # Usa categoria do feed quando for explícita (esporte, local); senão detecta pelo texto
+        # Usa categoria do feed quando for explícita (esporte, local); senão detecta pelo texto.
+        # 🔴 EXCEÇÃO (fix 16/jul): POLICIAL detectado no TEXTO sempre GANHA da categoria fixa do
+        # feed — "presa pela PM/lavagem de dinheiro" saiu como 'local' (feed SchPost) e FUROU as
+        # travas policiais de imagem (câmara de Schroeder ilustrou notícia de crime). Crime é crime.
         feed_cat = feed_config.get('category', 'geral')
-        category = feed_cat if feed_cat and feed_cat != 'geral' else detect_category(full_text)
+        detected = detect_category(full_text)
+        if detected == 'policial':
+            category = 'policial'
+        else:
+            category = feed_cat if feed_cat and feed_cat != 'geral' else detected
 
         articles.append({
             'title': title[:500],
