@@ -16,9 +16,9 @@ from PIL import Image, ImageDraw
 import gen_instagram as gi
 
 # ── NÚMEROS (atualizar aqui e regerar) ───────────────────────────────────────
-# jul/2026: 1,4 mi views/30d · 7,7k seguidores (painel profissional @radiosc.news)
-VIEWS_30D = "1,4 MILHÃO"
-SEGUIDORES = "7,7 MIL"
+# 16/jul/2026: 1.765.860 views/30d · 8.419 seguidores (painel profissional @radiosc.news)
+VIEWS_30D = "1,8 MILHÃO"
+SEGUIDORES = "8,4 MIL"
 POSTS_MES = "+300"
 WHATS_VENDA = "(47) 99101-1351"
 
@@ -75,9 +75,9 @@ def slide_prova(outdir):
     _center(d, "A REGIÃO NÃO SÓ VÊ.", gi.font(52, impact=True), 190, gi.WHITE)
     _center(d, "ELA COMPARTILHA.", gi.font(52, impact=True), 265, gi.GOLD)
     stats = [
-        ("150 MIL", "visualizações num ÚNICO post (alerta de ciclone)"),
-        ("1.563", "compartilhamentos num só alerta — vizinho avisando vizinho"),
-        ("+6,7 MIL", "seguidores novos num único mês"),
+        ("173 MIL", "visualizações num ÚNICO post (alerta de clima)"),
+        ("2.908", "salvamentos num só post — o Vale usa como serviço"),
+        ("+6,2 MIL", "seguidores novos num único mês"),
     ]
     y = 420
     for num, lab in stats:
@@ -224,7 +224,7 @@ def slide_conta(outdir):
     # o que compra
     f = gi.font(32)
     _center(d, "pra sua marca aparecer TODA SEMANA", f, 610, gi.WHITE)
-    _center(d, "pra uma audiência de 1,4 MILHÃO de views/mês", f, 660, gi.WHITE)
+    _center(d, "pra uma audiência de 1,8 MILHÃO de views/mês", f, 660, gi.WHITE)
     # comparação
     d.rounded_rectangle([60, 760, W - 60, 1010], radius=24, fill=CARD_BG, outline=BORDA, width=2)
     fc = gi.font(28)
