@@ -63,7 +63,11 @@ def _build_prompt(bruto, cidade, fonte, titulo_hint):
         "SEM clickbait mentiroso (mantém a credibilidade).\n"
         "- A 1ª linha do CORPO é o SOCO: a informação mais importante primeiro, sem enrolar.\n"
         "- Tom de vizinho bem informado, com a emoção certa (orgulho na conquista, atenção no "
-        "alerta). SEM sensacionalismo. NÃO invente NADA (principalmente números e datas)." + atrib + hint +
+        "alerta). SEM sensacionalismo. NÃO invente NADA (principalmente números e datas).\n"
+        "- NEUTRALIDADE EM TEMA DIVISIVO: se for política, projeto de lei, câmara/vereadores, "
+        "religião em lei ou pauta de costumes — tom 100% INFORMATIVO. PROIBIDO celebrar, lamentar "
+        "ou opinar ('que orgulho', 'boa notícia', 'vitória'). O jornal relata; quem opina é o "
+        "leitor." + atrib + hint +
         " Responda EXATAMENTE neste formato:\n"
         "TITULO: <gancho forte e curto, sem ponto final>\n"
         "CORPO: <NO MÁXIMO 5 linhas curtas, 1 frase punchy por linha; a 1ª linha é o fato principal>\n\n"

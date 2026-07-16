@@ -645,6 +645,67 @@ def _sensivel(news):
         return False
 
 
+# ---------------------------------------------------------------- NEUTRALIDADE (tema divisivo)
+# 🗳️ Lição de 16/jul: o motor chamou de "Boa notícia 🙌" um PROJETO DE LEI polêmico (religião/
+# costumes) e o público reclamou nos comentários que a Rádio tomou lado. Jornal local NÃO torce
+# em política: em tema DIVISIVO (lei, câmara, vereador, religião-na-lei, pautas de costume) o
+# tom é 100% informativo. Emoção continua liberada em conquista/esporte/clima — aqui NÃO.
+_DIVISIVO_RE = re.compile(
+    r"projeto de lei|lei municipal|institui (o |a )?(dia|semana|m[êe]s)|c[âa]mara (municipal|de vereadores?|aprova|vota|discute|rejeita)|"
+    r"vereador|sess[ãa]o (da c[âa]mara|legislativa)|sancion|plebiscito|"
+    r"ideologia|identidade de g[êe]nero|quest[ãa]o de g[êe]nero|aborto|armamento|desarmamento|"
+    r"cotas raciais|escola sem partido|"
+    r"(crist[ãao]|evang[ée]lic|cat[óo]lic|religios|b[íi]blic).{0,80}(lei|projeto|c[âa]mara|institui|escolas?|municipal)|"
+    r"(lei|projeto|c[âa]mara|institui).{0,80}(crist[ãao]|evang[ée]lic|cat[óo]lic|religios|b[íi]blic)",
+    re.IGNORECASE)
+
+
+def _divisivo(news):
+    """True se o tema é politicamente/socialmente DIVISIVO -> tom neutro obrigatório."""
+    if (_get(news, "category") or "").strip().lower() == "politica":
+        return True
+    blob = " ".join(str(_get(news, k) or "") for k in
+                    ("title_own", "title", "resumo_own", "summary"))
+    return bool(_DIVISIVO_RE.search(blob))
+
+
+_OPINIAO_SUB = [
+    (r"\bque orgulho d[oae] [\wà-úÀ-Ú]+( do sul)?\s*[!.]?", ""),   # "que orgulho do Vale!"
+    (r"\bque orgulho,?\s*[!.]?", ""),                               # "que orgulho!"
+    (r"\borgulho d[oae] [\wà-úÀ-Ú]+( do sul)?\b", "novidade na região"),
+    (r"\bboa not[íi]cia( para| pra)?( [\wà-úÀ-Ú]+( do sul)?)?\s*[:!]?", "novidade:"),
+    (r"\bgrande (conquista|vit[óo]ria)\b", "decisão"),
+    (r"\bvit[óo]ria\b", "aprovação"),
+    (r"\b[óo]tima? not[íi]cia\b", "novidade"),
+    (r"\bfinalmente[!,]?\s*", ""),
+    (r"\bmerece (aplausos|festa|orgulho|comemora[çc][ãa]o)\b", "chama atenção"),
+    (r"[🙌👏🎉🥳🎊💪❤️‍🔥]", ""),
+]
+
+
+def neutralizar_opiniao(texto):
+    """Remove celebração/torcida de texto sobre tema divisivo (determinístico, pós-IA).
+    A Rádio INFORMA a lei; quem opina é o leitor — nos comentários."""
+    if not texto:
+        return texto
+    t = texto
+    for rgx, rep in _OPINIAO_SUB:
+        t = re.sub(rgx, rep, t, flags=re.IGNORECASE)
+    t = re.sub(r"\s{2,}", " ", t)
+    t = re.sub(r"^[\s,.:;!—-]+", "", t)           # sobras de frase decapitada
+    t = re.sub(r"\s+([,.!?])", r"\1", t).strip()
+    if t and t[0].islower():
+        t = t[0].upper() + t[1:]                  # frase decapitada volta com maiúscula
+    return t or texto
+
+
+_NEUTRO_PROMPT = ("\nNEUTRALIDADE OBRIGATORIA (tema politico/divisivo): este assunto DIVIDE a "
+                  "cidade. Voce e JORNALISTA, nao torcedor. PROIBIDO celebrar, lamentar ou "
+                  "opinar ('que orgulho', 'boa noticia', 'vitoria', 'finalmente', emoji de "
+                  "festa). Tom 100% informativo e neutro: relate O QUE foi decidido, quando e "
+                  "por quem. Se houver debate, pode dizer que o tema divide opinioes.")
+
+
 def groq_summary(news):
     """Reescreve em ~5 linhas com pegada de rede social. HÍBRIDO: Gemini -> Groq -> local."""
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip()
@@ -675,16 +736,21 @@ def groq_summary(news):
                    "nunca afirme culpa. Use 'suspeito', 'teria', 'segundo a policia'. NAO escreva "
                    "'confessou/e o autor/culpado'. Foque no FATO, nao na pessoa. NAO cite nome de "
                    "pessoa comum.")
+    divisivo = _divisivo(news)
+    if divisivo:
+        prompt += _NEUTRO_PROMPT
     try:
         import cerebro
         txt = cerebro.completar(prompt)          # Gemini -> Groq
         if txt:
             r = txt.strip('"').strip() or _fallback_summary(news)
-            return neutralizar_juridico(r) if sensivel else r
+            r = neutralizar_juridico(r) if sensivel else r
+            return neutralizar_opiniao(r) if divisivo else r
     except Exception as e:
         print(f"   ! IA indisponivel ({e}) — usando resumo local")
     r = _fallback_summary(news)
-    return neutralizar_juridico(r) if sensivel else r
+    r = neutralizar_juridico(r) if sensivel else r
+    return neutralizar_opiniao(r) if divisivo else r
 
 
 # ---------------------------------------------------------------- TIKTOK MODE (notícia em 2 linhas)
@@ -712,16 +778,21 @@ def flash_manchete(news):
         prompt += ("\nATENCAO JURIDICA (tema policial): PRESUNCAO DE INOCENCIA — trate como SUSPEITA, "
                    "nunca afirme culpa. Use 'suspeito/teria/segundo a policia'. NAO escreva 'confessou/"
                    "e o autor/culpado'. Foque no FATO, nao na pessoa. NAO cite nome de pessoa comum.")
+    divisivo = _divisivo(news)
+    if divisivo:
+        prompt += _NEUTRO_PROMPT
     try:
         import cerebro
         m = (cerebro.completar(prompt) or "").strip().strip('"').strip()
         m = re.sub(r"#\S+", "", m)              # capa não é lugar de hashtag
         m = re.sub(r"\s+", " ", m).strip()
         if m and len(m) <= 160:        # guarda-corpo: descarta resposta longa/estranha
-            return neutralizar_juridico(m) if sensivel else m
+            m = neutralizar_juridico(m) if sensivel else m
+            return neutralizar_opiniao(m) if divisivo else m
     except Exception:
         pass
-    return neutralizar_juridico(title) if sensivel else title   # fallback: título cru neutralizado se sensível
+    title = neutralizar_juridico(title) if sensivel else title   # fallback: título cru neutralizado se sensível
+    return neutralizar_opiniao(title) if divisivo else title
 
 
 # ---------------------------------------------------------------- links
