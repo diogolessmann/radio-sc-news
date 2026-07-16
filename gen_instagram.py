@@ -706,15 +706,17 @@ def slide_cta(news, outdir, n):
     cy = H // 2 - 200
 
     # selo topo
-    seal = "GOSTOU? AJUDA A ESPALHAR:"
+    seal = "GOSTOU? FAZ ISSO AQUI:"
     fs = font(36)
     sw = d.textlength(seal, font=fs)
     d.rounded_rectangle([(W - sw) // 2 - 32, cy - 84, (W + sw) // 2 + 32, cy - 16],
                         radius=34, fill=GOLD)
     d.text(((W - sw) // 2, cy - 74), seal, font=fs, fill=BLACK)
 
-    # as 3 ações que o algoritmo recompensa
-    big = ["SALVA", "COMENTA", "COMPARTILHA"]
+    # SEGUE em 1º (fix 16/jul: 1,8M views → 8,4k seg = 0,5% de conversão; o CTA pedia salvar/
+    # compartilhar mas NUNCA pedia o FOLLOW — o verbo que converte view em audiência própria).
+    # "comenta" continua coberto pelo "MARCA UM AMIGO" logo abaixo.
+    big = ["SEGUE", "SALVA", "COMPARTILHA"]
     fbig = font(92, impact=True)
     y = cy + 30
     for ln in big:
