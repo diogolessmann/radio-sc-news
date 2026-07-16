@@ -86,6 +86,18 @@ def urgent_news_job():
         logger.error(f"❌ Urgente falhou: {e}")
 
 
+def inspetor_job():
+    """🔍 O INSPETOR (a 'Thais-bot'): revisa os posts do dia (imagem real + legenda via Graph)
+    com o checklist do revisor de jornal e manda os SUSPEITOS no zap do dono (Evolution do
+    Vigia). Não depende de autopost — revisa o que FOI ao ar. Fail-safe total."""
+    try:
+        import inspetor
+        r = inspetor.run(enviar=True)
+        logger.info(f"🔍 Inspetor: {r['auditados']} revisados, {r['suspeitos']} suspeito(s).")
+    except Exception as e:
+        logger.error(f"❌ Inspetor falhou: {e}")
+
+
 def clima_news_job():
     """🌧️ Clima passa-tudo: posta todo evento de clima/chuva/alagamento recente (deduped + safety).
     Só age se autopost ligado."""
@@ -491,6 +503,16 @@ def start_scheduler(interval_minutes=60):
         trigger=IntervalTrigger(minutes=20),
         id='clima_news',
         name='Clima passa-tudo (chuva/alagamento em tempo real)',
+        replace_existing=True
+    )
+
+    # 🔍 O Inspetor: revisão noturna dos posts do dia (imagem×tema, neutralidade, crime×lugar,
+    # cidade, português) → suspeitos no zap do dono. Roda depois do último slot de notícia (22h).
+    _scheduler.add_job(
+        func=inspetor_job,
+        trigger=CronTrigger(hour=22, minute=45, timezone='America/Sao_Paulo'),
+        id='inspetor',
+        name='Inspetor (revisor noturno do feed)',
         replace_existing=True
     )
 
