@@ -132,7 +132,9 @@ def escolher(news, sensivel=False):
         "cena da espécie em ambiente natural, SEM pessoas); TEMA POLICIAL/CRIME: NUNCA slug de "
         "cidade (cidade_*) nem de prédio público (prefeitura/camara/escola/igreja) — lugar "
         "identificável associado a crime é risco jurídico; use \"policial\"/\"seguranca\" ou \"card\"; "
-        "em dúvida, \"card\". Só o JSON."
+        "\"card\" é ÚLTIMO recurso (um card sem imagem rende pouco): entre um slug PRÓXIMO do tema "
+        "e card, prefira o slug (feijoada/festa→evento; comércio novo→comercio; comida→feira); "
+        "tema seguro sem slug bom→prefira \"gerar\". Só o JSON."
     )
     txt = _gemini([{"text": prompt}])
     if not txt:

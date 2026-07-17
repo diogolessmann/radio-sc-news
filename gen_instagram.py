@@ -594,8 +594,12 @@ def slide_cover(news, outdir, manchete=None):
                     ilustrativa = True
         except Exception:
             pass
-    if not bg and not _pula_arsenal:
+    if not bg:
         # B2) GENÉRICO do arsenal (fallback FINAL antes do card): imagem ilustrativa do Vale.
+        #     Roda MESMO quando o curador disse "card" (fix 17/jul: STF/Käsekuchen/feijoada
+        #     saíram em CARD PRETO PURO — 0 a 4 views! — porque o "card" pulava até o genérico;
+        #     a aérea do Vale rende mais que card vazio). Sensível continua protegido: o
+        #     buscar(sensivel=True) devolve None e aí sim o card assume.
         #     Só chega aqui se a IA estava OFF/falhou — senão a IA teria preenchido sob medida.
         try:
             import genericbg
