@@ -356,8 +356,11 @@ _FOTO_SENSIVEL = re.compile(
     r"pol[ií]ci|\bprend|preso|pres[ao]s?\b|pris[ãa]o|detid|apreend|flagrante|delegacia|"
     r"homic[ií]d|assassin|\bmatou|\bmort|[óo]bito|v[ií]tima|cad[áa]ver|\bcorpo\b|"
     r"esfaquead|esfaque|balead|\btiro|tiroteio|estupr|abus|feminic[ií]d|latroc[ií]n|assalt|"
-    r"\broub|\bfurt|\barma\b|muni[çc]|acidente|colis[ãa]o|atropel|afogad|suic[ií]d|inc[êe]ndio|"
-    r"facada|espanc|agress|\bbriga|tr[áa]fico|traficant|\bdrog|overdose|sequestr|c[áa]rcere|"
+    # fix 17/jul (o caso do CARD PRETO em massa): 'muni[çc]' casava MUNICIPAL/município — metade
+    # do noticiário de prefeitura virava "sensível". Idem '\bdrog' (DROGARIA) e '\bbriga'
+    # (BRIGADEIRO). Agora: munição/municiado, droga(s)/drogado, briga(s) — com fronteira.
+    r"\broub|\bfurt|\barma\b|muni[çc](?:[ãa]o|[õo]es)|municiad|acidente|colis[ãa]o|atropel|afogad|suic[ií]d|inc[êe]ndio|"
+    r"facada|espanc|agress|\bbrigas?\b|tr[áa]fico|traficant|\bdrogas?\b|\bdrogad|overdose|sequestr|c[áa]rcere|"
     r"\bresgat|bombeir|socorr|\bferid|\bqueda|desmoron|soterr|carboniz|naufrag|"
     r"condenad|julgament|\bacusad|denunciad|indiciad|linchad|degolad|decapit|chacina|"
     r"execu[çc]|emboscad|ref[ée]m|penitenci|pres[íi]dio|carcereir|estelionat|golpe do pix|"
