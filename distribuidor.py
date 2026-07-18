@@ -702,7 +702,10 @@ def neutralizar_opiniao(texto):
 # 🚫 MULETA: "Que orgulho..." abrindo post atras de post virou marca registrada de robo
 # (3ª reclamação do dono, 18/jul — e da Thais). Corta a expressão quando ela ABRE o texto,
 # em QUALQUER tema (a emoção fica; o clichê morre). Determinístico, roda pós-IA.
-_MULETA_RE = re.compile(r"^(que orgulho|boa not[íi]cia)[^.!\n:]*[.!:]?\s*", re.IGNORECASE)
+_MULETA_RE = re.compile(
+    r"^(que orgulho( d[oae]s? [\wà-úÀ-Ú]+( [\wà-úÀ-Ú]+)?)?"      # "Que orgulho da nossa WEG"
+    r"|boa not[íi]cia( para| pra)?( [\wà-úÀ-Ú]+( do sul)?)?)"     # "Boa noticia pra Schroeder"
+    r"\s*[!.:,]?\s*", re.IGNORECASE)
 
 
 def _sem_muleta(texto):
