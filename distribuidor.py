@@ -699,6 +699,22 @@ def neutralizar_opiniao(texto):
     return t or texto
 
 
+# 🚫 MULETA: "Que orgulho..." abrindo post atras de post virou marca registrada de robo
+# (3ª reclamação do dono, 18/jul — e da Thais). Corta a expressão quando ela ABRE o texto,
+# em QUALQUER tema (a emoção fica; o clichê morre). Determinístico, roda pós-IA.
+_MULETA_RE = re.compile(r"^(que orgulho|boa not[íi]cia)[^.!\n:]*[.!:]?\s*", re.IGNORECASE)
+
+
+def _sem_muleta(texto):
+    if not texto:
+        return texto
+    t = _MULETA_RE.sub("", texto.strip())
+    t = re.sub(r"^[\s,.:;!—-]+", "", t)
+    if t and t[0].islower():
+        t = t[0].upper() + t[1:]
+    return t or texto
+
+
 _NEUTRO_PROMPT = ("\nNEUTRALIDADE OBRIGATORIA (tema politico/divisivo): este assunto DIVIDE a "
                   "cidade. Voce e JORNALISTA, nao torcedor. PROIBIDO celebrar, lamentar ou "
                   "opinar ('que orgulho', 'boa noticia', 'vitoria', 'finalmente', emoji de "
@@ -719,9 +735,12 @@ def groq_summary(news):
         "com alguem da cidade.\n"
         "REGRAS:\n"
         "1) A 1a linha e um GANCHO EMOCIONAL curto (no max 1 emoji), usando o sentimento "
-        "certo da noticia: conquista/boa nova -> ORGULHO ('Que orgulho do Vale', 'Boa noticia "
-        "pra...'); alerta/acidente/clima -> ATENCAO/URGENCIA ('Atencao, " + cidade + "', "
-        "'Acontece agora'); esporte -> TORCIDA; curiosidade -> SURPRESA.\n"
+        "certo da noticia: conquista/boa nova -> celebre VARIANDO o gancho (ex: 'Olha isso, "
+        + cidade + "!', 'E nosso!', 'Do Vale pro mundo', 'Isso aqui e coisa nossa'); "
+        "alerta/acidente/clima -> ATENCAO/URGENCIA ('Atencao, " + cidade + "', "
+        "'Acontece agora'); esporte -> TORCIDA; curiosidade -> SURPRESA. "
+        "PROIBIDO usar as expressoes 'que orgulho' e 'boa noticia' — viraram muleta repetitiva "
+        "no feed; encontre outro jeito de celebrar A CADA post.\n"
         "2) Faca o leitor pensar 'isso e a MINHA cidade' — toque no pertencimento e cite "
         + cidade + " quando fizer sentido.\n"
         "3) Depois, 3 a 4 linhas curtas com o fato, do jeito que o vizinho contaria.\n"
@@ -745,12 +764,14 @@ def groq_summary(news):
         if txt:
             r = txt.strip('"').strip() or _fallback_summary(news)
             r = neutralizar_juridico(r) if sensivel else r
-            return neutralizar_opiniao(r) if divisivo else r
+            r = neutralizar_opiniao(r) if divisivo else r
+            return _sem_muleta(r)
     except Exception as e:
         print(f"   ! IA indisponivel ({e}) — usando resumo local")
     r = _fallback_summary(news)
     r = neutralizar_juridico(r) if sensivel else r
-    return neutralizar_opiniao(r) if divisivo else r
+    r = neutralizar_opiniao(r) if divisivo else r
+    return _sem_muleta(r)
 
 
 # ---------------------------------------------------------------- TIKTOK MODE (notícia em 2 linhas)
@@ -767,10 +788,10 @@ def flash_manchete(news):
         "Voce e o editor do RadioSC News (Vale do Itapocu, Norte de SC). Reescreva a noticia "
         "abaixo como UMA CHAMADA DE CAPA estilo TikTok: no MAXIMO 2 linhas (ate ~16 palavras), "
         "que entregue a noticia COMPLETA — a pessoa le e JA SABE o que aconteceu, sem precisar de "
-        "mais nada. Punchy, no tom de vizinho do Vale, com a emocao certa (orgulho na conquista, "
+        "mais nada. Punchy, no tom de vizinho do Vale, com a emocao certa (celebracao na conquista, "
         "atencao no alerta). Cite a cidade (" + cidade + ") quando fizer sentido. PROIBIDO: "
-        "inventar fato, clickbait, 'voce nao vai acreditar', e mais de 1 emoji. Responda SO a "
-        "chamada, sem aspas.\n\n"
+        "inventar fato, clickbait, 'voce nao vai acreditar', as expressoes 'que orgulho' e 'boa "
+        "noticia' (muletas repetidas), e mais de 1 emoji. Responda SO a chamada, sem aspas.\n\n"
         f"TITULO: {title}\nTEXTO: {body}"
     )
     sensivel = _sensivel(news)
@@ -788,7 +809,8 @@ def flash_manchete(news):
         m = re.sub(r"\s+", " ", m).strip()
         if m and len(m) <= 160:        # guarda-corpo: descarta resposta longa/estranha
             m = neutralizar_juridico(m) if sensivel else m
-            return neutralizar_opiniao(m) if divisivo else m
+            m = neutralizar_opiniao(m) if divisivo else m
+            return _sem_muleta(m)
     except Exception:
         pass
     title = neutralizar_juridico(title) if sensivel else title   # fallback: título cru neutralizado se sensível
