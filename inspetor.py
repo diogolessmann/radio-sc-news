@@ -175,7 +175,8 @@ def run(enviar=True):
                   f"{len(suspeitos)} suspeito(s) pra você conferir:"]
         for s in suspeitos[:6]:
             linhas.append(f"\n🚩 {s['titulo']}\n   → {'; '.join(s['problemas'])}\n   {s['link']}")
-        linhas.append("\n(Confere e, se for erro real, edita/apaga. O motor aprende com o veredicto.)")
+        linhas.append("\n(Confere. Se for erro real: edita/apaga o post e manda o print pro Fable "
+                      "— aí a raiz vira trava permanente.)")
         rel = "\n".join(linhas)
     else:
         rel = f"🔍 INSPETOR Rádio SC — {auditados} posts revisados hoje: ✅ tudo limpo."

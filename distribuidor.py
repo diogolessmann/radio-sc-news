@@ -655,6 +655,10 @@ _DIVISIVO_RE = re.compile(
     r"vereador|sess[ãa]o (da c[âa]mara|legislativa)|sancion|plebiscito|"
     r"ideologia|identidade de g[êe]nero|quest[ãa]o de g[êe]nero|aborto|armamento|desarmamento|"
     r"cotas raciais|escola sem partido|"
+    # 💰 fiscal/tributário é POLÍTICA (Inspetor 18/jul: "imposto menor" virou 'Isso aqui é coisa
+    # nossa ☕' e tarifaço virou 'orgulho/torcendo' — quem paga e quem ganha divide, jornal relata)
+    r"imposto|tribut|tarifa[çc]o|\btarifa\b|taxa[çc][ãa]o|al[ií]quota|\bicms\b|sobretaxa|"
+    r"isen[çc][ãa]o fiscal|reforma tribut|"
     r"(crist[ãao]|evang[ée]lic|cat[óo]lic|religios|b[íi]blic).{0,80}(lei|projeto|c[âa]mara|institui|escolas?|municipal)|"
     r"(lei|projeto|c[âa]mara|institui).{0,80}(crist[ãao]|evang[ée]lic|cat[óo]lic|religios|b[íi]blic)",
     re.IGNORECASE)

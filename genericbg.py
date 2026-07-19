@@ -49,7 +49,17 @@ _SITUACOES = [
     (rf"(?=.*(ciclista|bicicleta|de bike))(?=.*{_AC})", "acidente_bicicleta"),
     (rf"(?=.*(caminh[ãa]o|carreta|bitrem|ca[çc]amba))(?=.*{_AC})", "acidente_caminhao"),
     (rf"(?=.*([ôo]nibus|coletivo|micro-?[ôo]nibus))(?=.*{_AC})", "acidente_onibus"),
-    (r"(avi[ãa]o|aeronave|helic[óo]pter|bimotor).{0,30}(cai|caiu|queda|despenc|acident|tomb|restinga|internad)|queda de (avi|helic)|acidente a[ée]reo", "acidente_aviao"),
+    # ✈️ AVIAÇÃO (fix 18/jul — 1º turno do Inspetor): "quase colisão no ar / tragédia aérea"
+    # caía em 'colis' e saía com CARRO CAPOTADO. Não existia foto de avião no arsenal.
+    # Um airliner é ilustração neutra e correta pra QUALQUER notícia de aviação (inclusive
+    # queda) — melhor que foto de acidente de outro modal.
+    (r"\bvoos?\b|avi[ãa]o|avi[õo]es|aeronave|helic[óo]pter|bimotor|aeroporto|anticolis[ãa]o|"
+     r"trag[ée]dia a[ée]rea|acidente a[ée]reo|tr[áa]fego a[ée]reo|companhia a[ée]rea|"
+     r"torre de controle|decolag|pouso for[çc]ad", "aviacao"),
+    # 🔥 QUEIMADA/fumaça ≠ incêndio urbano (Inspetor pegou: notícia de fumaça de queimada
+    # ilustrada com prédio pegando fogo). Vem ANTES do 'incendio'.
+    (r"queimada|inc[êe]ndio florestal|inc[êe]ndios florestais|fuma[çc]a|foco de inc[êe]ndio|"
+     r"brigadist|desmatament.{0,20}fogo", "queimada"),
     # radar/fiscalização É trânsito, não batida (fix 13/jul: notícia de radar saía com carro batido)
     (r"radar|fiscaliza[çc]|blitz|lei seca", "transito"),
     # rodovia/BR-xxx só vira foto de ACIDENTE se houver palavra de acidente junto (lookahead);
