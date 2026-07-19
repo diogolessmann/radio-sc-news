@@ -48,18 +48,57 @@ def _post(cfg, path, body):
     return r.ok, r.text[:200]
 
 
+def _instancia_viva(cfg):
+    """Pergunta à Evolution qual instância está CONECTADA agora.
+    O nome da instância MUDA quando ela é recriada — em 18/jul o Vigia (e o Inspetor)
+    ficaram MUDOS por dias porque EVOLUTION_INSTANCE apontava p/ 'mz1n12', que não existia
+    mais, e o send_zap engolia o 404 em silêncio. Um dead-man switch que morre calado é pior
+    que não ter dead-man switch."""
+    try:
+        r = requests.get(f"{cfg['url']}/instance/fetchInstances",
+                         headers={"apikey": cfg["key"]}, timeout=20)
+        if not r.ok:
+            return None
+        d = r.json()
+        for i in (d if isinstance(d, list) else d.get("instances", [])):
+            inst = i.get("instance") if isinstance(i.get("instance"), dict) else i
+            nome = inst.get("name") or inst.get("instanceName")
+            st = (inst.get("connectionStatus") or inst.get("status") or "").lower()
+            if nome and st == "open":
+                return nome
+    except Exception:
+        pass
+    return None
+
+
+def _enviar(cfg, texto):
+    ok, resp = _post(cfg, "message/sendText", {"number": cfg["num"], "text": texto})
+    if not ok:       # formato v1 da Evolution
+        ok, resp = _post(cfg, "message/sendText",
+                         {"number": cfg["num"], "textMessage": {"text": texto}})
+    return ok, resp
+
+
 def send_zap(texto):
-    """Manda texto pro dono. True/False — NUNCA levanta (o Vigia não pode derrubar nada)."""
+    """Manda texto pro dono. True/False — NUNCA levanta (o Vigia não pode derrubar nada).
+    Falha agora é BARULHENTA no log + auto-recupera se a instância foi recriada."""
     cfg = _cfg()
     if not cfg:
         return False
     try:
-        ok, _ = _post(cfg, "message/sendText", {"number": cfg["num"], "text": texto})
-        if not ok:   # formato v1 da Evolution
-            ok, _ = _post(cfg, "message/sendText",
-                          {"number": cfg["num"], "textMessage": {"text": texto}})
+        ok, resp = _enviar(cfg, texto)
+        if not ok and "does not exist" in (resp or ""):
+            nova = _instancia_viva(cfg)
+            if nova and nova != cfg["inst"]:
+                print(f"⚠️ VIGIA: instância '{cfg['inst']}' não existe mais — enviando por "
+                      f"'{nova}'. CORRIJA EVOLUTION_INSTANCE no Railway.")
+                cfg = {**cfg, "inst": nova}
+                ok, resp = _enviar(cfg, texto)
+        if not ok:
+            print(f"⚠️ VIGIA: Evolution recusou o envio — {str(resp)[:200]}")
         return ok
-    except Exception:
+    except Exception as e:
+        print(f"⚠️ VIGIA: falha ao enviar zap — {e}")
         return False
 
 
