@@ -32,8 +32,11 @@ def _cfg():
     key = os.environ.get("EVOLUTION_APIKEY") or ""
     inst = os.environ.get("EVOLUTION_INSTANCE") or ""
     num = os.environ.get("VIGIA_ZAP") or ""
-    if url and key and inst and num:
-        return {"url": url, "key": key, "inst": inst, "num": num}
+    # VIGIA_ZAP aceita VÁRIOS números separados por vírgula (dono + Thais, 20/jul).
+    # O 1º da lista é o TITULAR: backups/arquivos vão só pra ele; avisos vão pra todos.
+    nums = [n.strip() for n in num.split(",") if n.strip()]
+    if url and key and inst and nums:
+        return {"url": url, "key": key, "inst": inst, "nums": nums, "num": nums[0]}
     return None
 
 
@@ -71,35 +74,39 @@ def _instancia_viva(cfg):
     return None
 
 
-def _enviar(cfg, texto):
-    ok, resp = _post(cfg, "message/sendText", {"number": cfg["num"], "text": texto})
+def _enviar(cfg, texto, num=None):
+    num = num or cfg["num"]
+    ok, resp = _post(cfg, "message/sendText", {"number": num, "text": texto})
     if not ok:       # formato v1 da Evolution
         ok, resp = _post(cfg, "message/sendText",
-                         {"number": cfg["num"], "textMessage": {"text": texto}})
+                         {"number": num, "textMessage": {"text": texto}})
     return ok, resp
 
 
 def send_zap(texto):
-    """Manda texto pro dono. True/False — NUNCA levanta (o Vigia não pode derrubar nada).
-    Falha agora é BARULHENTA no log + auto-recupera se a instância foi recriada."""
+    """Manda texto pra TODOS os números do VIGIA_ZAP (dono + Thais — 20/jul). True se chegou
+    em pelo menos um. NUNCA levanta (o Vigia não pode derrubar nada).
+    Falha é BARULHENTA no log + auto-recupera se a instância foi recriada."""
     cfg = _cfg()
     if not cfg:
         return False
-    try:
-        ok, resp = _enviar(cfg, texto)
-        if not ok and "does not exist" in (resp or ""):
-            nova = _instancia_viva(cfg)
-            if nova and nova != cfg["inst"]:
-                print(f"⚠️ VIGIA: instância '{cfg['inst']}' não existe mais — enviando por "
-                      f"'{nova}'. CORRIJA EVOLUTION_INSTANCE no Railway.")
-                cfg = {**cfg, "inst": nova}
-                ok, resp = _enviar(cfg, texto)
-        if not ok:
-            print(f"⚠️ VIGIA: Evolution recusou o envio — {str(resp)[:200]}")
-        return ok
-    except Exception as e:
-        print(f"⚠️ VIGIA: falha ao enviar zap — {e}")
-        return False
+    chegou = False
+    for num in cfg["nums"]:
+        try:
+            ok, resp = _enviar(cfg, texto, num)
+            if not ok and "does not exist" in (resp or ""):
+                nova = _instancia_viva(cfg)
+                if nova and nova != cfg["inst"]:
+                    print(f"⚠️ VIGIA: instância '{cfg['inst']}' não existe mais — enviando por "
+                          f"'{nova}'. CORRIJA EVOLUTION_INSTANCE no Railway.")
+                    cfg = {**cfg, "inst": nova}   # vale p/ os próximos números do loop
+                    ok, resp = _enviar(cfg, texto, num)
+            if not ok:
+                print(f"⚠️ VIGIA: Evolution recusou envio p/ {num} — {str(resp)[:200]}")
+            chegou = chegou or ok
+        except Exception as e:
+            print(f"⚠️ VIGIA: falha ao enviar p/ {num} — {e}")
+    return chegou
 
 
 def send_arquivo(caminho, nome, legenda=""):
