@@ -698,7 +698,9 @@ _OPINIAO_SUB = [
     (r"\borgulho d[oae] [\wà-úÀ-Ú]+( do sul)?\b", "novidade na região"),
     (r"\bboa not[íi]cia( para| pra)?( [\wà-úÀ-Ú]+( do sul)?)?\s*[:!]?", "novidade:"),
     (r"\bgrande (conquista|vit[óo]ria)\b", "decisão"),
-    (r"\bvit[óo]ria\b", "aprovação"),
+    # ⚠️ REMOVIDA a troca cega de "vitória"->"aprovação" (achado no teste da cadeia, 19/jul):
+    # ela corrompia FATO ("foi a primeira vitória dele" virava "primeira aprovação dele").
+    # Celebração já é pega por "grande vitória"/"que orgulho"/"boa notícia" acima.
     (r"\b[óo]tima? not[íi]cia\b", "novidade"),
     (r"\bfinalmente[!,]?\s*", ""),
     (r"\bmerece (aplausos|festa|orgulho|comemora[çc][ãa]o)\b", "chama atenção"),
@@ -729,6 +731,19 @@ _MULETA_RE = re.compile(
     r"^(que orgulho( d[oae]s? [\wà-úÀ-Ú]+( [\wà-úÀ-Ú]+)?)?"      # "Que orgulho da nossa WEG"
     r"|boa not[íi]cia( para| pra)?( [\wà-úÀ-Ú]+( do sul)?)?)"     # "Boa noticia pra Schroeder"
     r"\s*[!.:,]?\s*", re.IGNORECASE)
+
+
+def _limpa_sobra(texto):
+    """O texto atravessa 4 tesouras (jurídico → opinião → muleta → bairrismo). Empilhadas, elas
+    podem deixar um gancho ÓRFÃO de 1-2 palavras na 1ª linha ("Polícia!"). Se sobrou isso e há
+    corpo abaixo, a sobra cai fora. (achado no teste da cadeia, 19/jul)"""
+    if not texto or "\n" not in texto:
+        return texto
+    linhas = texto.split("\n")
+    p = linhas[0].strip()
+    if len(p.split()) <= 2 and len(p) <= 20 and any(l.strip() for l in linhas[1:]):
+        return "\n".join(linhas[1:]).strip() or texto
+    return texto
 
 
 def _sem_muleta(texto):
@@ -834,14 +849,14 @@ def groq_summary(news):
             r = neutralizar_juridico(r) if sensivel else r
             r = neutralizar_opiniao(r) if divisivo else r
             r = _sem_muleta(r)
-            return r if daqui else _sem_bairrismo(r)
+            return _limpa_sobra(r if daqui else _sem_bairrismo(r))
     except Exception as e:
         print(f"   ! IA indisponivel ({e}) — usando resumo local")
     r = _fallback_summary(news)
     r = neutralizar_juridico(r) if sensivel else r
     r = neutralizar_opiniao(r) if divisivo else r
     r = _sem_muleta(r)
-    return r if daqui else _sem_bairrismo(r)
+    return _limpa_sobra(r if daqui else _sem_bairrismo(r))
 
 
 # ---------------------------------------------------------------- TIKTOK MODE (notícia em 2 linhas)
@@ -883,7 +898,8 @@ def flash_manchete(news):
             m = neutralizar_opiniao(m) if divisivo else m
             m = _sem_muleta(m)
             m = m if daqui else _sem_bairrismo(m, uma_linha=True)
-            if m:                       # chamada bairrista em notícia de fora = descartada
+            # capa curta demais (<4 palavras) = sobra das tesouras, não chamada -> cai no título
+            if m and len(m.split()) >= 4:
                 return m
     except Exception:
         pass
