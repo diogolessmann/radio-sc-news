@@ -86,6 +86,18 @@ _SITUACOES = [
      r"\bbrigas?\b(?!\s+pel)|agress[aãoõ]|espancament|viol[êe]ncia dom[ée]stica|ladr[ãao]|"
      r"facad|esfaquead|homic[íi]d|assassin|\bmortes?\b", "policial"),
     (r"c[âa]mera de seguran|videomonitor|monitorament|vigil[âa]ncia|\bcftv\b|c[âa]meras flagr", "seguranca"),
+    # 📱 golpe digital (pauta semanal!) — "golpe" exige contexto (golpe DO pix) p/ não casar figurado
+    (r"golpe (?!de estado|militar)(d[oe]|via|no|contra)|golpista|estelionat|\bfraude|clonad|clonagem|"
+     r"\bpix\b.{0,40}(golpe|fraude|roub)", "golpe"),
+    # ⚖️ justiça institucional — DEPOIS do policial (crime concreto ganha; aqui é o judiciário)
+    (r"justi[çc]a|tribunal|julgament|senten[çc]|liminar|habeas|indeniza[çc]|"
+     r"\bstf\b|\bstj\b|\btjsc\b|\btce\b|\bf[óo]rum\b|minist[ée]rio p[úu]blico|promotoria", "justica"),
+    # 🗳️ eleição (2026 é ano eleitoral — ago-out vai bombar)
+    (r"elei[çc]|urna eletr[ôo]nica|candidat|\btse\b|\btre-?sc\b|segundo turno|campanha eleitoral", "eleicao"),
+    (r"supermercad|cesta b[áa]sica|atacadista|pre[çc]os? d[oe]s? aliment", "supermercado"),
+    (r"\bempreg|\bvagas?\b|contrata[çc][ãa]o|curr[íi]cul|\bsine\b|processo seletivo|carteira assinada", "emprego"),
+    (r"\bpraias?\b|litoral|beira-?mar|\borla\b|banhistas?|ressaca do mar|temporada de ver[ãa]o", "praia"),
+    (r"estiagem|\bseca\b|racionamento|n[íi]vel baixo d[oe]s? rios?|falta de chuva", "estiagem"),
     (r"dia de chuva|chuvos|garoa|guarda-chuva|pancada de chuva|chuva forte", "chuva"),
     (r"temporal|tempestade|vendaval|granizo|ciclone|ressaca|chuva", "temporal"),
     (r"alagament|enchente|inunda|transbord|cheia do rio", "alagamento"),
