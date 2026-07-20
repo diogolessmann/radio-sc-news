@@ -42,7 +42,7 @@ def _norm(s):
 # SITUAÇÃO detectada no título → slug do arquivo. Ordem = prioridade (mais específico primeiro).
 # Acidente: o TIPO de veículo tem prioridade. Exige veículo + palavra de acidente (lookahead),
 # pra "linha de ônibus nova" / "moto 0km" NÃO virarem foto de batida.
-_AC = r"(coli|bate|bati|aciden|atropel|tomb|capot|morr|ferid|engav|virou|incend)"
+_AC = r"(coli|bate|bati|aciden|atropel|tomb|capot|morr|ferid|engav|virou|incend|invad)"
 _SITUACOES = [
     # 🏎️ AUTOMOBILISMO vem ANTES de tudo (fix 19/jul): "Antonelli vence GP" + "acidente na
     # largada" no corpo saía com CARRO BATIDO na estrada. Corrida é ESPORTE, não acidente.
@@ -51,7 +51,7 @@ _SITUACOES = [
     (rf"(?=.*(motociclista|de moto|motoqueir))(?=.*{_AC})", "acidente_moto"),
     (rf"(?=.*(scooter|patinete|ciclomotor))(?=.*{_AC})", "acidente_scooter"),
     (rf"(?=.*(ciclista|bicicleta|de bike))(?=.*{_AC})", "acidente_bicicleta"),
-    (rf"(?=.*(caminh[ãa]o|carreta|bitrem|ca[çc]amba))(?=.*{_AC})", "acidente_caminhao"),
+    (rf"(?=.*(caminh[ãa]o|caminhonete|picape|pickup|carreta|bitrem|ca[çc]amba))(?=.*{_AC})", "acidente_caminhao"),
     (rf"(?=.*([ôo]nibus|coletivo|micro-?[ôo]nibus))(?=.*{_AC})", "acidente_onibus"),
     # ✈️ AVIAÇÃO (fix 18/jul — 1º turno do Inspetor): "quase colisão no ar / tragédia aérea"
     # caía em 'colis' e saía com CARRO CAPOTADO. Não existia foto de avião no arsenal.
@@ -72,7 +72,9 @@ _SITUACOES = [
     (r"acidente|colis|bati(d|u)|capot|tomba|atropel", "acidente_carro"),
     (r"inc[êe]ndi|fogo|chamas|bombeir", "incendio"),
     (r"resgat\w+ (de )?(animal|c[ãa]o|cachorro|gato)|maus-tratos.{0,12}animal|animal (preso|resgatad|abandonad)", "animais"),
-    (r"pol[íi]ci|preso|pres[ao]s|furto|roub|assalt|apreens|delegacia|tr[áa]fico", "policial"),
+    # \bbriga\b(?!\s+pel) — "briga pela vaga/liderança" é figurado (esporte), não ocorrência
+    (r"pol[íi]ci|preso|pres[ao]s|detid|furto|roub|assalt|apreens|delegacia|tr[áa]fico|"
+     r"\bbrigas?\b(?!\s+pel)|agress[aãoõ]|espancament|viol[êe]ncia dom[ée]stica|ladr[ãao]", "policial"),
     (r"c[âa]mera de seguran|videomonitor|monitorament|vigil[âa]ncia|\bcftv\b|c[âa]meras flagr", "seguranca"),
     (r"dia de chuva|chuvos|garoa|guarda-chuva|pancada de chuva|chuva forte", "chuva"),
     (r"temporal|tempestade|vendaval|granizo|ciclone|ressaca|chuva", "temporal"),
