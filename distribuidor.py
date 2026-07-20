@@ -565,11 +565,14 @@ def _extract_ig_id(res):
 
 
 def mark_hold(conn, news_id, reason):
-    """Segura a materia (filtro editorial): nao entra mais no auto-post, fica p/ revisao."""
+    """Segura a materia (filtro editorial): nao entra mais no auto-post, fica p/ revisao.
+    Auditoria 19/jul: NAO duplicar o prefixo — urgente/clima ja mandam 'sensivel:...' pronto
+    (virava 'sensivel:sensivel:roubo') e o portao manda 'revisor:...' (que nao e sensivel)."""
     stamp = datetime.now().isoformat(timespec="seconds")
+    tag = reason if re.match(r"^(sensivel|revisor|dup)[:\s]", reason or "") else f"sensivel:{reason}"
     conn.execute(
         "UPDATE news SET social_hold=? WHERE id=?",
-        (f"sensivel:{reason} @ {stamp}", news_id),
+        (f"{tag} @ {stamp}", news_id),
     )
     conn.commit()
 
@@ -632,6 +635,9 @@ _JURIDICO_SUB = [
     # "Parabéns à polícia pela ação rápida" -> some a frase inteira (substituir quebra a gramática)
     (re.compile(r"\bparab[ée]ns\s+(à|a|aos|às)\s+(nossa?s?\s+)?(pol[íi]ci\w*|pm|guarda|bombeir\w*)"
                 r"[^.!?\n]*[.!]?\s*", re.I), ""),
+    # "da nossa polícia" -> "da polícia" (preserva a preposição); "nossa polícia" -> "a polícia"
+    (re.compile(r"\b(d[ao]s?|n[ao]s?|pel[ao]s?)\s+nossa\s+(pol[íi]cia|pm|guarda municipal)\b", re.I),
+     r"\1 polícia"),
     (re.compile(r"\bnossa\s+(pol[íi]cia|pm|guarda municipal)\b", re.I), "a polícia"),
     (re.compile(r"\bmandou\s+bem\b", re.I), "agiu"),
 ]

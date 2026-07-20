@@ -128,7 +128,10 @@ def preflight(img_path, manchete, legenda, cidade, categoria):
     try:
         with open(img_path, "rb") as f:
             img = f.read()
-        v = _auditar(img, manchete, legenda, cidade, categoria, portao=True)
+        # rapido=True: 1 tentativa, timeout curto. O portão está NA FRENTE da publicação —
+        # com Gemini instável, o retry de 3x40s atrasaria um ALERTA DE TEMPORAL em minutos.
+        # Falhou -> fail-open na hora (auditoria Fable 19/jul).
+        v = _auditar(img, manchete, legenda, cidade, categoria, portao=True, rapido=True)
         if v and not v.get("ok") and v.get("problemas"):
             return v["problemas"]
     except Exception as e:
@@ -145,8 +148,9 @@ _SO_GRAVE = ("\nCONTEXTO: este check decide SE O POST VAI AO AR. Liste problema 
              "eles NUNCA bloqueiam. Na duvida, responda ok:true.\n")
 
 
-def _auditar(img_bytes, manchete, legenda, cidade, categoria, portao=False):
-    """Devolve dict {'ok': bool, 'problemas': [...]} ou None (falha -> não acusa ninguém)."""
+def _auditar(img_bytes, manchete, legenda, cidade, categoria, portao=False, rapido=False):
+    """Devolve dict {'ok': bool, 'problemas': [...]} ou None (falha -> não acusa ninguém).
+    rapido=True (portão): 1 tentativa só, timeout curto — nunca atrasar a publicação."""
     if not GEMINI_API_KEY:
         return None
     parts = [{"text": _CHECKLIST + (_SO_GRAVE if portao else "") +
@@ -160,10 +164,13 @@ def _auditar(img_bytes, manchete, legenda, cidade, categoria, portao=False):
     cfg = {"temperature": 0.0, "maxOutputTokens": 500}
     b_think = {"contents": [{"parts": parts}], "generationConfig": {**cfg, "thinkingConfig": {"thinkingBudget": 0}}}
     b_plain = {"contents": [{"parts": parts}], "generationConfig": cfg}
-    # 503/truncamento do Gemini são INTERMITENTES: tenta 3x (2 formatos + 1 retry) antes de desistir
-    for body in (b_think, b_plain, b_think):
+    # 503/truncamento do Gemini são INTERMITENTES: tenta 3x (2 formatos + 1 retry) antes de desistir.
+    # No modo rapido (portão), 1 tentativa e timeout curto — o post não espera o Google melhorar.
+    tentativas = (b_think,) if rapido else (b_think, b_plain, b_think)
+    tmo = 25 if rapido else 40
+    for body in tentativas:
         try:
-            r = requests.post(url, headers={"Content-Type": "application/json"}, json=body, timeout=40)
+            r = requests.post(url, headers={"Content-Type": "application/json"}, json=body, timeout=tmo)
             r.raise_for_status()
             cand = (r.json().get("candidates") or [{}])[0]
             if cand.get("finishReason") == "MAX_TOKENS":
