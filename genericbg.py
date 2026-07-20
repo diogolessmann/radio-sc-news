@@ -123,7 +123,9 @@ _SITUACOES = [
     # 😤 DESAPROVAÇÃO (ideia do dono, 20/jul): revolta/indignação/vergonha — o facepalm.
     # Por último de propósito: se o título tem o FATO ("revoltados com o buraco"), a foto do
     # fato (buraco) ganha; o facepalm cobre quando a emoção É a notícia.
-    (r"revolt|indign|vergonha|absurdo|inaceit[áa]vel|impunidade", "desaprovacao"),
+    # v2 escancarada (20/jul — dono reprovou a sutil): polegarZÃO 👎 e mãos-na-cara 🫣
+    (r"vergonh|vexame|constrang|papel[ãa]o|\bmico\b", "vergonha"),
+    (r"revolt|indign|absurdo|inaceit[áa]vel|impunidade|desaprov|rep[úu]dio", "desaprovacao"),
 ]
 
 # CATEGORIA (fallback quando nada do título bateu) → slug.
