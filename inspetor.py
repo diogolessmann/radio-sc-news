@@ -112,11 +112,44 @@ _CHECKLIST = (
 )
 
 
-def _auditar(img_bytes, manchete, legenda, cidade, categoria):
+def preflight(img_path, manchete, legenda, cidade, categoria):
+    """🚦 PORTÃO (19/jul): o MESMO revisor, mas ANTES de publicar.
+    Roda na capa já renderizada + legenda pronta. Devolve None (pode ir) ou lista de problemas.
+
+    Por que existe: o Inspetor noturno achava os erros DEPOIS de 6 mil pessoas verem. Cada
+    achado virava uma regex nova — e a lista de palavras nunca acaba. Com o revisor no portão,
+    o que ele não previu em regex ele PEGA no olho, antes de ir pro ar.
+
+    FAIL-OPEN: qualquer erro de API/sistema devolve None (publica). Nunca parar a fábrica por
+    causa do revisor — o custo de um post ruim é menor que o de um feed mudo.
+    Desliga com PREFLIGHT_ON=0."""
+    if os.environ.get("PREFLIGHT_ON", "1").strip() == "0" or not ativo():
+        return None
+    try:
+        with open(img_path, "rb") as f:
+            img = f.read()
+        v = _auditar(img, manchete, legenda, cidade, categoria, portao=True)
+        if v and not v.get("ok") and v.get("problemas"):
+            return v["problemas"]
+    except Exception as e:
+        print(f"[preflight] falhou ({e}) — liberando o post")
+    return None
+
+
+# No PORTÃO a régua sobe: segurar post custa audiência, então só barra o que envergonharia
+# o jornal. Ortografia/estilo continua sendo reportado à noite — mas nunca impede a publicação.
+_SO_GRAVE = ("\nCONTEXTO: este check decide SE O POST VAI AO AR. Liste problema APENAS se for "
+             "grave o bastante para NAO PUBLICAR (imagem que contradiz o fato, opiniao em tema "
+             "divisivo, crime com lugar identificavel, bairrismo falso, elogio a autoridade). "
+             "IGNORE o item 5 (portugues/acento) e qualquer questao de estilo ou preferencia — "
+             "eles NUNCA bloqueiam. Na duvida, responda ok:true.\n")
+
+
+def _auditar(img_bytes, manchete, legenda, cidade, categoria, portao=False):
     """Devolve dict {'ok': bool, 'problemas': [...]} ou None (falha -> não acusa ninguém)."""
     if not GEMINI_API_KEY:
         return None
-    parts = [{"text": _CHECKLIST +
+    parts = [{"text": _CHECKLIST + (_SO_GRAVE if portao else "") +
               f"MANCHETE: {manchete}\nCIDADE (banco): {cidade} · CATEGORIA: {categoria}\n"
               f"LEGENDA: {(legenda or '')[:500]}"}]
     if img_bytes:

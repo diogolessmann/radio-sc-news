@@ -1175,7 +1175,8 @@ def post_specific(news_id):
     day_dir = os.path.join(PREVIEW_BASE, datetime.now().strftime("%Y-%m-%d") + "_revisao")
     os.makedirs(day_dir, exist_ok=True)
     try:
-        process_one(conn, news, True, day_dir)  # posta + marca + salva payload do Canal
+        # portao=False: aqui QUEM aprovou foi o dono, na tela de revisão. O revisor não veta humano.
+        process_one(conn, news, True, day_dir, portao=False)
         conn.close()
         return {"ok": True}
     except Exception as e:
@@ -1244,8 +1245,11 @@ def run_urgent(post=True, limit=1):
             vistos.append(news)
             continue
         try:
-            process_one(conn, news, post, day_dir)
+            ok = process_one(conn, news, post, day_dir)
             vistos.append(news)
+            if ok is False:                       # barrado no portão: não gasta o slot
+                seguradas.append(f"materia {news['id']} BARRADA no portao (revisor)")
+                continue
             done += 1
         except Exception as e:
             if post:
@@ -1416,8 +1420,11 @@ def run_clima(post=True, limit=5):
             vistos.append(news)
             continue
         try:
-            process_one(conn, news, post, day_dir)
+            ok = process_one(conn, news, post, day_dir)
             vistos.append(news)
+            if ok is False:                       # barrado no portão: não gasta o slot
+                seguradas.append(f"materia {news['id']} BARRADA no portao (revisor)")
+                continue
             done += 1
         except Exception as e:
             if post:
@@ -1428,7 +1435,7 @@ def run_clima(post=True, limit=5):
 
 
 # ---------------------------------------------------------------- main
-def process_one(conn, news, do_post, day_dir):
+def process_one(conn, news, do_post, day_dir, portao=True):
     nid = news["id"]
     print(f"\n=== [{nid}] {news['city']} | {news['title'][:60]} ===")
 
@@ -1457,6 +1464,30 @@ def process_one(conn, news, do_post, day_dir):
     print(f"   Resumo via: {'GROQ (voz RadioSC)' if GROQ_API_KEY else 'FALLBACK LOCAL (sem chave Groq)'}")
 
     if do_post:
+        # 🚦 PORTÃO: o revisor olha a CAPA PRONTA + a legenda ANTES de subir. Reprovou -> a
+        # matéria é SEGURADA p/ revisão humana (e o lote segue pra próxima notícia, sem furar
+        # o horário). Fail-open: revisor fora do ar = post liberado.
+        problemas = None
+        if portao:
+            try:
+                import inspetor
+                problemas = inspetor.preflight(imgs[0] if imgs else None,
+                                               flash or news["title"], caption,
+                                               news["city"], news["category"])
+            except Exception as e:
+                print(f"   ! preflight indisponivel ({e}) — seguindo")
+        if problemas:
+            motivo = "revisor: " + "; ".join(problemas)[:180]
+            mark_hold(conn, nid, motivo)
+            print(f"   🚦 BARRADO NO PORTAO — {motivo}")
+            try:
+                import vigia
+                vigia.send_zap(f"🚦 Barrei um post ANTES de publicar:\n\n"
+                               f"{(flash or news['title'])[:90]}\n→ {'; '.join(problemas)[:200]}\n\n"
+                               f"Ta na fila /revisar. O horario foi preenchido pela proxima noticia.")
+            except Exception:
+                pass
+            return False
         res = publish_real(news, imgs, caption)
         mark_posted(conn, nid)
         mark_cluster(conn, news)  # blindagem: segura todas as irmas do mesmo fato
@@ -1471,6 +1502,7 @@ def process_one(conn, news, do_post, day_dir):
         print(f"   ✔ POSTADO e marcado (social_posted_at) — id {nid}")
     else:
         print("   (dry-run) NADA foi publicado e a materia NAO foi marcada.")
+    return True                 # False = barrado no portão (ver acima)
 
 
 def main():
