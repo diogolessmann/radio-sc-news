@@ -72,9 +72,19 @@ _SITUACOES = [
     (r"acidente|colis|bati(d|u)|capot|tomba|atropel", "acidente_carro"),
     (r"inc[êe]ndi|fogo|chamas|bombeir", "incendio"),
     (r"resgat\w+ (de )?(animal|c[ãa]o|cachorro|gato)|maus-tratos.{0,12}animal|animal (preso|resgatad|abandonad)", "animais"),
+    # 🗣️ CONFLITO CIVIL (ideia do dono, 20/jul): discussão/desentendimento entre vizinhos,
+    # inquilino×proprietário etc. — a foto é DISCUSSÃO em silhueta, não viatura (viatura
+    # criminaliza briga de vizinho). GUARDA: crime pesado (morte/arma/violência doméstica/
+    # companheira) NUNCA cai aqui — segue pro policial neutro. Vem ANTES do policial.
+    # ^ obrigatório: lookahead NEGATIVO sem âncora "escapa" testando posições após a palavra
+    # proibida (bug pego no teste 20/jul: "agressão contra companheira após discussão" caía aqui)
+    (r"^(?=.*(discuss|desentend|bate.?boca|desaven[çc]))"
+     r"(?!.*(morr|mort|faca|esfaque|\barma|tiro|estupr|viol[êe]ncia dom|companheir|esposa|marido|namorad|sequestr|tr[áa]fico))",
+     "discussao"),
     # \bbriga\b(?!\s+pel) — "briga pela vaga/liderança" é figurado (esporte), não ocorrência
     (r"pol[íi]ci|preso|pres[ao]s|detid|furto|roub|assalt|apreens|delegacia|tr[áa]fico|"
-     r"\bbrigas?\b(?!\s+pel)|agress[aãoõ]|espancament|viol[êe]ncia dom[ée]stica|ladr[ãao]", "policial"),
+     r"\bbrigas?\b(?!\s+pel)|agress[aãoõ]|espancament|viol[êe]ncia dom[ée]stica|ladr[ãao]|"
+     r"facad|esfaquead|homic[íi]d|assassin|\bmortes?\b", "policial"),
     (r"c[âa]mera de seguran|videomonitor|monitorament|vigil[âa]ncia|\bcftv\b|c[âa]meras flagr", "seguranca"),
     (r"dia de chuva|chuvos|garoa|guarda-chuva|pancada de chuva|chuva forte", "chuva"),
     (r"temporal|tempestade|vendaval|granizo|ciclone|ressaca|chuva", "temporal"),
@@ -110,6 +120,10 @@ _SITUACOES = [
     (r"natal\b|natalin|papai noel|luzes de natal|decora[çc][ãa]o de natal|ceia de natal", "natal"),
     (r"festa|show|evento|festival|m[úu]sica|arrai|cultura|teatro", "evento"),
     (r"futebol|jogo|campeonat|esporte|t[íi]tulo|copa|atleta", "esporte"),
+    # 😤 DESAPROVAÇÃO (ideia do dono, 20/jul): revolta/indignação/vergonha — o facepalm.
+    # Por último de propósito: se o título tem o FATO ("revoltados com o buraco"), a foto do
+    # fato (buraco) ganha; o facepalm cobre quando a emoção É a notícia.
+    (r"revolt|indign|vergonha|absurdo|inaceit[áa]vel|impunidade", "desaprovacao"),
 ]
 
 # CATEGORIA (fallback quando nada do título bateu) → slug.
