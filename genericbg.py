@@ -44,6 +44,10 @@ def _norm(s):
 # pra "linha de ônibus nova" / "moto 0km" NÃO virarem foto de batida.
 _AC = r"(coli|bate|bati|aciden|atropel|tomb|capot|morr|ferid|engav|virou|incend)"
 _SITUACOES = [
+    # 🏎️ AUTOMOBILISMO vem ANTES de tudo (fix 19/jul): "Antonelli vence GP" + "acidente na
+    # largada" no corpo saía com CARRO BATIDO na estrada. Corrida é ESPORTE, não acidente.
+    (r"f[óo]rmula\s?1|\bf1\b|\bgp\b|grande pr[êe]mio|automobilismo|stock car|\bkart\b|"
+     r"moto\s?gp|pole position|aut[óo]dromo|\bpaddock\b|grid de largada", "automobilismo"),
     (rf"(?=.*(motociclista|de moto|motoqueir))(?=.*{_AC})", "acidente_moto"),
     (rf"(?=.*(scooter|patinete|ciclomotor))(?=.*{_AC})", "acidente_scooter"),
     (rf"(?=.*(ciclista|bicicleta|de bike))(?=.*{_AC})", "acidente_bicicleta"),

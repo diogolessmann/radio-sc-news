@@ -722,6 +722,40 @@ def _sem_muleta(texto):
     return t or texto
 
 
+# 🌍 BAIRRISMO FORA DE LUGAR (fix 19/jul — a Thais: "falando q o italiano é do Vale"):
+# um piloto ITALIANO vencendo na Bélgica saiu com "Do Vale pro mundo 🏎". Os ganchos de
+# orgulho local que eu criei (18/jul, matando o "que orgulho") são pra notícia DAQUI —
+# notícia nacional/internacional NÃO é "nossa". Fora da região, gancho é curiosidade.
+_CIDADES_NOSSAS = {"jaragua do sul", "jaragua", "schroeder", "guaramirim", "corupa",
+                   "joinville", "massaranduba", "barra velha", "pomerode"}
+
+
+def _e_daqui(news):
+    """A notícia é DA REGIÃO? (só aí cabe 'nosso/do Vale')"""
+    c = (_get(news, "city") or "").strip().lower()
+    for a, b in (("á", "a"), ("ã", "a"), ("â", "a"), ("é", "e"), ("ê", "e"), ("í", "i"),
+                 ("ó", "o"), ("ô", "o"), ("ú", "u"), ("ç", "c")):
+        c = c.replace(a, b)
+    return c in _CIDADES_NOSSAS
+
+
+_BAIRRISMO_RE = re.compile(r"\bvale\b|\bnoss[oa]s?\b|\baqui d[oa]\b|\bda terrinha\b|\bda regi[ãa]o\b",
+                           re.IGNORECASE)
+
+
+def _sem_bairrismo(texto, uma_linha=False):
+    """Tira o 'nosso/do Vale' de notícia que NÃO é da região (o gancho vira mentira).
+    Só remove GANCHO curto (<=70 chars); nunca decapita frase de conteúdo."""
+    if not texto:
+        return texto
+    if uma_linha:                       # chamada de capa: se bairrista, é imprestável
+        return "" if _BAIRRISMO_RE.search(texto) else texto
+    linhas = [l for l in texto.splitlines()]
+    if linhas and len(linhas[0].strip()) <= 70 and _BAIRRISMO_RE.search(linhas[0]):
+        linhas = linhas[1:]
+    return "\n".join(linhas).strip() or texto
+
+
 _NEUTRO_PROMPT = ("\nNEUTRALIDADE OBRIGATORIA (tema politico/divisivo): este assunto DIVIDE a "
                   "cidade. Voce e JORNALISTA, nao torcedor. PROIBIDO celebrar, lamentar ou "
                   "opinar ('que orgulho', 'boa noticia', 'vitoria', 'finalmente', emoji de "
@@ -734,6 +768,7 @@ def groq_summary(news):
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip()
     body = re.sub(r"\s+", " ", (news["summary"] or "")).strip()
     cidade = news["city"] or "o Vale"
+    daqui = _e_daqui(news)
     prompt = (
         "Voce e o editor do RadioSC News, do Vale do Itapocu (Norte de SC: Jaragua do Sul, "
         "Schroeder, Guaramirim, Corupa, Joinville). Sua voz e a de um VIZINHO ORGULHOSO e "
@@ -742,13 +777,20 @@ def groq_summary(news):
         "com alguem da cidade.\n"
         "REGRAS:\n"
         "1) A 1a linha e um GANCHO EMOCIONAL curto (no max 1 emoji), usando o sentimento "
-        "certo da noticia: conquista/boa nova -> celebre VARIANDO o gancho (ex: 'Olha isso, "
-        + cidade + "!', 'E nosso!', 'Do Vale pro mundo', 'Isso aqui e coisa nossa'); "
+        "certo da noticia: conquista/boa nova -> celebre VARIANDO o gancho (ex: "
+        + ("'Olha isso, " + cidade + "!', 'E nosso!', 'Do Vale pro mundo', 'Isso aqui e coisa nossa'"
+           if daqui else
+           "'Olha o que aconteceu', 'Pra voce ficar sabendo', 'Aconteceu agora', 'Direto de "
+           + cidade + "'") + "); "
         "alerta/acidente/clima -> ATENCAO/URGENCIA ('Atencao, " + cidade + "', "
         "'Acontece agora'); esporte -> TORCIDA; curiosidade -> SURPRESA. "
         "PROIBIDO usar as expressoes 'que orgulho' e 'boa noticia' — viraram muleta repetitiva "
         "no feed; encontre outro jeito de celebrar A CADA post.\n"
-        "2) Faca o leitor pensar 'isso e a MINHA cidade' — toque no pertencimento e cite "
+        + ("" if daqui else
+           "ATENCAO — ESTA NOTICIA NAO E DA NOSSA REGIAO (e de " + cidade + "): PROIBIDO "
+           "chamar de 'nosso/nossa', 'do Vale', 'coisa nossa', 'aqui da regiao' ou sugerir "
+           "que a pessoa/empresa/time e daqui. Voce so INFORMA o que aconteceu la fora.\n")
+        + "2) Faca o leitor pensar 'isso e a MINHA cidade' — toque no pertencimento e cite "
         + cidade + " quando fizer sentido.\n"
         "3) Depois, 3 a 4 linhas curtas com o fato, do jeito que o vizinho contaria.\n"
         "4) Maximo 5 linhas. NAO invente nada alem do texto. PROIBIDO clickbait barato "
@@ -772,13 +814,15 @@ def groq_summary(news):
             r = txt.strip('"').strip() or _fallback_summary(news)
             r = neutralizar_juridico(r) if sensivel else r
             r = neutralizar_opiniao(r) if divisivo else r
-            return _sem_muleta(r)
+            r = _sem_muleta(r)
+            return r if daqui else _sem_bairrismo(r)
     except Exception as e:
         print(f"   ! IA indisponivel ({e}) — usando resumo local")
     r = _fallback_summary(news)
     r = neutralizar_juridico(r) if sensivel else r
     r = neutralizar_opiniao(r) if divisivo else r
-    return _sem_muleta(r)
+    r = _sem_muleta(r)
+    return r if daqui else _sem_bairrismo(r)
 
 
 # ---------------------------------------------------------------- TIKTOK MODE (notícia em 2 linhas)
@@ -791,6 +835,7 @@ def flash_manchete(news):
     if not title:
         return ""
     cidade = news["city"] or "o Vale"
+    daqui = _e_daqui(news)
     prompt = (
         "Voce e o editor do RadioSC News (Vale do Itapocu, Norte de SC). Reescreva a noticia "
         "abaixo como UMA CHAMADA DE CAPA estilo TikTok: no MAXIMO 2 linhas (ate ~16 palavras), "
@@ -817,7 +862,10 @@ def flash_manchete(news):
         if m and len(m) <= 160:        # guarda-corpo: descarta resposta longa/estranha
             m = neutralizar_juridico(m) if sensivel else m
             m = neutralizar_opiniao(m) if divisivo else m
-            return _sem_muleta(m)
+            m = _sem_muleta(m)
+            m = m if daqui else _sem_bairrismo(m, uma_linha=True)
+            if m:                       # chamada bairrista em notícia de fora = descartada
+                return m
     except Exception:
         pass
     title = neutralizar_juridico(title) if sensivel else title   # fallback: título cru neutralizado se sensível

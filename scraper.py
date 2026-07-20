@@ -529,7 +529,10 @@ def fetch_feed(feed_config):
         # travas policiais de imagem (câmara de Schroeder ilustrou notícia de crime). Crime é crime.
         feed_cat = feed_config.get('category', 'geral')
         detected = detect_category(full_text)
-        if detected == 'policial':
+        # ⚠️ o override NÃO vale contra feed de ESPORTE (fix 19/jul): "Antonelli vence GP" com
+        # "acidente na largada" no corpo virou POLICIAL e saiu com foto de carro batido.
+        # Corrida com batida continua sendo ESPORTE. Feeds 'local'/'geral' seguem cedendo.
+        if detected == 'policial' and (feed_cat or 'geral') in ('geral', 'local', ''):
             category = 'policial'
         else:
             category = feed_cat if feed_cat and feed_cat != 'geral' else detected
