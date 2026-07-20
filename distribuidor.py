@@ -623,6 +623,17 @@ _JURIDICO_SUB = [
     (re.compile(r"\besfaque(ou|aram)\b", re.I), "teria esfaqueado"),
     (re.compile(r"\b(planejou|arquitetou)\b", re.I), "teria planejado"),
     (re.compile(r"\bpego\s+em\s+flagrante\b|\bflagrado\b", re.I), "detido"),
+    # 👮 SEM TORCIDA PRA AUTORIDADE (fix 19/jul — Inspetor: "Trabalho sério da nossa polícia"):
+    # elogiar (ou atacar) a polícia numa matéria criminal é editorializar. Jornal relata a ação.
+    (re.compile(r"\b(excelente|[óo]timo|belo|grande|bonito)\s+trabalho\s+d[ao]s?\s+"
+                r"(nossa?s?\s+)?(pol[íi]ci\w*|pm|guarda|bombeir\w*)\b", re.I), "ação policial"),
+    (re.compile(r"\btrabalho\s+(s[ée]rio|impec[áa]vel|exemplar|incans[áa]vel)\s+d\w+\s+"
+                r"(nossa?s?\s+)?(pol[íi]ci\w*|pm|guarda)\b", re.I), "ação policial"),
+    # "Parabéns à polícia pela ação rápida" -> some a frase inteira (substituir quebra a gramática)
+    (re.compile(r"\bparab[ée]ns\s+(à|a|aos|às)\s+(nossa?s?\s+)?(pol[íi]ci\w*|pm|guarda|bombeir\w*)"
+                r"[^.!?\n]*[.!]?\s*", re.I), ""),
+    (re.compile(r"\bnossa\s+(pol[íi]cia|pm|guarda municipal)\b", re.I), "a polícia"),
+    (re.compile(r"\bmandou\s+bem\b", re.I), "agiu"),
 ]
 
 
@@ -634,7 +645,11 @@ def neutralizar_juridico(texto):
     out = texto
     for rgx, rep in _JURIDICO_SUB:
         out = rgx.sub(rep, out)
-    return out
+    out = re.sub(r"^[\s,.:;!—-]+", "", out)          # sobra de elogio removido no começo
+    out = re.sub(r"\s{2,}", " ", out).strip()
+    if out and out[0].islower():                      # "ação policial!" -> "Ação policial!"
+        out = out[0].upper() + out[1:]
+    return out or texto
 
 
 def _sensivel(news):
@@ -654,6 +669,10 @@ _DIVISIVO_RE = re.compile(
     r"projeto de lei|lei municipal|institui (o |a )?(dia|semana|m[êe]s)|c[âa]mara (municipal|de vereadores?|aprova|vota|discute|rejeita)|"
     r"vereador|sess[ãa]o (da c[âa]mara|legislativa)|sancion|plebiscito|"
     r"ideologia|identidade de g[êe]nero|quest[ãa]o de g[êe]nero|aborto|armamento|desarmamento|"
+    # ⚖️ o tema mais divisivo do país costuma vir com EUFEMISMO — e assim escapava da trava
+    # (Inspetor 19/jul: "interrupção de gravidez" foi chamada de decisão 'necessária')
+    r"interrup[çc][ãa]o (volunt[áa]ria |legal |da |de )?(da )?gravidez|interrup[çc][ãa]o gestacional|"
+    r"anencefal|malforma[çc][ãa]o fetal|antecipa[çc][ãa]o terap[êe]utica do parto|"
     r"cotas raciais|escola sem partido|"
     # 💰 fiscal/tributário é POLÍTICA (Inspetor 18/jul: "imposto menor" virou 'Isso aqui é coisa
     # nossa ☕' e tarifaço virou 'orgulho/torcendo' — quem paga e quem ganha divide, jornal relata)

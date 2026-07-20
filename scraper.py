@@ -329,6 +329,15 @@ def detect_city(text):
     return 'Santa Catarina'
 
 
+# Marca INEQUÍVOCA de esporte (usada só pra VETAR classificação policial — ver uso abaixo)
+_ESPORTE_FORTE = re.compile(
+    r"sele[çc][ãa]o brasileira|liga das na[çc][õo]es|copa d[oa]|campeonato|brasileir[ãa]o|"
+    r"libertadores|futsal|v[ôo]lei|voleibol|f[uú]tebol|handebol|basquete|"
+    r"jogo d[eo]|partida|rodada|placar|\bgols?\b|\batleta|olimp[íi]|paralimp|"
+    r"f[óo]rmula 1|grande pr[êe]mio|\bgp d[ao]\b|sub-\d{2}|artilheir|t[ée]cnico do",
+    re.IGNORECASE)
+
+
 def detect_category(text):
     """Categoria por PALAVRA INTEIRA (\\b) — evita 'preso' casar dentro de 'Caropreso' (sobrenome)
     e marcar política/saúde como POLICIAL. Escolhe a categoria com MAIS acertos (não a 1ª que casa)."""
@@ -529,6 +538,11 @@ def fetch_feed(feed_config):
         # travas policiais de imagem (câmara de Schroeder ilustrou notícia de crime). Crime é crime.
         feed_cat = feed_config.get('category', 'geral')
         detected = detect_category(full_text)
+        # 🏐 VETO DO ESPORTE (fix 19/jul — Inspetor: "Brasil perde da Polônia" saiu com pill
+        # POLICIAL): quando o texto tem marca CLARA de esporte, nada mais o classifica como
+        # crime — nem o detect, nem a categoria do feed. Derrota não é ocorrência policial.
+        if _ESPORTE_FORTE.search(full_text) and (detected == 'policial' or feed_cat == 'policial'):
+            feed_cat, detected = 'esporte', 'esporte'
         # ⚠️ o override NÃO vale contra feed de ESPORTE (fix 19/jul): "Antonelli vence GP" com
         # "acidente na largada" no corpo virou POLICIAL e saiu com foto de carro batido.
         # Corrida com batida continua sendo ESPORTE. Feeds 'local'/'geral' seguem cedendo.
