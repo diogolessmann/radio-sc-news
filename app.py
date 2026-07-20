@@ -1168,6 +1168,13 @@ def admin():
         stats['parceiros'] = len(sponsors.active_sponsors())
     except Exception:
         stats['parceiros'] = 0
+    try:                       # fila de revisão (seguradas + barradas no portão do revisor)
+        stats['fila_revisao'] = conn.execute(
+            "SELECT COUNT(*) FROM news WHERE (social_hold LIKE 'sensivel%' OR social_hold "
+            "LIKE 'revisor%') AND (social_posted_at IS NULL OR social_posted_at='')"
+        ).fetchone()[0]
+    except Exception:
+        stats['fila_revisao'] = 0
     conn.close()
     return render_template('admin.html', news=news, media=media, ads=ads, stats=stats)
 
@@ -2089,18 +2096,20 @@ def revisar_descartar():
 
 @app.route('/revisar')
 def revisar_fila():
-    """Fila de Revisao: materias seguradas pelo filtro editorial (tema sensivel).
-       Acesso: /revisar?token=SENHA"""
+    """Fila de Revisao: materias seguradas pelo filtro editorial (tema sensivel) E as
+       barradas pelo PORTAO do revisor (social_hold 'revisor:...' — fix 20/jul: elas eram
+       INVISIVEIS aqui, a query so pegava 'sensivel%').
+       Acesso: /revisar?token=SENHA (links do zap) OU logado no admin."""
     import html as _html
-    if request.args.get('token', '') != _admin_pw_env:
+    if request.args.get('token', '') != _admin_pw_env and not session.get('admin_logged_in'):
         return "<h3>Acesso negado</h3>", 403
-    token = request.args.get('token')
+    token = request.args.get('token') or _admin_pw_env
     import distribuidor
     conn = distribuidor.get_db()
     distribuidor.ensure_column(conn)
     rows = conn.execute(
         "SELECT id, title, city, summary, image_url, social_hold FROM news "
-        "WHERE social_hold LIKE 'sensivel%' "
+        "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%') "
         "AND (social_posted_at IS NULL OR social_posted_at='') "
         "ORDER BY datetime(published_at) DESC LIMIT 40"
     ).fetchall()
@@ -2108,7 +2117,8 @@ def revisar_fila():
 
     cards = []
     for r in rows:
-        motivo = _html.escape((r["social_hold"] or "").replace("sensivel:", "").split("@")[0].strip())
+        motivo = _html.escape((r["social_hold"] or "").replace("sensivel:", "")
+                              .replace("revisor:", "🚦 portão: ").split("@")[0].strip())
         img = (f'<img src="{r["image_url"]}" style="max-width:100%;border-radius:10px" '
                f'onerror="this.style.display=\'none\'">' if r["image_url"] else "")
         resumo = _html.escape((r["summary"] or "")[:240])
