@@ -100,7 +100,7 @@ _SITUACOES = [
     (r"estiagem|\bseca\b|racionamento|n[íi]vel baixo d[oe]s? rios?|falta de chuva", "estiagem"),
     # 🏭 Empresas do Vale (série semanal) + indústria em geral
     (r"\bbanan", "bananal"),
-    (r"t[êe]xtil|confec[çc]|malharia|fac[çc][ãa]o|\bmoda\b|vestu[áa]rio", "textil"),
+    (r"t[êe]xtil|confec[çc]|malharia|fac[çc][õoãa]|\bmoda\b|vestu[áa]rio", "textil"),
     (r"metal[úu]rgic|metalmec[âa]nic|ind[úu]stria|f[áa]brica|industrial|motores el[ée]tricos", "industria"),
     (r"dia de chuva|chuvos|garoa|guarda-chuva|pancada de chuva|chuva forte", "chuva"),
     (r"temporal|tempestade|vendaval|granizo|ciclone|ressaca|chuva", "temporal"),
