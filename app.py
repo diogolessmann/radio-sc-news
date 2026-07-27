@@ -1310,6 +1310,52 @@ def admin_redacao_postar():
         return jsonify({'ok': False, 'erro': str(e)}), 500
 
 
+@app.route('/admin/despachante')
+@login_required
+def admin_despachante():
+    """🏢 Cockpit da marca Despachante Lessmann / DL Mobilidade (pedido do dono 27/jul):
+    agenda dos motores, o que sai nos próximos dias e os reels de 1 clique."""
+    import marcas
+    from datetime import date, timedelta
+    t = marcas.BRANDS['despachante']
+    banco = t['conteudo']
+    hoje = date.today()
+    proximos = ""
+    for delta in range(7):
+        d = hoje + timedelta(days=delta)
+        item = banco[d.toordinal() % len(banco)]
+        dia_lbl = "HOJE" if delta == 0 else d.strftime("%a %d/%m")
+        scooter = item['cat'] in ('SCOOTER ELÉTRICA', 'OFERTA', 'TEST-RIDE', 'GARANTIA') or 'scooter' in item['titulo'].lower()
+        icone = "🛵" if scooter else "📋"
+        proximos += (f"<tr><td style='padding:6px 14px;color:#F5C518;white-space:nowrap'>{dia_lbl}</td>"
+                     f"<td style='padding:6px 14px'>{icone} <b>[{item['cat']}]</b> {item['titulo']}</td></tr>")
+    oferta_dias = "ter · qui · sáb"
+    reels_html = "".join(
+        f"<li style='margin:10px 0'><b>{r['titulo']}</b> — "
+        f"<a href='/static/videos/{r['arquivo']}' target='_blank'>ver</a> · "
+        f"<a href='/admin/reel-dlmob?v={k}&go=1' onclick=\"return confirm('Publicar {k} AGORA no IG do despachante?')\" "
+        f"style='color:#25d366;font-weight:bold'>🚀 PUBLICAR</a></li>"
+        for k, r in marcas.REELS_DLMOB.items())
+    return (f"""<div style='font-family:sans-serif;max-width:780px;margin:36px auto;color:#eee;background:#0c0c11;padding:28px;border-radius:14px'>
+    <h2>🏢 Despachante Lessmann · DL Mobilidade</h2>
+    <p style='color:#9aa0ae'>@despachantelessmann — dois motores + reels, tudo automático.</p>
+    <div style='background:#15151d;border:1px solid #23232e;border-radius:12px;padding:16px;margin:14px 0'>
+      <b>⏰ Agenda da marca</b><br>
+      <span style='color:#9aa0ae'>📋 Dica do dia (carrossel + story): <b style='color:#eee'>todo dia 10h</b><br>
+      🛵 Oferta com foto real do galpão: <b style='color:#eee'>{oferta_dias} 16h</b><br>
+      🎬 Reels de produto: manual (botões abaixo)</span>
+    </div>
+    <div style='background:#15151d;border:1px solid #23232e;border-radius:12px;padding:16px;margin:14px 0'>
+      <b>📅 O que sai nos próximos dias (dica das 10h)</b>
+      <table style='margin-top:8px;font-size:14px'>{proximos}</table>
+    </div>
+    <div style='background:#15151d;border:1px solid #F5C518;border-radius:12px;padding:16px;margin:14px 0'>
+      <b>🎬 Reels prontos pra publicar</b><ul>{reels_html}</ul>
+      <span style='color:#888;font-size:13px'>Processamento ~1-2 min após o clique. Publica no IG do despachante (tokens DESP).</span>
+    </div>
+    <p><a href='/admin' style='color:#F5C518'>← voltar ao painel</a></p></div>""")
+
+
 @app.route('/admin/reel-dlmob')
 @login_required
 def admin_reel_dlmob():
