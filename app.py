@@ -1310,6 +1310,35 @@ def admin_redacao_postar():
         return jsonify({'ok': False, 'erro': str(e)}), 500
 
 
+@app.route('/admin/reel-dlmob')
+@login_required
+def admin_reel_dlmob():
+    """🛵 Publica os reels da DL Mobilidade no IG do despachante (1 clique, 27/jul).
+    Sem ?go: mostra os vídeos disponíveis. Com ?v=zilla&go=1: publica de verdade."""
+    import marcas
+    v = request.args.get('v', '')
+    go = request.args.get('go', '') == '1'
+    if v and go:
+        try:
+            reel = marcas.REELS_DLMOB[v]
+            res = marcas.publish_reel_marca('dl_mobilidade', reel['arquivo'], reel['caption'])
+            return (f"<h2>✅ REEL '{v}' PUBLICADO no IG do despachante!</h2>"
+                    f"<p>{reel['titulo']}</p><pre>{res}</pre>"
+                    f"<p><a href='/admin/reel-dlmob'>voltar</a></p>")
+        except Exception as e:
+            return f"<h2>❌ Falhou: {e}</h2><p><a href='/admin/reel-dlmob'>voltar</a></p>", 500
+    linhas = "".join(
+        f"<li style='margin:14px 0'><b>{r['titulo']}</b><br>"
+        f"<a href='/static/videos/{r['arquivo']}' target='_blank'>ver vídeo</a> · "
+        f"<a href='/admin/reel-dlmob?v={k}&go=1' "
+        f"onclick=\"return confirm('Publicar {k} AGORA no IG do despachante?')\" "
+        f"style='color:#25d366;font-weight:bold'>🚀 PUBLICAR AGORA</a></li>"
+        for k, r in marcas.REELS_DLMOB.items())
+    return (f"<div style='font-family:sans-serif;max-width:640px;margin:40px auto'>"
+            f"<h2>🛵 Reels DL Mobilidade → IG do despachante</h2><ul>{linhas}</ul>"
+            f"<p style='color:#888'>O processamento do vídeo leva ~1-2 min após o clique.</p></div>")
+
+
 @app.route('/build')
 def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA

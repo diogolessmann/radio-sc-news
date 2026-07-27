@@ -669,3 +669,67 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ----------------------------------------------------------------- reel da marca (27/jul)
+def publish_reel_marca(brand_key, video_filename, caption):
+    """Publica um REEL no IG da marca (vídeo já em static/social/, servido pelo site).
+    Reusa o fluxo assíncrono do reels.py, mas com os TOKENS DA MARCA."""
+    import time
+    import requests as rq
+    t = BRANDS[brand_key]
+    token, ig_id, _ = _brand_tokens(t)
+    if not (token and ig_id):
+        raise RuntimeError(f"Tokens da marca ausentes ({t['env']}).")
+    GRAPH = dist.GRAPH
+    video_url = f"{dist.PUBLIC_BASE_URL}/static/videos/{video_filename}"
+    cont = dist._graph_post(f"{GRAPH}/{ig_id}/media",
+                            {"media_type": "REELS", "video_url": video_url,
+                             "caption": caption, "share_to_feed": "true",
+                             "access_token": token})["id"]
+    for _ in range(40):
+        time.sleep(6)
+        st = rq.get(f"{GRAPH}/{cont}",
+                    params={"fields": "status_code", "access_token": token}, timeout=30).json()
+        if st.get("status_code") == "FINISHED":
+            break
+        if st.get("status_code") == "ERROR":
+            raise RuntimeError(f"Processamento do reel falhou: {st}")
+    else:
+        raise RuntimeError("Reel não ficou pronto a tempo.")
+    return dist._graph_post(f"{GRAPH}/{ig_id}/media_publish",
+                            {"creation_id": cont, "access_token": token})
+
+
+REELS_DLMOB = {
+    "zilla": {
+        "arquivo": "dlmob_zilla.mp4",
+        "titulo": "Zilla — test-ride / pronta entrega (R$ 4.990)",
+        "caption": ("🛵 NÃO COMPRE SCOOTER SEM DAR UMA VOLTA ANTES.\n\n"
+                    "Vem na loja, senta, liga e anda. Sem compromisso.\n\n"
+                    "✅ Pronta entrega\n"
+                    "✅ Sem CNH e sem emplacamento (CONTRAN 996)\n"
+                    "✅ Zero gasolina — recarrega na tomada\n"
+                    "💳 Até 24x no cartão ou 48x pela Viacredi*\n\n"
+                    "📍 R. Mal. Castelo Branco, 2838 — Centro, Schroeder\n"
+                    "📲 WhatsApp (47) 99716-2967\n\n"
+                    "*Financiamento sujeito a análise de crédito.\n\n"
+                    "#scootereletrica #schroeder #jaraguadosul #guaramirim #semcnh "
+                    "#mobilidadeeletrica #dlmobilidade #nxt #testride"),
+    },
+    "akasha": {
+        "arquivo": "dlmob_akasha.mp4",
+        "titulo": "Akasha — 1000W LED / pronta entrega (R$ 7.990)",
+        "caption": ("⚡ AKASHA 1000W: a scooter que TODO MUNDO olha quando passa.\n\n"
+                    "Iluminação em LED, design agressivo e pronta entrega em Schroeder.\n\n"
+                    "✅ Sem CNH e sem emplacamento (CONTRAN 996)\n"
+                    "✅ Zero gasolina — recarrega na tomada\n"
+                    "💳 Até 24x no cartão ou 48x pela Viacredi*\n\n"
+                    "🛵 Vem dar uma volta antes de decidir — sem compromisso.\n"
+                    "📍 R. Mal. Castelo Branco, 2838 — Centro, Schroeder\n"
+                    "📲 WhatsApp (47) 99716-2967\n\n"
+                    "*Financiamento sujeito a análise de crédito.\n\n"
+                    "#scootereletrica #schroeder #jaraguadosul #guaramirim #semcnh "
+                    "#mobilidadeeletrica #dlmobilidade #nxt"),
+    },
+}
