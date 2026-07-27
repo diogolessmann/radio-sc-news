@@ -529,11 +529,11 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
-    # 🏭 Empresas do Vale: quinta 10h (gera e SEGURA na fila; o dono aprova e posta no
-    # horário que quiser — recomendado 17h, o horário-rei do Placar)
+    # 🏭 Empresas do Vale: quinta 17h30 (pedido do dono) — gera, avisa no zap e SEGURA na
+    # fila; ele revisa/aprova na hora e o post sai no horário-rei (~17h30-18h)
     _scheduler.add_job(
         func=empresas_job,
-        trigger=CronTrigger(day_of_week='thu', hour=10, minute=0, timezone='America/Sao_Paulo'),
+        trigger=CronTrigger(day_of_week='thu', hour=17, minute=30, timezone='America/Sao_Paulo'),
         id='empresas_vale',
         name='Empresas do Vale (matéria semanal -> fila)',
         replace_existing=True
