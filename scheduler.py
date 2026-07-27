@@ -86,6 +86,17 @@ def urgent_news_job():
         logger.error(f"❌ Urgente falhou: {e}")
 
 
+def versiculo_job():
+    """🙏 Mensagem do dia (pedido do dono 27/jul): card devocional às 6h40 — versículo ARC
+    universal + reflexão, série com identidade própria. Custo zero/dia. VERSICULO_ON=0 desliga."""
+    try:
+        import versiculo
+        r = versiculo.run(post=True)
+        logger.info(f"🙏 Versículo: {r}")
+    except Exception as e:
+        logger.error(f"❌ Versículo falhou: {e}")
+
+
 def inspetor_job():
     """🔍 O INSPETOR (a 'Thais-bot'): revisa os posts do dia (imagem real + legenda via Graph)
     com o checklist do revisor de jornal e manda os SUSPEITOS no zap do dono (Evolution do
@@ -503,6 +514,15 @@ def start_scheduler(interval_minutes=60):
         trigger=IntervalTrigger(minutes=20),
         id='clima_news',
         name='Clima passa-tudo (chuva/alagamento em tempo real)',
+        replace_existing=True
+    )
+
+    # 🙏 Mensagem do dia: 6h40 (pico de atividade dos seguidores é 6h-9h)
+    _scheduler.add_job(
+        func=versiculo_job,
+        trigger=CronTrigger(hour=6, minute=40, timezone='America/Sao_Paulo'),
+        id='versiculo',
+        name='Mensagem do dia (versículo devocional)',
         replace_existing=True
     )
 
