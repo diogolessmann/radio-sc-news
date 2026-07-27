@@ -98,6 +98,10 @@ _SITUACOES = [
     (r"\bempreg|\bvagas?\b|contrata[çc][ãa]o|curr[íi]cul|\bsine\b|processo seletivo|carteira assinada", "emprego"),
     (r"\bpraias?\b|litoral|beira-?mar|\borla\b|banhistas?|ressaca do mar|temporada de ver[ãa]o", "praia"),
     (r"estiagem|\bseca\b|racionamento|n[íi]vel baixo d[oe]s? rios?|falta de chuva", "estiagem"),
+    # 🏭 Empresas do Vale (série semanal) + indústria em geral
+    (r"\bbanan", "bananal"),
+    (r"t[êe]xtil|confec[çc]|malharia|fac[çc][ãa]o|\bmoda\b|vestu[áa]rio", "textil"),
+    (r"metal[úu]rgic|metalmec[âa]nic|ind[úu]stria|f[áa]brica|industrial|motores el[ée]tricos", "industria"),
     (r"dia de chuva|chuvos|garoa|guarda-chuva|pancada de chuva|chuva forte", "chuva"),
     (r"temporal|tempestade|vendaval|granizo|ciclone|ressaca|chuva", "temporal"),
     (r"alagament|enchente|inunda|transbord|cheia do rio", "alagamento"),
@@ -121,7 +125,8 @@ _SITUACOES = [
     (r"meio ambiente|preserva[çc][ãa]o ambiental|reciclag|sustentab|nascente|reflorest|coleta seletiva", "meioambiente"),
     (r"prefeitur|prefeit[oa]", "prefeitura"),
     (r"c[âa]mara|vereador|sess[ãa]o|legislativ", "camara"),
-    (r"hospital|sa[úu]de|posto de sa|m[ée]dic|vacin|sus|upa", "saude"),
+    # \bsus\b e \bupa\b com fronteira (fix 27/jul: 'suSTENTAM' casava 'sus' e virava saúde)
+    (r"hospital|sa[úu]de|posto de sa|m[ée]dic|vacin|\bsus\b|\bupa\b", "saude"),
     (r"escola|col[ée]gio|aluno|educa[çc]|creche|professor", "escola"),
     (r"formatur|formand|cola[çc][ãa]o de grau", "formatura"),
     (r"emprego|vaga|contrata|trabalho|ind[úu]stri|empres", "economia"),

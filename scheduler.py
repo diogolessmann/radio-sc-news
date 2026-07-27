@@ -86,6 +86,18 @@ def urgent_news_job():
         logger.error(f"❌ Urgente falhou: {e}")
 
 
+def empresas_job():
+    """🏭 Empresas do Vale (pedido do dono 27/jul): 1x/semana, matéria celebrando empresa da
+    região (só Jaraguá/Guaramirim/Schroeder/Corupá). NUNCA auto-posta — vai pra fila /revisar
+    e avisa o dono no zap. Também é funil de venda (a empresa vira lead do pacote)."""
+    try:
+        import empresas
+        r = empresas.run()
+        logger.info(f"🏭 Empresas do Vale: {r}")
+    except Exception as e:
+        logger.error(f"❌ Empresas do Vale falhou: {e}")
+
+
 def versiculo_job():
     """🙏 Mensagem do dia (pedido do dono 27/jul): card devocional às 6h40 — versículo ARC
     universal + reflexão, série com identidade própria. Custo zero/dia. VERSICULO_ON=0 desliga."""
@@ -514,6 +526,16 @@ def start_scheduler(interval_minutes=60):
         trigger=IntervalTrigger(minutes=20),
         id='clima_news',
         name='Clima passa-tudo (chuva/alagamento em tempo real)',
+        replace_existing=True
+    )
+
+    # 🏭 Empresas do Vale: quinta 10h (gera e SEGURA na fila; o dono aprova e posta no
+    # horário que quiser — recomendado 17h, o horário-rei do Placar)
+    _scheduler.add_job(
+        func=empresas_job,
+        trigger=CronTrigger(day_of_week='thu', hour=10, minute=0, timezone='America/Sao_Paulo'),
+        id='empresas_vale',
+        name='Empresas do Vale (matéria semanal -> fila)',
         replace_existing=True
     )
 
