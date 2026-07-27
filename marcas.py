@@ -231,11 +231,14 @@ BRANDS = {
         "tagline": "Scooters elétricas NXT em Schroeder e região",
         "site": "dldespachante.com.br",
         "whats": "(47) 99716-2967",
-        "instagram": "",   # preenche quando o IG estiver pronto
+        "instagram": "@despachantelessmann",
         # tema laranja/preto (energia + scooter)
         "bg": (15, 17, 22), "card": (26, 29, 38), "accent": (255, 120, 20),
         "accent2": (245, 197, 24), "white": (245, 247, 250), "muted": (170, 178, 188),
-        "env": {"token": "DL_PAGE_TOKEN", "ig": "DL_IG_USER_ID", "page": "DL_PAGE_ID"},
+        # 27/jul — DECISÃO DO DONO: sem IG separado; "Despachante Lessmann É a DL Mobilidade".
+        # A oferta de scooter (foto real + preço) posta NO PERFIL DO DESPACHANTE (tokens DESP_*),
+        # 3x/semana (ter/qui/sáb 16h) pra não virar spam comercial no feed diário.
+        "env": {"token": "DESP_PAGE_TOKEN", "ig": "DESP_IG_USER_ID", "page": "DESP_PAGE_ID"},
         "hashtags": ["#scootereletrica", "#nxt", "#mobilidadeeletrica", "#schroeder",
                      "#jaraguadosul", "#guaramirim", "#dlmobilidade", "#semcnh",
                      "#scooter", "#viacredi"],

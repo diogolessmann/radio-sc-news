@@ -666,11 +666,13 @@ def start_scheduler(interval_minutes=60):
         name='4kitem (carrossel diário 14h)',
         replace_existing=True
     )
+    # DL Mobilidade agora posta NO PERFIL DO DESPACHANTE (decisão 27/jul: sem IG separado) —
+    # oferta com FOTO REAL do galpão NXT, 3x/semana pra não saturar o feed de dicas diário.
     _scheduler.add_job(
         func=marca_job, args=['dl_mobilidade'],
-        trigger=CronTrigger(hour=16, minute=0, timezone='America/Sao_Paulo'),
+        trigger=CronTrigger(day_of_week='tue,thu,sat', hour=16, minute=0, timezone='America/Sao_Paulo'),
         id='marca_dl_mobilidade',
-        name='DL Mobilidade (carrossel diário 16h)',
+        name='DL Mobilidade → perfil do despachante (oferta foto real, ter/qui/sáb 16h)',
         replace_existing=True
     )
 
