@@ -539,12 +539,23 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
-    # 🙏 Mensagem do dia: 6h40 (pico de atividade dos seguidores é 6h-9h)
+    # 🙏 Mensagem do dia: 6h40 + JANELA RESERVA 7h20 (fix 28/jul: a estreia das 6h40 não
+    # saiu — dupla janela + misfire_grace de 1h; o run() é idempotente pelo marker diário,
+    # então se a 1ª funcionar a 2ª não faz nada).
     _scheduler.add_job(
         func=versiculo_job,
         trigger=CronTrigger(hour=6, minute=40, timezone='America/Sao_Paulo'),
         id='versiculo',
         name='Mensagem do dia (versículo devocional)',
+        misfire_grace_time=3600,
+        replace_existing=True
+    )
+    _scheduler.add_job(
+        func=versiculo_job,
+        trigger=CronTrigger(hour=7, minute=20, timezone='America/Sao_Paulo'),
+        id='versiculo_reserva',
+        name='Mensagem do dia (janela reserva)',
+        misfire_grace_time=3600,
         replace_existing=True
     )
 

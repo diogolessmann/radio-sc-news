@@ -1339,6 +1339,43 @@ def admin_versiculo():
     <p style='color:#888'>Se falhar, o erro completo aparece aqui — manda o print pro Fable.</p></div>""")
 
 
+@app.route('/admin/empresas')
+@login_required
+def admin_empresas():
+    """🏭 Cockpit do Empresas do Vale: a empresa da semana, as próximas, status e GERAR AGORA."""
+    import traceback
+    from datetime import date, timedelta
+    import empresas as emp
+    d = date.today()
+    stamp = f"{d.isocalendar()[0]}w{d.isocalendar()[1]}"
+    marker = os.path.exists(os.path.join(emp._MARKER_DIR, f".empresa_{stamp}.done"))
+    if request.args.get('go') == '1':
+        try:
+            r = emp.run()
+            return f"<h2>Resultado: {r}</h2><p>Se ok=True, a matéria tá na <a href='/revisar'>fila /revisar</a> e o zap avisou.</p><p><a href='/admin/empresas'>voltar</a></p>"
+        except Exception:
+            return f"<h2>❌ ERRO:</h2><pre>{traceback.format_exc()}</pre><p><a href='/admin/empresas'>voltar</a></p>", 500
+    atual = emp.da_semana()
+    proximas = ""
+    for w in range(4):
+        dd = d + timedelta(weeks=w)
+        e = emp.da_semana(dd)
+        lbl = "ESTA SEMANA" if w == 0 else f"semana de {dd.strftime('%d/%m')}"
+        proximas += f"<tr><td style='padding:5px 14px;color:#F5C518;white-space:nowrap'>{lbl}</td><td style='padding:5px 14px'>🏭 <b>{e['nome']}</b> ({e['cidade']})</td></tr>"
+    return (f"""<div style='font-family:sans-serif;max-width:700px;margin:36px auto;color:#eee;background:#0c0c11;padding:28px;border-radius:14px'>
+    <h2>🏭 Empresas do Vale</h2>
+    <p style='color:#9aa0ae'>Toda quinta 17h30 o motor escreve a matéria (só fatos curados), avisa no zap e SEGURA na fila pra tua aprovação.</p>
+    <p><b>Status desta semana:</b> {'✅ já gerada (confere a fila /revisar)' if marker else '⏳ ainda não gerada'}</p>
+    <div style='background:#15151d;border:1px solid #23232e;border-radius:12px;padding:14px;margin:12px 0'>
+      <b>📅 Rotação</b><table style='margin-top:6px;font-size:14px'>{proximas}</table>
+    </div>
+    <p style='margin-top:20px'><a href='/admin/empresas?go=1'
+       onclick="return confirm('Gerar a matéria de {atual['nome']} AGORA? (vai pra fila, não posta direto)')"
+       style='background:#F5C518;color:#111;font-weight:bold;padding:12px 22px;border-radius:10px;text-decoration:none'>⚡ GERAR AGORA</a>
+       &nbsp; <a href='/revisar' style='color:#F5C518'>ver fila de revisão →</a></p>
+    <p><a href='/admin' style='color:#9aa0ae'>← voltar ao painel</a></p></div>""")
+
+
 @app.route('/admin/despachante')
 @login_required
 def admin_despachante():
