@@ -217,39 +217,20 @@ RSS_FEEDS = [
         'category': 'geral',
         'priority': False
     },
-    # ── Futebol Nacional (limitado a 5 por feed) ─
-    {
-        'url': 'https://ge.globo.com/rss/ge/futebol/',
-        'source': 'GE Futebol',
-        'city': 'Brasil',
-        'category': 'esporte',
-        'priority': True,
-        'max_entries': 5
-    },
-    {
-        'url': 'https://ge.globo.com/rss/ge/brasileirao-serie-a/',
-        'source': 'GE Brasileirão',
-        'city': 'Brasil',
-        'category': 'esporte',
-        'priority': True,
-        'max_entries': 5
-    },
-    {
-        'url': 'https://www.gazetaesportiva.com/feed/',
-        'source': 'Gazeta Esportiva',
-        'city': 'Brasil',
-        'category': 'esporte',
-        'priority': False,
-        'max_entries': 3
-    },
-    {
-        'url': 'https://lance.com.br/feed/',
-        'source': 'Lance!',
-        'city': 'Brasil',
-        'category': 'esporte',
-        'priority': False,
-        'max_entries': 3
-    },
+    # ── Futebol Nacional — DESLIGADO 28/jul (DIETA DO MOTOR, auditoria do Placar):
+    # esporte = nota 1.4 (a PIOR) ocupando 29% da coleta (1.056 matérias/mês), cada uma
+    # passando pela IA de reescrita (custo real) pra depois ser DESCARTADA na postagem
+    # (ESPORTE_NACIONAL_OFF). Coletar + pagar + jogar fora = desperdício duplo.
+    # Esporte LOCAL (futsal de Schroeder etc.) segue vindo dos feeds regionais acima.
+    # Pra religar: descomentar os feeds abaixo.
+    # {'url': 'https://ge.globo.com/rss/ge/futebol/', 'source': 'GE Futebol',
+    #  'city': 'Brasil', 'category': 'esporte', 'priority': True, 'max_entries': 5},
+    # {'url': 'https://ge.globo.com/rss/ge/brasileirao-serie-a/', 'source': 'GE Brasileirão',
+    #  'city': 'Brasil', 'category': 'esporte', 'priority': True, 'max_entries': 5},
+    # {'url': 'https://www.gazetaesportiva.com/feed/', 'source': 'Gazeta Esportiva',
+    #  'city': 'Brasil', 'category': 'esporte', 'priority': False, 'max_entries': 3},
+    # {'url': 'https://lance.com.br/feed/', 'source': 'Lance!',
+    #  'city': 'Brasil', 'category': 'esporte', 'priority': False, 'max_entries': 3},
 ]
 
 # Ordem importa: cidades mais específicas ANTES de genéricas

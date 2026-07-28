@@ -442,6 +442,15 @@ def _ranqueia_aprendido(lista):
         return lista
 
 
+# Nacional que VALE POSTAR: utilidade de bolso, alerta, saúde, abastecimento (o resto é ruído
+# de nota 0.6). Usado pelo pick_next quando NACIONAL_UTIL_ONLY=1 (default).
+_NACIONAL_UTIL = re.compile(
+    r"greve|abasteciment|combust[íi]v|ciclone|tornado|frente fria|onda de (calor|frio)|tempestade|"
+    r"alerta|surto|epidemia|vacina|recall|golpe d[oe]|imposto|tarifa|sal[áa]rio m[íi]nimo|"
+    r"aposentad|\binss\b|\bfgts\b|benef[íi]cio|conta de luz|energia el[ée]trica|pre[çc]o d[oe]|"
+    r"botij[ãa]o|gasolina|pix|banco central|anvisa|detran|\bcnh\b|licenciament", re.IGNORECASE)
+
+
 def pick_next(conn, only_id=None, limit=1):
     """Proximas materias ainda nao postadas. Prioriza Norte de SC, depois prioridade/data.
     Corta cidades de SC fora da nossa regiao (Ararangua/Seara/...) pra nao poluir.
@@ -481,6 +490,14 @@ def pick_next(conn, only_id=None, limit=1):
     # de SC) segue valendo. Reversível: ESPORTE_NACIONAL_OFF=0 volta a postar esporte nacional.
     if _env("ESPORTE_NACIONAL_OFF", "1").strip() != "0":
         rest = [r for r in rest if (r["category"] or "").strip().lower() != "esporte"]
+    # 🇧🇷 NACIONAL SÓ SE FOR ÚTIL (DIETA 28/jul — Placar: Brasil nota 0.6 = pior bucket em 61
+    # posts/mês; MAS os nacionais que RENDEM são de UTILIDADE: greve tanqueiros 41k de alcance,
+    # surto/saúde 43k, ciclone 53k). Nacional genérico (política/celebridade) fica de fora;
+    # nacional de bolso/alerta/saúde passa. Reversível: NACIONAL_UTIL_ONLY=0.
+    if _env("NACIONAL_UTIL_ONLY", "1").strip() != "0":
+        rest = [r for r in rest
+                if (r["city"] or "").strip() != "Brasil"
+                or _NACIONAL_UTIL.search(f"{r['title'] or ''} {r['summary'] or ''}")]
     ordered = _ranqueia_aprendido(local) + _ranqueia_aprendido(rest)
     return ordered[:limit]
 
