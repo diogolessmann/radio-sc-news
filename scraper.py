@@ -217,6 +217,26 @@ RSS_FEEDS = [
         'category': 'geral',
         'priority': False
     },
+    # ── ☔ CLIMA/METEOROLOGIA (28/jul — pedido do dono: fontes DEDICADAS pra mina de ouro;
+    # Placar: clima nota 16.8, alcance médio 5.719 = 10× o local; os 3 maiores posts da
+    # história são clima/alerta). Testados ao vivo: MetSul ~30 itens · Defesa Civil ~10.
+    # O motor REESCREVE tudo (voz própria, Art. 46) e usa NOSSAS imagens — nunca as deles.
+    {
+        'url': 'https://metsul.com/feed/',
+        'source': 'MetSul Meteorologia',
+        'city': None,                 # detecção — Sul/SC genérico vira 'Santa Catarina'
+        'category': 'clima',
+        'priority': True,
+        'max_entries': 6
+    },
+    {
+        'url': 'https://www.defesacivil.sc.gov.br/feed/',
+        'source': 'Defesa Civil SC',
+        'city': None,
+        'category': 'clima',
+        'priority': True,
+        'max_entries': 6
+    },
     # ── Futebol Nacional — DESLIGADO 28/jul (DIETA DO MOTOR, auditoria do Placar):
     # esporte = nota 1.4 (a PIOR) ocupando 29% da coleta (1.056 matérias/mês), cada uma
     # passando pela IA de reescrita (custo real) pra depois ser DESCARTADA na postagem
