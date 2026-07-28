@@ -1310,6 +1310,35 @@ def admin_redacao_postar():
         return jsonify({'ok': False, 'erro': str(e)}), 500
 
 
+@app.route('/admin/versiculo')
+@login_required
+def admin_versiculo():
+    """🙏 Status + relançamento manual da Mensagem do Dia (criado 28/jul: a estreia das
+    6h40 não saiu — esta tela mostra o PORQUÊ e publica na hora com ?go=1)."""
+    import traceback
+    from datetime import date
+    import versiculo as vs
+    stamp = date.today().strftime("%Y%m%d")
+    marker = os.path.exists(vs._marker(stamp))
+    (ref, texto, _), fundo = vs.do_dia()
+    if request.args.get('go') == '1':
+        try:
+            r = vs.run(post=True)
+            return (f"<h2>Resultado: {r}</h2><p><a href='/admin/versiculo'>voltar</a></p>")
+        except Exception:
+            tb = traceback.format_exc()
+            return f"<h2>❌ ERRO ao publicar:</h2><pre>{tb}</pre><p><a href='/admin/versiculo'>voltar</a></p>", 500
+    return (f"""<div style='font-family:sans-serif;max-width:640px;margin:40px auto'>
+    <h2>🙏 Mensagem do Dia — status</h2>
+    <p><b>Hoje ({stamp}):</b> {'✅ marker existe (postou hoje)' if marker else '❌ AINDA NÃO POSTOU hoje'}</p>
+    <p><b>Versículo de hoje:</b> {ref} — “{texto[:80]}…”</p>
+    <p><b>VERSICULO_ON:</b> {os.environ.get('VERSICULO_ON', '1')} · <b>SOCIAL_AUTOPOST:</b> {os.environ.get('SOCIAL_AUTOPOST', '0')}</p>
+    <p style='margin-top:24px'><a href='/admin/versiculo?go=1'
+       onclick="return confirm('Publicar a Mensagem do Dia AGORA no IG da Rádio?')"
+       style='background:#25d366;color:#04310f;font-weight:bold;padding:12px 22px;border-radius:10px;text-decoration:none'>🚀 LANÇAR AGORA</a></p>
+    <p style='color:#888'>Se falhar, o erro completo aparece aqui — manda o print pro Fable.</p></div>""")
+
+
 @app.route('/admin/despachante')
 @login_required
 def admin_despachante():
