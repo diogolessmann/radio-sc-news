@@ -235,7 +235,7 @@ RSS_FEEDS = [
         'city': None,
         'category': 'clima',
         'priority': True,
-        'max_entries': 6
+        'max_entries': 4    # alertas repetem por hora (17:29/16:57/16:53...) — o dedup segura o resto
     },
     # ── Futebol Nacional — DESLIGADO 28/jul (DIETA DO MOTOR, auditoria do Placar):
     # esporte = nota 1.4 (a PIOR) ocupando 29% da coleta (1.056 matérias/mês), cada uma
@@ -328,6 +328,23 @@ def detect_city(text):
             if kw in text_lower:
                 return city
     return 'Santa Catarina'
+
+
+# ☔ Fontes de clima que cobrem o SUL INTEIRO (MetSul fala muito de Porto Alegre/RS): o
+# detect_city tem fallback 'Santa Catarina', que colocaria selo SC em notícia 100% gaúcha.
+# Regra: cidade específica de SC > menção a SC/Sul → 'Santa Catarina' > só-RS/outros → 'Brasil'
+# (e aí o pick_next só deixa passar se for útil — ciclone/tempestade passam pelo _NACIONAL_UTIL).
+_FONTES_CLIMA_SUL = {'MetSul Meteorologia', 'Defesa Civil SC'}
+_MENCIONA_SC = re.compile(r"santa catarina|catarinense|\bsc\b|vale do itapoc|litoral norte|"
+                          r"regi[ãa]o sul|sul do (brasil|pa[íi]s)|frente fria|todo o sul", re.IGNORECASE)
+
+
+def _cidade_clima(texto):
+    """Cidade correta pra matéria de fonte de clima do Sul (sem herdar o fallback SC indevido)."""
+    c = detect_city(texto)
+    if c and c != 'Santa Catarina':
+        return c                          # achou cidade específica (Jaraguá, Joinville...)
+    return 'Santa Catarina' if _MENCIONA_SC.search(texto or "") else 'Brasil'
 
 
 # Marca INEQUÍVOCA de esporte (usada só pra VETAR classificação policial — ver uso abaixo)
@@ -532,7 +549,10 @@ def fetch_feed(feed_config):
             continue
 
         full_text = f"{title} {summary}"
-        city = feed_config.get('city') or detect_city(full_text)
+        if feed_config.get('source') in _FONTES_CLIMA_SUL:
+            city = _cidade_clima(full_text)       # ☔ fonte do Sul: sem herdar fallback SC indevido
+        else:
+            city = feed_config.get('city') or detect_city(full_text)
         # Usa categoria do feed quando for explícita (esporte, local); senão detecta pelo texto.
         # 🔴 EXCEÇÃO (fix 16/jul): POLICIAL detectado no TEXTO sempre GANHA da categoria fixa do
         # feed — "presa pela PM/lavagem de dinheiro" saiu como 'local' (feed SchPost) e FUROU as
