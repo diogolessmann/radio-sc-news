@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-tempo_pauta.py — 🌦️ PAUTA DIÁRIA DE PREVISÃO own (30/jul, pedido do dono: "clima é o que
-tá bombando").
+tempo_pauta.py — 🌦️ PAUTAS DE PREVISÃO own (30/jul, pedido do dono: "clima é o que tá
+bombando" + "previsão da semana no domingo").
 
-A prova nos números: "Bom dia, Vale" genérico = 120-320 views · "PREPARE O CASACO: massa
-de ar frio" = 36,2 MIL. Mesma informação — a diferença é a MANCHETE DE IMPACTO.
+A prova nos números: "Bom dia, Vale" genérico = 120-320 views · "PREPARE O CASACO" = 36,2 MIL
+· "Virada brusca na semana" = 136.443 (o MAIOR da história). Mesma info — manchete-IMPACTO.
 
-Todo dia às 16h20: puxa o forecast REAL (OpenWeather, mesma chave do Bom dia) → a IA
-transforma os NÚMEROS em manchete-alerta (drama só quando o dado justifica) → insere no
-banco como matéria own de CLIMA → o passa-tudo (20 min) posta sozinho com capa do arsenal.
+UM job diário às 16h20, TRÊS modos conforme o dia:
+  seg-qui  → PREVISÃO DE AMANHÃ  (o dia seguinte, manchete-alerta)
+  sexta    → O TEMPO DO FIM DE SEMANA (sábado+domingo juntos — "vai dar praia?")
+  domingo  → A SEMANA QUE VEM (5 dias úteis — o formato do post de 136 mil)
+  sábado   → previsão de amanhã (domingo)
 
-Conteúdo 100% nosso: dado da API + texto nosso + foto nossa. Custo ~zero. TEMPO_PAUTA_ON=0 desliga.
+Forecast REAL (OpenWeather 5 dias/3h, mesma chave do Bom dia) → IA escreve manchete só com
+os números (drama proporcional; geada = alerta agro — Corupá é a capital da banana) → INSERT
+matéria own category=clima priority → o passa-tudo de 20min posta com capa do NOSSO arsenal.
+Conteúdo 100% próprio, custo ~zero, idempotente por dia. TEMPO_PAUTA_ON=0 desliga.
 """
 import os
 import sys
@@ -26,10 +31,10 @@ except Exception:
 API_KEY = os.environ.get("OPENWEATHER_API_KEY", "")
 CIDADE_ANCORA = "Jaragua do Sul,SC,BR"
 _MARKER_DIR = os.path.join("static", "social")
+_DOW = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"]
 
 
-def previsao_amanha():
-    """Forecast de AMANHÃ pro Vale (blocos 3h da OpenWeather agregados). None se sem chave/falha."""
+def _forecast_bruto():
     if not API_KEY:
         return None
     try:
@@ -37,50 +42,46 @@ def previsao_amanha():
                          params={"q": CIDADE_ANCORA, "appid": API_KEY,
                                  "units": "metric", "lang": "pt_br"}, timeout=25)
         r.raise_for_status()
-        blocos = r.json().get("list", [])
-        amanha = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
-        hoje = date.today().strftime("%Y-%m-%d")
-        b_amanha = [b for b in blocos if b["dt_txt"].startswith(amanha)]
-        b_hoje = [b for b in blocos if b["dt_txt"].startswith(hoje)]
-        if not b_amanha:
-            return None
-
-        def agg(bs):
-            temps = [b["main"]["temp_min"] for b in bs] + [b["main"]["temp_max"] for b in bs]
-            chuva = sum((b.get("rain") or {}).get("3h", 0) for b in bs)
-            vento = max((b["wind"]["speed"] * 3.6) for b in bs)          # m/s -> km/h
-            conds = [b["weather"][0]["description"] for b in bs]
-            return {"min": round(min(temps)), "max": round(max(temps)),
-                    "chuva_mm": round(chuva, 1), "vento_kmh": round(vento),
-                    "condicao": max(set(conds), key=conds.count)}
-        d_am = agg(b_amanha)
-        d_hj = agg(b_hoje) if b_hoje else d_am
-        d_am["delta_max"] = round(d_am["max"] - d_hj["max"])
-        return d_am
+        return r.json().get("list", [])
     except Exception as e:
         print(f"[tempo] forecast falhou: {e}")
         return None
 
 
-def _manchete(d):
-    """IA escreve manchete-impacto SÓ com os números reais. Fallback: templates locais."""
-    dia = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"][
-        (date.today() + timedelta(days=1)).weekday()]
-    fatos = (f"amanhã ({dia}-feira) no Vale do Itapocu: mínima {d['min']}°C, máxima {d['max']}°C, "
-             f"chuva prevista {d['chuva_mm']}mm, vento até {d['vento_kmh']} km/h, "
-             f"condição predominante: {d['condicao']}, variação da máxima vs hoje: {d['delta_max']}°C")
-    prompt = (
-        "Voce e o editor de CLIMA da Radio SC News (Vale do Itapocu, Norte de SC). Com base "
-        "APENAS nos dados abaixo, escreva a previsao de AMANHA como POST DE IMPACTO estilo "
-        "'PREPARE O CASACO' — manchete que faz o leitor SALVAR e MANDAR pro grupo da familia.\n"
-        "REGRAS: use SO os numeros fornecidos (PROIBIDO inventar); drama proporcional ao dado "
-        "(chuva >15mm ou vento >50km/h ou queda >5°C = tom de ALERTA; dia tranquilo = tom de "
-        "servico util, ex 'aproveita o sol'); cite 1-2 numeros na manchete; nada de clickbait falso.\n\n"
-        f"DADOS REAIS: {fatos}\n\n"
-        "Responda EXATAMENTE neste formato:\n"
-        "TITULO: <manchete de impacto curta, SEM ponto final>\n"
-        "RESUMO: <4 linhas curtas, 1 frase por linha, com os numeros e 1 dica pratica>"
-    )
+def _agg(bs):
+    temps = [b["main"]["temp_min"] for b in bs] + [b["main"]["temp_max"] for b in bs]
+    conds = [b["weather"][0]["description"] for b in bs]
+    return {"min": round(min(temps)), "max": round(max(temps)),
+            "chuva_mm": round(sum((b.get("rain") or {}).get("3h", 0) for b in bs), 1),
+            "vento_kmh": round(max(b["wind"]["speed"] * 3.6 for b in bs)),
+            "condicao": max(set(conds), key=conds.count)}
+
+
+def previsao_dias(n=6):
+    """Lista de dias futuros agregados: [{data, dow, min, max, chuva_mm, vento_kmh, condicao}]."""
+    blocos = _forecast_bruto()
+    if not blocos:
+        return None
+    dias = []
+    for delta in range(1, n + 1):
+        d = date.today() + timedelta(days=delta)
+        ds = d.strftime("%Y-%m-%d")
+        bs = [b for b in blocos if b["dt_txt"].startswith(ds)]
+        if not bs:
+            continue
+        a = _agg(bs)
+        a["data"] = ds
+        a["dow"] = _DOW[d.weekday()]
+        dias.append(a)
+    return dias or None
+
+
+def _fatos_dia(a):
+    return (f"{a['dow']}: {a['min']}°C a {a['max']}°C, chuva {a['chuva_mm']}mm, "
+            f"vento até {a['vento_kmh']} km/h, {a['condicao']}")
+
+
+def _ia_manchete(prompt):
     try:
         import cerebro
         import re
@@ -90,33 +91,100 @@ def _manchete(d):
             return m.group(1).strip().strip('"'), m.group(2).strip().strip('"')
     except Exception as e:
         print(f"[tempo] IA indisponivel ({e}) — template local")
-    # fallback determinístico
-    if d["chuva_mm"] >= 15 or d["vento_kmh"] >= 50:
-        t = f"Atenção, Vale: {dia} tem chuva de {d['chuva_mm']}mm e vento de até {d['vento_kmh']} km/h"
-    elif d["delta_max"] <= -5:
-        t = f"Prepare o casaco: máxima despenca para {d['max']}°C amanhã no Vale"
-    elif d["min"] <= 8:
-        t = f"Friozinho chegando: mínima de {d['min']}°C amanhã no Vale"
+    return None
+
+
+_REGRAS = ("REGRAS: use SO os numeros fornecidos (PROIBIDO inventar); drama proporcional ao "
+           "dado (chuva >15mm ou vento >50km/h ou queda brusca = tom de ALERTA; minima <=3°C = "
+           "ALERTA DE GEADA, avise produtores rurais — regiao de bananais; dia tranquilo = "
+           "servico util); cite numeros na manchete; nada de clickbait falso.\n")
+
+
+def _pauta_amanha(dias):
+    a = dias[0]
+    prompt = ("Voce e o editor de CLIMA da Radio SC News (Vale do Itapocu, Norte de SC). "
+              "Escreva a previsao de AMANHA como POST DE IMPACTO estilo 'PREPARE O CASACO'.\n"
+              + _REGRAS + f"\nDADOS REAIS de amanha: {_fatos_dia(a)}\n\n"
+              "Responda EXATAMENTE neste formato:\nTITULO: <manchete curta de impacto>\n"
+              "RESUMO: <4 linhas curtas, numeros + 1 dica pratica>")
+    r = _ia_manchete(prompt)
+    if r:
+        return r
+    if a["min"] <= 3:
+        t = f"ALERTA DE GEADA: mínima de {a['min']}°C amanhã — proteja plantas e animais"
+    elif a["chuva_mm"] >= 15 or a["vento_kmh"] >= 50:
+        t = f"Atenção, Vale: {a['dow']} tem chuva de {a['chuva_mm']}mm e vento de até {a['vento_kmh']} km/h"
+    elif a["min"] <= 8:
+        t = f"Prepare o casaco: mínima de {a['min']}°C amanhã no Vale"
     else:
-        t = f"Como fica o tempo amanhã no Vale: {d['min']}°C a {d['max']}°C"
-    r = (f"Mínima de {d['min']}°C e máxima de {d['max']}°C.\n"
-         f"Chuva prevista: {d['chuva_mm']}mm. Vento até {d['vento_kmh']} km/h.\n"
-         f"Condição: {d['condicao']}.\nSe programa e compartilha com quem precisa saber.")
-    return t, r
+        t = f"Como fica o tempo amanhã no Vale: {a['min']}°C a {a['max']}°C"
+    resumo = (f"Mínima de {a['min']}°C e máxima de {a['max']}°C.\nChuva prevista: {a['chuva_mm']}mm. "
+              f"Vento até {a['vento_kmh']} km/h.\nCondição: {a['condicao']}.\n"
+              "Se programa e manda pra quem precisa saber.")
+    return t, resumo
 
 
-def run():
-    """Gera a pauta de previsão de amanhã e insere no banco (o passa-tudo de clima posta)."""
+def _pauta_fds(dias):
+    fds = [a for a in dias if a["dow"] in ("sábado", "domingo")][:2]
+    if not fds:
+        return _pauta_amanha(dias)
+    fatos = " | ".join(_fatos_dia(a) for a in fds)
+    prompt = ("Voce e o editor de CLIMA da Radio SC News (Vale do Itapocu). Escreva O TEMPO DO "
+              "FIM DE SEMANA como POST DE IMPACTO — o leitor quer saber: da pra fazer churrasco, "
+              "praia, passeio? Qual dia sera melhor?\n" + _REGRAS +
+              f"\nDADOS REAIS: {fatos}\n\n"
+              "Responda EXATAMENTE neste formato:\nTITULO: <manchete curta comparando sabado e domingo>\n"
+              "RESUMO: <4-5 linhas: 1-2 por dia com numeros + veredicto de qual dia aproveitar>")
+    r = _ia_manchete(prompt)
+    if r:
+        return r
+    s, d = fds[0], (fds[1] if len(fds) > 1 else fds[0])
+    t = f"Fim de semana no Vale: sábado {s['min']}-{s['max']}°C, domingo {d['min']}-{d['max']}°C"
+    resumo = (f"Sábado: {_fatos_dia(s)}.\nDomingo: {_fatos_dia(d)}.\n"
+              "Se programa e compartilha com a família.")
+    return t, resumo
+
+
+def _pauta_semana(dias):
+    uteis = dias[:5]
+    fatos = " | ".join(_fatos_dia(a) for a in uteis)
+    minimo = min(a["min"] for a in uteis)
+    maximo = max(a["max"] for a in uteis)
+    prompt = ("Voce e o editor de CLIMA da Radio SC News (Vale do Itapocu). Escreva A PREVISAO "
+              "DA SEMANA (o post que o Vale SALVA pra planejar a semana — nosso maior formato: "
+              "'virada brusca' com frio e calor na mesma semana fez 136 mil de alcance quando "
+              "os dados justificavam).\n" + _REGRAS +
+              f"\nDADOS REAIS da semana: {fatos}\n"
+              f"Amplitude da semana: minima {minimo}°C, maxima {maximo}°C.\n\n"
+              "Responda EXATAMENTE neste formato:\nTITULO: <manchete de impacto da SEMANA, com numeros>\n"
+              "RESUMO: <5-6 linhas: o resumo dia a dia bem curto + destaque do dia mais critico>")
+    r = _ia_manchete(prompt)
+    if r:
+        return r
+    t = f"A semana no Vale: de {minimo}°C a {maximo}°C — veja o dia a dia"
+    resumo = "\n".join(_fatos_dia(a).capitalize() for a in uteis)
+    return t, resumo
+
+
+def run(modo=None):
+    """Gera a pauta do dia (modo automático pelo dia da semana) e insere no banco."""
     if os.environ.get("TEMPO_PAUTA_ON", "1").strip() == "0":
         return {"ok": False, "motivo": "TEMPO_PAUTA_ON=0"}
     stamp = date.today().strftime("%Y%m%d")
     marker = os.path.join(_MARKER_DIR, f".tempo_{stamp}.done")
     if os.path.exists(marker):
         return {"ok": False, "motivo": "ja gerou hoje"}
-    d = previsao_amanha()
-    if not d:
+    dias = previsao_dias()
+    if not dias:
         return {"ok": False, "motivo": "sem forecast (chave/API)"}
-    titulo, resumo = _manchete(d)
+    dow = date.today().weekday()          # 0=seg ... 4=sex, 5=sab, 6=dom
+    modo = modo or ("semana" if dow == 6 else "fds" if dow == 4 else "amanha")
+    if modo == "semana":
+        titulo, resumo = _pauta_semana(dias)
+    elif modo == "fds":
+        titulo, resumo = _pauta_fds(dias)
+    else:
+        titulo, resumo = _pauta_amanha(dias)
     import distribuidor as dist
     conn = dist.get_db()
     dist.ensure_column(conn)
@@ -130,10 +198,11 @@ def run():
     conn.close()
     os.makedirs(_MARKER_DIR, exist_ok=True)
     with open(marker, "w") as f:
-        f.write(titulo)
-    print(f"[tempo] 🌦️ pauta criada: {titulo}")
-    return {"ok": True, "titulo": titulo, "dados": d}
+        f.write(f"{modo}: {titulo}")
+    print(f"[tempo] 🌦️ pauta '{modo}' criada: {titulo}")
+    return {"ok": True, "modo": modo, "titulo": titulo}
 
 
 if __name__ == "__main__":
-    print(run())
+    import sys as _s
+    print(run(_s.argv[1] if len(_s.argv) > 1 else None))
