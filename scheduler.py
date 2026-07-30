@@ -86,6 +86,17 @@ def urgent_news_job():
         logger.error(f"❌ Urgente falhou: {e}")
 
 
+def tempo_pauta_job():
+    """🌦️ Pauta diária de previsão own (30/jul): forecast real -> manchete-impacto pela IA
+    ('PREPARE O CASACO' fez 36 mil; o genérico fazia 300). O passa-tudo de clima posta."""
+    try:
+        import tempo_pauta
+        r = tempo_pauta.run()
+        logger.info(f"🌦️ Pauta do tempo: {r}")
+    except Exception as e:
+        logger.error(f"❌ Pauta do tempo falhou: {e}")
+
+
 def empresas_job():
     """🏭 Empresas do Vale (pedido do dono 27/jul): 1x/semana, matéria celebrando empresa da
     região (só Jaraguá/Guaramirim/Schroeder/Corupá). NUNCA auto-posta — vai pra fila /revisar
@@ -526,6 +537,17 @@ def start_scheduler(interval_minutes=60):
         trigger=IntervalTrigger(minutes=20),
         id='clima_news',
         name='Clima passa-tudo (chuva/alagamento em tempo real)',
+        replace_existing=True
+    )
+
+    # 🌦️ Pauta do tempo: todo dia 16h20 (previsão de AMANHÃ com manchete-impacto; o
+    # passa-tudo de clima posta no tick seguinte ~16h38, hora nobre)
+    _scheduler.add_job(
+        func=tempo_pauta_job,
+        trigger=CronTrigger(hour=16, minute=20, timezone='America/Sao_Paulo'),
+        id='tempo_pauta',
+        name='Pauta diária de previsão (manchete-impacto)',
+        misfire_grace_time=3600,
         replace_existing=True
     )
 
