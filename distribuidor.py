@@ -506,7 +506,7 @@ def pick_next(conn, only_id=None, limit=1):
 _URGENT_RE = re.compile(
     r"\b(urgent|acidente|grave|gravíssim|interdi|bloquead|alerta|ao vivo|incêndi|"
     r"incendi|explos|desaparec|temporal|alagament|enchente|capotad|colis|tombament|"
-    r"resgat|deslizament|vendaval|ciclone|granizo|apagão|apagao)", re.IGNORECASE)
+    r"resgat|deslizament|vendaval|ciclone|granizo|apagão|apagao|tornado|superc[ée]lula)", re.IGNORECASE)
 
 
 def is_urgent(news):
@@ -1370,7 +1370,8 @@ def run_once(post=False, limit=1):
 #   (b) trava de sensível — chuva com morte/resgate vai pra REVISÃO (lição do caso do incêndio).
 # Trava CLIMA_PASSA_TUDO (default ligado). Janela CLIMA_AGE_DIAS (default 2 — clima velho é inútil).
 _CLIMA_RE = re.compile(
-    r"(temporal|tempestade|alagament|enchente|inunda|transbord|vendaval|ciclone|"
+    r"(tornado|superc[ée]lula|\bcheia\b|granizo destr|"
+    r"temporal|tempestade|alagament|enchente|inunda|transbord|vendaval|ciclone|"
     r"granizo|ressaca|mar[ée] alta|deslizament|frente fria|onda de (calor|frio)|geada|"
     r"nevoeiro|neblina|apag[ãa]o|falta de (luz|energia)|sem energia|queda de [áa]rvore|"
     r"chuva(s)? (fort|intens|persistent|volumos)|pancada(s)? de chuva|dia de chuva|"

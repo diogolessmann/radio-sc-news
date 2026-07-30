@@ -391,8 +391,13 @@ _BROWSER_HEADERS = {
 
 # ── Fontes cujas IMAGENS NÃO usamos (litigiosas: OCP e Portal de Schroeder/Gabriel). Mantemos o
 #    TEXTO (o fato é livre; a gente reescreve). G1 fica liberado. Edite via env IMG_BLOCK_DOMAINS.
+# metsul.com BLOQUEADA 30/jul: posts saíram com "Foto: MetSul" — a MetSul é notoriamente
+# agressiva juridicamente com uso de imagens. Texto reescrito pode (Art. 46); imagem JAMAIS.
+# defesacivil idem por consistência (capa de clima usa NOSSO arsenal, que rende mais mesmo).
 _IMG_BLOCK = [d.strip().lower() for d in
-              os.environ.get("IMG_BLOCK_DOMAINS", "ocp.news,schpost.com.br").split(",") if d.strip()]
+              os.environ.get("IMG_BLOCK_DOMAINS",
+                             "ocp.news,schpost.com.br,metsul.com,defesacivil.sc.gov.br").split(",")
+              if d.strip()]
 
 
 def _image_blocked(link, source=""):
