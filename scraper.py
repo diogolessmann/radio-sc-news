@@ -347,6 +347,29 @@ def _cidade_clima(texto):
     return 'Santa Catarina' if _MENCIONA_SC.search(texto or "") else 'Brasil'
 
 
+# 🚪 DIETA NA PORTA (3/ago): notícia claramente de FORA da nossa área (país estrangeiro,
+# outro estado, campeonato europeu, candidatura presidencial) SEM nenhum gancho de SC não
+# entra nem no funil. Antes: entrava, o motor vestia ela de SC ("selo Santa Catarina" +
+# "marca um amigo do Vale"), o Portão barrava e a fila /revisar virava depósito (Grécia,
+# Cuba, Guaíba/RS, neve na Argentina, UEFA, Augusto Cury...). Barrar na origem > revisar.
+# O GANCHO SC salva o que importa: "De Joinville para a Rússia" fica (Joinville), frente
+# fria do RS chegando em SC fica (menciona SC) — "Nível do Guaíba baixa" (só RS) morre.
+_FORA_DA_AREA = re.compile(
+    r"Gr[ée]cia|Atenas|\bCuba\b|Argentina|Uruguai|\bChile\b|Venezuela|M[ée]xico|"
+    r"Estados Unidos|\bEUA\b|R[úu]ssia|Ucr[âa]nia|\bChina\b|Jap[ãa]o|Israel|\bIr[ãa]\b|"
+    r"\bGaza\b|Portugal|Espanha|Fran[çc]a|It[áa]lia|Alemanha|\bEuropa\b|"
+    r"\bNASA\b|\bOMS\b|\bONU\b|UEFA|Champions|Liga Europa|Premier League|"
+    r"\bno RS\b|\bdo RS\b|Rio Grande do Sul|Porto Alegre|Gua[íi]ba|Cidreira|"
+    r"litoral ga[úu]cho|\bem SP\b|\bde SP\b|\bno Paran[áa]\b|Curitiba|Rio de Janeiro|"
+    r"pr[ée]-candidatura [àa] presid[êe]ncia|presid[êe]ncia da Rep[úu]blica",
+    re.IGNORECASE)
+_GANCHO_SC = re.compile(
+    r"Santa Catarina|catarinense|\bSC\b|Jaragu[áa]|Guaramirim|Schroeder|Corup[áa]|"
+    r"Massaranduba|Joinville|Blumenau|Itaja[íi]|Balne[áa]rio|Florian[óo]polis|"
+    r"Crici[úu]ma|Chapec[óo]|Vale do Itapocu|Norte de SC|Barra Velha",
+    re.IGNORECASE)
+
+
 # Marca INEQUÍVOCA de esporte (usada só pra VETAR classificação policial — ver uso abaixo)
 _ESPORTE_FORTE = re.compile(
     r"sele[çc][ãa]o brasileira|liga das na[çc][õo]es|copa d[oa]|campeonato|brasileir[ãa]o|"
@@ -554,6 +577,10 @@ def fetch_feed(feed_config):
             continue
 
         full_text = f"{title} {summary}"
+        # 🚪 dieta na porta: fora da área + sem gancho SC = nem entra (ver _FORA_DA_AREA)
+        if _FORA_DA_AREA.search(full_text) and not _GANCHO_SC.search(full_text):
+            logger.info(f"🚪 fora da área (sem gancho SC): {title[:70]}")
+            continue
         if feed_config.get('source') in _FONTES_CLIMA_SUL:
             city = _cidade_clima(full_text)       # ☔ fonte do Sul: sem herdar fallback SC indevido
         else:

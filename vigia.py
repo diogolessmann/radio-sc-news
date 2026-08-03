@@ -135,6 +135,36 @@ def _q(sql):
         return 0
 
 
+def _fila_real():
+    """Fila de revisão DE VERDADE — a mesma conta da página /revisar e do badge do admin.
+    Fix 3/ago: o VIGIA contava qualquer social_hold (dup:, descartada:, empresa:) e gritava
+    '513 paradas' quando a fila real tinha 56. Três números diferentes = dono confuso."""
+    return _q("SELECT COUNT(*) FROM news WHERE (social_hold LIKE 'sensivel%' OR "
+              "social_hold LIKE 'revisor%') "
+              "AND (social_posted_at IS NULL OR social_posted_at='') AND active=1")
+
+
+def faxina_fila(dias=7):
+    """Auto-faxina 3/ago: segurada que ninguém aprovou em N dias já perdeu o timing de
+    notícia — descarta sozinha pra fila mostrar só o fresco (o dono não é lixeiro)."""
+    try:
+        conn = sqlite3.connect(DB_PATH, timeout=10)
+        cur = conn.execute(
+            "UPDATE news SET social_hold='descartada: faxina-" + str(int(dias)) + "d' "
+            "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%') "
+            "AND (social_posted_at IS NULL OR social_posted_at='') "
+            "AND replace(created_at,'T',' ') < datetime('now','-" + str(int(dias)) + " days')")
+        conn.commit()
+        n = cur.rowcount
+        conn.close()
+        if n:
+            print(f"[vigia] 🧹 faxina: {n} segurada(s) com +{dias}d descartada(s) sozinhas")
+        return n
+    except Exception as e:
+        print(f"[vigia] faxina falhou: {e}")
+        return 0
+
+
 def checar_dia():
     """Dead-man switch: se a fábrica postou menos que o mínimo hoje, alerta no zap.
     Só alerta com autopost LIGADO (senão 'zero post' é o esperado, não falha)."""
@@ -148,8 +178,8 @@ def checar_dia():
     # replace(T->espaço): social_posted_at é isoformat com 'T'; datetime() do SQLite usa espaço.
     posts24 = _q("SELECT COUNT(*) FROM news WHERE replace(social_posted_at,'T',' ') "
                  ">= datetime('now','-24 hours')")
-    fila = _q("SELECT COUNT(*) FROM news WHERE social_hold IS NOT NULL AND social_hold != '' "
-              "AND (social_posted_at IS NULL OR social_posted_at='') AND active=1")
+    faxina_fila()
+    fila = _fila_real()
     if posts24 < minimo:
         send_zap(f"🚨 VIGIA Rádio SC: só {posts24} post(s) nas últimas 24h (mínimo esperado: {minimo}).\n"
                  f"A fábrica pode ter PARADO — confere o token Meta e os logs do Railway."
@@ -170,8 +200,8 @@ def resumo_semana():
                 ">= datetime('now','-7 days')")
     novas7 = _q("SELECT COUNT(*) FROM news WHERE replace(created_at,'T',' ') "
                 ">= datetime('now','-7 days')")
-    fila = _q("SELECT COUNT(*) FROM news WHERE social_hold IS NOT NULL AND social_hold != '' "
-              "AND (social_posted_at IS NULL OR social_posted_at='') AND active=1")
+    faxina_fila()
+    fila = _fila_real()
     send_zap(f"📊 VIGIA Rádio SC — resumo da semana:\n"
              f"✅ {posts7} posts publicados\n"
              f"📰 {novas7} notícias coletadas\n"

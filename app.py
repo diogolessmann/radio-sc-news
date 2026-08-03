@@ -2254,6 +2254,12 @@ def revisar_fila():
         "AND (social_posted_at IS NULL OR social_posted_at='') "
         "ORDER BY datetime(published_at) DESC LIMIT 40"
     ).fetchall()
+    # total REAL da fila (a página mostra só as 40 mais novas — o título dizia "40" mesmo
+    # com 56 esperando; fix 3/ago: mesmo critério do badge do admin e do VIGIA)
+    total_fila = conn.execute(
+        "SELECT COUNT(*) FROM news "
+        "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%') "
+        "AND (social_posted_at IS NULL OR social_posted_at='')").fetchone()[0]
     conn.close()
 
     cards = []
@@ -2307,7 +2313,8 @@ def revisar_fila():
     </style></head><body>
     <header>
       <h1>🗂️ Fila de Revisão</h1>
-      <div class="sub">Matérias seguradas pelo filtro (tema sensível). Aprove ou descarte. ({len(rows)} na fila)</div>
+      <div class="sub">Matérias seguradas pelo filtro (tema sensível). Aprove ou descarte.
+      ({total_fila} na fila{f' — mostrando as {len(rows)} mais novas' if total_fila > len(rows) else ''})</div>
     </header>
     {aviso}
     {body}
