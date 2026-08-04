@@ -1484,6 +1484,31 @@ def process_one(conn, news, do_post, day_dir, portao=True):
     zap = whatsapp_message(news, resumo)
     flash = flash_manchete(news)  # TIKTOK MODE: notícia em 2 linhas que se basta (nosso texto)
 
+    # 🚦💰 PORTÃO DE TEXTO (3/ago — economia do dono: "item que vai pra revisão não cria
+    # imagem"): os erros de TEXTO (bairrismo falso, opinião, elogio, fora-da-área) são
+    # detectáveis ANTES da capa existir. Barrou aqui = ZERO nanobanana gasto; a imagem
+    # nasce só na APROVAÇÃO (/revisar/aprovar roda process_one de novo, aí com capa).
+    if do_post and portao:
+        problemas_txt = None
+        try:
+            import inspetor
+            problemas_txt = inspetor.preflight(None, flash or news["title"], caption,
+                                               news["city"], news["category"])
+        except Exception as e:
+            print(f"   ! preflight-texto indisponivel ({e}) — seguindo")
+        if problemas_txt:
+            motivo = "revisor: " + "; ".join(problemas_txt)[:180]
+            mark_hold(conn, nid, motivo)
+            print(f"   🚦💰 BARRADO NO PORTAO DE TEXTO (sem gastar imagem) — {motivo}")
+            try:
+                import vigia
+                vigia.send_zap(f"🚦 Barrei um post ANTES de publicar (e ANTES de gerar imagem — R$0 gasto):\n\n"
+                               f"{(flash or news['title'])[:90]}\n→ {'; '.join(problemas_txt)[:200]}\n\n"
+                               f"Ta na fila /revisar. O horario foi preenchido pela proxima noticia.")
+            except Exception:
+                pass
+            return False
+
     outdir = os.path.join(day_dir, str(nid))
     imgs = generate_images(news, outdir, corpo=resumo, manchete=flash)  # capa flash + slides nossos
     print(f"   {len(imgs)} imagens geradas em {outdir}")

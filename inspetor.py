@@ -126,8 +126,12 @@ def preflight(img_path, manchete, legenda, cidade, categoria):
     if os.environ.get("PREFLIGHT_ON", "1").strip() == "0" or not ativo():
         return None
     try:
-        with open(img_path, "rb") as f:
-            img = f.read()
+        # img_path=None (3/ago, economia do dono): PORTAO DE TEXTO — audita manchete/legenda
+        # ANTES de existir capa, pra barrar sem gastar nanobanana. _auditar já lida sem imagem.
+        img = None
+        if img_path:
+            with open(img_path, "rb") as f:
+                img = f.read()
         # rapido=True: 1 tentativa, timeout curto. O portão está NA FRENTE da publicação —
         # com Gemini instável, o retry de 3x40s atrasaria um ALERTA DE TEMPORAL em minutos.
         # Falhou -> fail-open na hora (auditoria Fable 19/jul).
@@ -153,7 +157,10 @@ def _auditar(img_bytes, manchete, legenda, cidade, categoria, portao=False, rapi
     rapido=True (portão): 1 tentativa só, timeout curto — nunca atrasar a publicação."""
     if not GEMINI_API_KEY:
         return None
-    parts = [{"text": _CHECKLIST + (_SO_GRAVE if portao else "") +
+    sem_img = ("\nATENCAO: NAO ha imagem anexada nesta checagem — avalie SOMENTE os itens de "
+               "TEXTO (opiniao, bairrismo falso, elogio a autoridade, cidade). NAO comente nem "
+               "presuma nada sobre imagem.\n") if not img_bytes else ""
+    parts = [{"text": _CHECKLIST + (_SO_GRAVE if portao else "") + sem_img +
               f"MANCHETE: {manchete}\nCIDADE (banco): {cidade} · CATEGORIA: {categoria}\n"
               f"LEGENDA: {(legenda or '')[:500]}"}]
     if img_bytes:
