@@ -109,6 +109,18 @@ def empresas_job():
         logger.error(f"❌ Empresas do Vale falhou: {e}")
 
 
+def promo_grupo_job():
+    """📣 Propaganda fixa do Grupo DL (pedido do dono 4/ago): card + legenda apontando pra
+    dldespachante.com.br toda SEXTA, DOMINGO e SEGUNDA 12h15. Arte pré-gerada em
+    static/promo/ (trocar arte = trocar JPG). PROMO_GRUPO_ON=0 desliga."""
+    try:
+        import promo_grupo
+        r = promo_grupo.run()
+        logger.info(f"📣 Promo do grupo: {r}")
+    except Exception as e:
+        logger.error(f"❌ Promo do grupo falhou: {e}")
+
+
 def versiculo_job():
     """🙏 Mensagem do dia (pedido do dono 27/jul): card devocional às 6h40 — versículo ARC
     universal + reflexão, série com identidade própria. Custo zero/dia. VERSICULO_ON=0 desliga."""
@@ -519,6 +531,16 @@ def start_scheduler(interval_minutes=60):
         trigger=IntervalTrigger(hours=2),
         id='palpite_copa',
         name='Palpite do Vale (Copa: vota + revela automático)',
+        replace_existing=True
+    )
+
+    # 📣 Propaganda fixa do Grupo DL — sexta/domingo/segunda 12h15 (horário de almoço)
+    _scheduler.add_job(
+        func=promo_grupo_job,
+        trigger=CronTrigger(day_of_week='fri,sun,mon', hour=12, minute=15,
+                            timezone='America/Sao_Paulo'),
+        id='promo_grupo_dl',
+        name='Propaganda do Grupo DL (sex/dom/seg 12h15)',
         replace_existing=True
     )
 
