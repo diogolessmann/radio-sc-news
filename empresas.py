@@ -167,11 +167,14 @@ def run(quando=None):
     import distribuidor as dist
     conn = dist.get_db()
     dist.ensure_column(conn)
+    # link SINTÉTICO ÚNICO (fix 5/ago): news.link tem UNIQUE — o '' vazio colidia com
+    # qualquer outra matéria própria e estourava IntegrityError na 2ª geração.
+    link_prop = f"own://empresa/{emp.get('slug') or emp['nome'][:30]}/{stamp}"
     cur = conn.execute(
         "INSERT INTO news (title, summary, title_own, resumo_own, link, source, city, category, "
         "published_at, priority, created_at, social_hold) "
-        "VALUES (?, ?, ?, ?, '', 'Radio SC News — Empresas do Vale', ?, 'economia', ?, 0, ?, ?)",
-        (titulo[:500], resumo, titulo[:500], resumo, emp["cidade"],
+        "VALUES (?, ?, ?, ?, ?, 'Radio SC News — Empresas do Vale', ?, 'economia', ?, 0, ?, ?)",
+        (titulo[:500], resumo, titulo[:500], resumo, link_prop, emp["cidade"],
          datetime.now().isoformat(), datetime.now().isoformat(),
          f"empresa: {emp['nome']} — aguardando aprovacao do dono @ {datetime.now().isoformat(timespec='seconds')}"))
     conn.commit()

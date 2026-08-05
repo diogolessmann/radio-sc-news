@@ -188,11 +188,12 @@ def run(modo=None):
     import distribuidor as dist
     conn = dist.get_db()
     dist.ensure_column(conn)
+    # link sintético único (fix 5/ago — news.link é UNIQUE; '' colidia entre matérias próprias)
     conn.execute(
         "INSERT INTO news (title, summary, title_own, resumo_own, link, source, city, category, "
         "published_at, priority, created_at) "
-        "VALUES (?, ?, ?, ?, '', 'Radio SC News — Previsao do Tempo', 'Santa Catarina', 'clima', ?, 1, ?)",
-        (titulo[:500], resumo, titulo[:500], resumo,
+        "VALUES (?, ?, ?, ?, ?, 'Radio SC News — Previsao do Tempo', 'Santa Catarina', 'clima', ?, 1, ?)",
+        (titulo[:500], resumo, titulo[:500], resumo, f"own://tempo/{modo}/{stamp}",
          datetime.now().isoformat(), datetime.now().isoformat()))
     conn.commit()
     conn.close()
