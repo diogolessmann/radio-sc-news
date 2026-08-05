@@ -112,9 +112,14 @@ def escolher(news, sensivel=False):
     cidade = news["city"] or "Norte de SC"
     regras_gerar = ("" if sensivel else
                     '2) Se NADA do acervo combina e o tema é seguro (SEM crime/morte/vítima): '
-                    '{"acao":"gerar","slug":"<slug_novo_curto_minusculo>","cena":"<one-line English '
-                    'photo scene of the THEME: atmospheric, no recognizable people, no text, '
-                    'NEVER the literal real event>"}\n')
+                    '{"acao":"gerar","slug":"<slug_novo_curto_minusculo>","cena":"<BRIEFING DE '
+                    'DIRETOR DE ARTE em inglês, 2-3 frases: (a) o ELEMENTO CENTRAL da notícia '
+                    'em destaque — a espécie exata, o tipo de veículo, a cultura agrícola, o '
+                    'objeto, a estrada; (b) o cenário coerente — vale verde do Norte de SC, '
+                    'cidade pequena do interior, serra, rio, galpão industrial, conforme a '
+                    'notícia; (c) clima e hora do dia COERENTES com o fato (geada = manhã '
+                    'gelada, temporal = céu carregado). Atmosférico, no recognizable people, '
+                    'no text, NEVER the literal real event>"}\n')
     prompt = (
         "Você é o EDITOR DE FOTOGRAFIA de um portal de notícias local do Norte de Santa Catarina. "
         "Escolha o FUNDO da capa desta notícia.\n\n"
@@ -134,7 +139,11 @@ def escolher(news, sensivel=False):
         "identificável associado a crime é risco jurídico; use \"policial\"/\"seguranca\" ou \"card\"; "
         "\"card\" é ÚLTIMO recurso (um card sem imagem rende pouco): entre um slug PRÓXIMO do tema "
         "e card, prefira o slug (feijoada/festa→evento; comércio novo→comercio; comida→feira); "
-        "tema seguro sem slug bom→prefira \"gerar\". Só o JSON."
+        "COMBINAÇÃO FORTE (4/ago): \"usar\" só quando o slug bate com o ELEMENTO CENTRAL da "
+        "notícia (o quê/quem da manchete), não apenas com a categoria — leitor percebe fundo "
+        "\"quase certo\" e perde confiança; tema SEGURO cujo elemento central não está no acervo "
+        "→ prefira \"gerar\" (a imagem nova entra no acervo com slug específico e se paga no "
+        "reuso). Só o JSON."
     )
     txt = _gemini([{"text": prompt}])
     if not txt:
@@ -164,7 +173,7 @@ def escolher(news, sensivel=False):
         import genericbg
         if genericbg._slug_proibido_sensivel(slug):
             acao, slug = "card", None
-    cena = (dec.get("cena") or "").strip()[:220] or None
+    cena = (dec.get("cena") or "").strip()[:420] or None   # 4/ago: briefing rico (era 220)
     print(f"[curador] 📖 decisão: {acao}" + (f" -> {slug}" if slug else ""))
     return {"acao": acao, "slug": slug, "cena": cena}
 
