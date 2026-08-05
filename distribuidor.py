@@ -28,6 +28,7 @@ VARIAVEIS DE AMBIENTE (Fase 1 — postagem real):
                           — o Instagram exige image_url PUBLICA; as imagens vao p/ static/social/
 """
 import argparse
+import glob
 import os
 import re
 import sqlite3
@@ -1017,6 +1018,39 @@ _EMOJI_RE = re.compile(
     flags=re.UNICODE)
 
 
+PREVIEW_DIR = os.path.join("static", "social", "preview")
+
+
+def preview_imgs(news_id):
+    """Imagens de preview já geradas pra uma matéria segurada (ou None)."""
+    d = os.path.join(PREVIEW_DIR, str(news_id))
+    if os.path.isdir(d):
+        fs = sorted(glob.glob(os.path.join(d, "*.jpg")))
+        if fs:
+            return fs
+    return None
+
+
+def gerar_capa_preview(news_id):
+    """🎨 Fila /revisar (4/ago, opção C do dono): gera o carrossel de um item SEGURADO pra
+    ele VER antes de aprovar. Fica em static/social/preview/<id>/ e o process_one
+    REAPROVEITA na publicação — nunca paga a mesma capa duas vezes."""
+    conn = get_db()
+    ensure_column(conn)
+    rows = pick_next(conn, only_id=news_id)
+    if not rows:
+        conn.close()
+        return {"ok": False, "motivo": "materia nao encontrada"}
+    news = rows[0]
+    resumo = groq_summary(news)
+    flash = flash_manchete(news)
+    conn.close()
+    outdir = os.path.join(PREVIEW_DIR, str(news_id))
+    imgs = generate_images(news, outdir, corpo=resumo, manchete=flash)
+    print(f"[preview] 🎨 capa gerada p/ materia {news_id} ({len(imgs)} imgs)")
+    return {"ok": True, "imgs": imgs}
+
+
 def generate_images(news, outdir, corpo=None, manchete=None):
     """Carrossel ADAPTATIVO. TIKTOK MODE: a CAPA usa a notícia em 2 linhas (manchete = nosso texto
     completo e punchy). 🛡️ ANTI-PROCESSO: os slides de CORPO usam o REWRITE (corpo, teu texto),
@@ -1510,8 +1544,12 @@ def process_one(conn, news, do_post, day_dir, portao=True):
             return False
 
     outdir = os.path.join(day_dir, str(nid))
-    imgs = generate_images(news, outdir, corpo=resumo, manchete=flash)  # capa flash + slides nossos
-    print(f"   {len(imgs)} imagens geradas em {outdir}")
+    imgs = preview_imgs(nid)          # ♻️ capa já vista/aprovada na fila? reusa — não paga 2x
+    if imgs:
+        print(f"   ♻️ reaproveitando {len(imgs)} imagens do preview da fila")
+    else:
+        imgs = generate_images(news, outdir, corpo=resumo, manchete=flash)  # capa flash + slides nossos
+        print(f"   {len(imgs)} imagens geradas em {outdir}")
 
     # salva previews (Instagram/Facebook + WhatsApp Canal)
     with open(os.path.join(outdir, "legenda_social.txt"), "w", encoding="utf-8") as f:

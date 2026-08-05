@@ -1456,7 +1456,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-03-portao-texto-economia", "ok": True}
+    return {"build": "2026-08-04-capa-preview", "ok": True}
 
 
 @app.route('/admin/acervo')
@@ -2235,6 +2235,29 @@ def revisar_descartar():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/revisar/capa')
+def revisar_capa():
+    """🎨 Opção C (4/ago): gera a capa de um item SEGURADO pra ver ANTES de aprovar.
+    Roda em segundo plano; o preview aparece no card da fila ao atualizar. A publicação
+    reaproveita a mesma capa (distribuidor.preview_imgs) — nunca paga duas vezes."""
+    if request.args.get('token', '') != _admin_pw_env and not session.get('admin_logged_in'):
+        return "<h3>Acesso negado</h3>", 403
+    nid = request.args.get('id')
+    try:
+        import threading, distribuidor
+
+        def _job():
+            try:
+                distribuidor.gerar_capa_preview(nid)
+            except Exception as e:
+                logger.error(f"preview capa {nid} falhou: {e}")
+
+        threading.Thread(target=_job, daemon=True).start()
+    except Exception as e:
+        logger.error(f"revisar_capa: {e}")
+    return redirect(f"/revisar?token={request.args.get('token') or _admin_pw_env}&msg=capa")
+
+
 @app.route('/revisar')
 def revisar_fila():
     """Fila de Revisao: materias seguradas pelo filtro editorial (tema sensivel) E as
@@ -2263,11 +2286,29 @@ def revisar_fila():
     conn.close()
 
     cards = []
+    import os as _os
     for r in rows:
         motivo = _html.escape((r["social_hold"] or "").replace("sensivel:", "")
                               .replace("revisor:", "🚦 portão: ").split("@")[0].strip())
-        img = (f'<img src="{r["image_url"]}" style="max-width:100%;border-radius:10px" '
-               f'onerror="this.style.display=\'none\'">' if r["image_url"] else "")
+        # 🎨 preview da capa (opção C): se já foi gerada, mostra a CAPA REAL; senão a foto
+        # do feed (se houver) + botão pra gerar sob demanda (economia: só gera se pedir)
+        prev = None
+        try:
+            prev = distribuidor.preview_imgs(r["id"])
+        except Exception:
+            pass
+        if prev:
+            capa_url = "/" + prev[0].replace(_os.sep, "/")
+            img = (f'<div class="tag" style="color:#7fe4a5">🎨 capa pronta — é assim que vai pro ar '
+                   f'({len(prev)} slides)</div>'
+                   f'<img src="{capa_url}" style="max-width:100%;border-radius:10px">')
+            btn_capa = ""
+        else:
+            img = (f'<img src="{r["image_url"]}" style="max-width:100%;border-radius:10px" '
+                   f'onerror="this.style.display=\'none\'">' if r["image_url"] else
+                   '<div class="tag">📷 sem foto — a capa será criada na aprovação (ou veja antes ↓)</div>')
+            btn_capa = (f'<a class="btn" style="background:#5b46a8" '
+                        f'href="/revisar/capa?token={token}&id={r["id"]}">🎨 Ver capa antes</a>')
         resumo = _html.escape((r["summary"] or "")[:240])
         cards.append(f"""
         <div class="card">
@@ -2279,6 +2320,7 @@ def revisar_fila():
           <div class="row">
             <a class="btn ok" href="/revisar/aprovar?token={token}&id={r['id']}"
                onclick="return confirm('Aprovar e POSTAR esta materia no Instagram e Facebook?')">✅ Aprovar e postar</a>
+            {btn_capa}
             <a class="btn no" href="/revisar/descartar?token={token}&id={r['id']}"
                onclick="return confirm('Descartar? Nao sera postada.')">🗑️ Descartar</a>
           </div>
@@ -2291,6 +2333,9 @@ def revisar_fila():
         aviso = '<div class="flash">✅ Aprovada! Postando em segundo plano (aparece em ~1 min).</div>'
     elif msg == 'descartada':
         aviso = '<div class="flash">🗑️ Descartada.</div>'
+    elif msg == 'capa':
+        aviso = ('<div class="flash" style="background:#5b46a8">🎨 Gerando a capa (~20s)… '
+                 'atualize a página pra ver o resultado no card.</div>')
 
     pagina = f"""<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
