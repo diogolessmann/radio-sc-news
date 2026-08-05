@@ -90,9 +90,10 @@ DB_PATH = os.environ.get("DB_PATH", "radio_sc.db")
 SITE = gi.SITE
 PUBLIC_BASE_URL = _env("PUBLIC_BASE_URL", "https://www.radioscnews.com.br").rstrip("/")
 
-# Canal do WhatsApp (motor de retencao) — CTA fixo em todo post. Troque via env.
-WHATSAPP_CHANNEL = _env("WHATSAPP_CHANNEL_URL",
-                        "https://whatsapp.com/channel/0029Vb7wPbRJ93wdnwfzbb2Z")
+# Canal do WhatsApp — DESLIGADO por decisão do dono 5/ago ("não tá pegando no Brasil");
+# revisita marcada pra SETEMBRO/2026. O default era o link cravado = CTA saía em TODO post
+# mesmo sem env. Religar = setar WHATSAPP_CHANNEL_URL no Railway (o bloco volta sozinho).
+WHATSAPP_CHANNEL = _env("WHATSAPP_CHANNEL_URL", "")
 
 GROQ_API_KEY = _env("GROQ_API_KEY")
 GROQ_MODEL = _env("GROQ_MODEL", "llama-3.3-70b-versatile")
