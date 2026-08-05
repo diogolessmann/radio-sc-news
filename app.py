@@ -41,6 +41,10 @@ if not _sk:
     import hashlib as _hl
     _sk = _hl.sha256(('rsc-secret-' + os.environ.get('ADMIN_PASSWORD', '')).encode()).hexdigest()
 app.secret_key = _sk
+# 🚀 Auditoria 4/ago: estáticos saíam com Cache-Control: no-cache — cada visitante
+# re-baixava ~350KB de foto TODA visita. 7 dias de cache: fotos do arsenal são imutáveis,
+# cards sociais têm nome único por matéria (n<id>_sN.jpg) e banners versionam com ?v=.
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 604800
 
 DB_PATH       = os.environ.get('DB_PATH', 'radio_sc.db')
 AUDIO_DIR     = os.environ.get('AUDIO_DIR', 'audio')
