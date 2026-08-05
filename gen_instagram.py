@@ -220,6 +220,12 @@ def cover_image(image_url, admin_image):
         return None
     if img is None:
         return None
+    # 📏 Fino 5/ago: thumb pequena do feed esticada pra 1080x1350 vira capa EMBAÇADA — pior
+    # que arsenal/gerada. Foto de URL menor que 600x500 é descartada (admin_image não passa
+    # aqui: upload do dono a gente confia).
+    if not src and (img.width < 600 or img.height < 500):
+        print(f"   ! foto do feed pequena ({img.width}x{img.height}) — descartada, capa ficaria embaçada")
+        return None
     # cover crop para 1080x1350
     tw, th = W, H
     iw, ih = img.size

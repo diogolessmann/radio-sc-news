@@ -20,21 +20,38 @@ except Exception:
 
 OUT_DIR = os.path.join("static", "social")
 
-# dia da semana -> (arquivo do card, gancho da legenda)
+# dia da semana -> (arquivo do card, gancho da legenda, tipo)
+# sex/dom/seg = Grupo DL · ter/qui/sáb = institucional da RÁDIO (pedido 5/ago: "criar a logo
+# da rádio e falar que somos de Jaraguá-Schroeder-Corupá-Guaramirim-Joinville") · quarta = folga
 _VARIANTES = {
-    4: ("promo_grupo_sex.jpg",   # sexta
+    4: ("promo_grupo_sex.jpg",   # sexta — DL
         "📌 GUARDA ESSE LINK pro fim de semana: multa pra analisar DE GRAÇA, "
-        "scooter elétrica pra test-ride, CNH pra resolver sem fila."),
-    6: ("promo_grupo_dom.jpg",   # domingo
+        "scooter elétrica pra test-ride, CNH pra resolver sem fila.", "dl"),
+    6: ("promo_grupo_dom.jpg",   # domingo — DL
         "Amanhã a semana começa. Que tal começar com os documentos em dia? "
-        "Multa, CNH, transferência, scooter — resolve tudo num link só."),
-    0: ("promo_grupo_seg.jpg",   # segunda
+        "Multa, CNH, transferência, scooter — resolve tudo num link só.", "dl"),
+    0: ("promo_grupo_seg.jpg",   # segunda — DL
         "Segunda-feira é dia de destravar: aquela multa parada, a CNH vencendo, "
-        "a transferência empurrada com a barriga. A gente resolve pelo zap."),
+        "a transferência empurrada com a barriga. A gente resolve pelo zap.", "dl"),
+    1: ("promo_radio_a.jpg",     # terça — Rádio institucional
+        "📻 SOMOS DAQUI. A Rádio SC News nasceu no Vale e é feita PRO Vale: "
+        "Jaraguá do Sul, Schroeder, Corupá, Guaramirim e Joinville.", "radio"),
+    3: ("promo_radio_b.jpg",     # quinta — Rádio institucional
+        "O Vale inteiro num perfil só: notícia, clima, gente daqui e o que "
+        "importa pra tua cidade — o dia inteiro, todo dia.", "radio"),
+    5: ("promo_radio_a.jpg",     # sábado — Rádio institucional
+        "📻 Sábado é dia de agradecer: mais de 1 MILHÃO de visualizações por mês "
+        "e 10 mil seguidores — tudo gente do Vale. Obrigado por estar junto!", "radio"),
 }
 
 
-def _legenda(gancho):
+def _legenda(gancho, tipo="dl"):
+    if tipo == "radio":
+        return (f"{gancho}\n\n"
+                "🔁 Marca um amigo do Vale que precisa seguir a gente\n"
+                "➕ Segue @radiosc.news — o Norte de SC em 1 minuto\n"
+                "👀 Viu algo na tua cidade? Manda no direct.\n\n"
+                "#JaraguaDoSul #Schroeder #Corupa #Guaramirim #Joinville #ValeDoItapocu #nortedesc")
     return (f"{gancho}\n\n"
             "🏛️ O Grupo DL é a equipe por trás da Rádio SC News — despachante há mais "
             "de 7 anos em Schroeder (credencial DETRAN/SC 2095), com 8 especialidades:\n"
@@ -61,7 +78,7 @@ def run(post=True, force_dow=None):
     stamp = date.today().strftime("%Y%m%d")
     if os.path.exists(_marker(stamp)):
         return {"ok": False, "motivo": "ja postou hoje"}
-    arquivo, gancho = _VARIANTES[dow]
+    arquivo, gancho, tipo = _VARIANTES[dow]
     caminho = os.path.join("static", "promo", arquivo)
     if not os.path.exists(caminho):
         return {"ok": False, "motivo": f"card nao encontrado: {caminho}"}
@@ -73,7 +90,7 @@ def run(post=True, force_dow=None):
     url = f"{dist.PUBLIC_BASE_URL}/static/promo/{arquivo}"
     base = f"https://graph.facebook.com/v21.0/{dist.META_IG_USER_ID}"
     r = requests.post(f"{base}/media", data={
-        "image_url": url, "caption": _legenda(gancho),
+        "image_url": url, "caption": _legenda(gancho, tipo),
         "access_token": dist.META_PAGE_TOKEN}, timeout=60)
     r.raise_for_status()
     cid = r.json()["id"]

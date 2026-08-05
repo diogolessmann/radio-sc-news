@@ -185,9 +185,22 @@ def checar_dia():
                  f"A fábrica pode ter PARADO — confere o token Meta e os logs do Railway."
                  + (f"\n📋 E tem {fila} matéria(s) esperando na fila /revisar." if fila else ""))
         return {"ok": True, "alerta": True, "posts": posts24}
-    if fila >= 5:
-        send_zap(f"📋 VIGIA Rádio SC: {fila} matérias paradas na fila /revisar — "
-                 f"dá uma olhada (aprovar ou descartar).")
+    # 📊 Placar diário de custo (fino 5/ago, pedido do dono: visibilidade do gasto sem
+    # abrir o billing) — 1 mensagem compacta por dia, no mesmo horário do vigia.
+    barradas24 = _q("SELECT COUNT(*) FROM news WHERE social_hold LIKE 'revisor%' "
+                    "AND replace(created_at,'T',' ') >= datetime('now','-24 hours')")
+    linha_img = ""
+    try:
+        import nanobanana
+        limite_nb = int(os.environ.get("NANOBANANA_LIMITE_DIA", "17") or 17)
+        usadas = max(0, limite_nb - nanobanana.restante_hoje())
+        linha_img = f"\n🖼️ {usadas} imagem(ns) IA hoje (~R$ {usadas * 0.75:.2f})"
+    except Exception:
+        pass
+    send_zap(f"📊 VIGIA — placar do dia:\n"
+             f"✅ {posts24} posts nas últimas 24h\n"
+             f"🚦 {barradas24} barrada(s) pro /revisar{linha_img}"
+             + (f"\n📋 {fila} na fila de revisão" if fila else ""))
     return {"ok": True, "alerta": False, "posts": posts24, "fila": fila}
 
 

@@ -35,7 +35,10 @@ def social_news_job():
         return
     try:
         import distribuidor
-        r = distribuidor.run_once(post=True, limit=1)
+        # 📈 MAIS É MAIS (dono, 5/ago): posts por slot via env — NOTICIAS_POR_SLOT=4 com a
+        # grade cheia de 15 slots ≈ 60 + urgente/clima/reels ≈ 80/dia. Default 1 = como era.
+        _por_slot = int(os.environ.get("NOTICIAS_POR_SLOT", "1") or 1)
+        r = distribuidor.run_once(post=True, limit=_por_slot)
         logger.info(f"📣 Distribuidor: {r['postadas']} postada(s). Erros: {r['erros']}")
     except Exception as e:
         logger.error(f"❌ Distribuidor falhou: {e}")
@@ -534,13 +537,14 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
-    # 📣 Propaganda fixa do Grupo DL — sexta/domingo/segunda 12h15 (horário de almoço)
+    # 📣 Bloco de marca 12h15 — sex/dom/seg = Grupo DL · ter/qui/sáb = institucional da
+    # Rádio ("somos daqui": as 5 cidades) · quarta = folga (nunca o mesmo card 2 dias seguidos)
     _scheduler.add_job(
         func=promo_grupo_job,
-        trigger=CronTrigger(day_of_week='fri,sun,mon', hour=12, minute=15,
+        trigger=CronTrigger(day_of_week='mon,tue,thu,fri,sat,sun', hour=12, minute=15,
                             timezone='America/Sao_Paulo'),
         id='promo_grupo_dl',
-        name='Propaganda do Grupo DL (sex/dom/seg 12h15)',
+        name='Bloco de marca 12h15 (DL sex/dom/seg · Rádio ter/qui/sáb)',
         replace_existing=True
     )
 

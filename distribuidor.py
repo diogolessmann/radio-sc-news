@@ -992,9 +992,18 @@ def social_caption(news, resumo):
     )
     # gatilho de pertencimento: marcar alguém DA CIDADE (não genérico) = mais compartilhamento
     marca = f"Marca quem é de {city}" if city in gi.NORTE_SC else "Marca um amigo do Vale"
+    # 🔁 Fino 5/ago: fecho de engajamento ROTATIVO (o mesmo CTA todo post = leitor cego pra ele;
+    # variar mantém a linha viva). Rotação determinística por id — mesma matéria, mesmo fecho.
+    _engaja = [
+        f"💬 Concorda? Comenta aqui 👇  ·  🔖 Salva  ·  🔁 {marca}",
+        f"🔖 Salva pra não perder  ·  🔁 {marca}  ·  💬 O que tu acha? 👇",
+        f"🔁 {marca}  ·  💬 Já sabia dessa? Conta aqui 👇  ·  🔖 Salva",
+        f"📤 Manda pra quem precisa saber disso  ·  🔖 Salva  ·  💬 Comenta 👇",
+    ]
+    linha_engaja = _engaja[(news["id"] or 0) % len(_engaja)]
     return (
         f"{resumo}\n\n"
-        f"💬 Concorda? Comenta aqui 👇  ·  🔖 Salva  ·  🔁 {marca}\n"
+        f"{linha_engaja}\n"
         f"➕ Segue @radiosc.news — o Norte de SC em 1 minuto\n\n"
         f"{bloco_canal}"
         f"👀 Viu algo na sua cidade? Manda no direct — a próxima notícia pode ser sua.\n"
