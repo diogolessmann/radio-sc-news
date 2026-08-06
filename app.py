@@ -1460,7 +1460,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-04-capa-preview", "ok": True}
+    return {"build": "2026-08-06-mesa-edicao", "ok": True}
 
 
 @app.route('/admin/acervo')
@@ -2239,6 +2239,81 @@ def revisar_descartar():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/revisar/editar')
+def revisar_editar():
+    """🛠️ MESA DE EDIÇÃO (6/ago, aprovada pelo dono): conserta a matéria SEM descartar.
+    - ?titulo=... : edição direta da manchete (o dono já sabe a palavra certa)
+    - ?q=...      : COMANDO em português ("tira o nome da vítima", "foca no resgate") —
+                    a IA reescreve manchete+resumo obedecendo a ordem
+    Atualiza title/summary (fonte do post) E title_own/resumo_own (site). Preview de capa
+    antigo é apagado (a capa nova nasce do texto novo)."""
+    if request.args.get('token', '') != _admin_pw_env and not session.get('admin_logged_in'):
+        return "<h3>Acesso negado</h3>", 403
+    nid = request.args.get('id')
+    titulo = (request.args.get('titulo') or '').strip()
+    q = (request.args.get('q') or '').strip()
+    token = request.args.get('token') or _admin_pw_env
+    msg = 'editada'
+    try:
+        import distribuidor
+        conn = distribuidor.get_db()
+        distribuidor.ensure_column(conn)
+        if titulo:
+            conn.execute("UPDATE news SET title=?, title_own=? WHERE id=?",
+                         (titulo[:500], titulo[:500], nid))
+            conn.commit()
+        elif q:
+            row = conn.execute("SELECT title, summary FROM news WHERE id=?", (nid,)).fetchone()
+            if row:
+                import cerebro
+                import re as _re
+                prompt = ("Você é o EDITOR-CHEFE da Radio SC News (jornal local do Norte de SC). "
+                          "O dono deu uma ORDEM sobre a matéria abaixo — obedeça a ordem, mantenha "
+                          "só FATOS (zero opinião), tom de jornal do interior.\n"
+                          f"ORDEM DO DONO: {q}\n\n"
+                          f"MANCHETE ATUAL: {row['title']}\n"
+                          f"RESUMO ATUAL: {(row['summary'] or '')[:600]}\n\n"
+                          "Responda EXATAMENTE neste formato:\n"
+                          "TITULO: <manchete reescrita>\nRESUMO: <resumo reescrito, 3-5 linhas>")
+                txt = cerebro.completar(prompt) or ""
+                m = _re.search(r"(?is)titulo:\s*(.+?)\s*resumo:\s*(.+)$", txt)
+                if m:
+                    novo_t = m.group(1).strip().strip('"')[:500]
+                    novo_r = m.group(2).strip().strip('"')
+                    conn.execute("UPDATE news SET title=?, title_own=?, summary=?, resumo_own=? "
+                                 "WHERE id=?", (novo_t, novo_t, novo_r, novo_r, nid))
+                    conn.commit()
+                else:
+                    msg = 'erro_ia'
+        conn.close()
+        # capa antiga não vale mais: texto mudou -> preview fora (regenera no botão/aprovação)
+        try:
+            import shutil
+            shutil.rmtree(os.path.join(distribuidor.PREVIEW_DIR, str(nid)), ignore_errors=True)
+        except Exception:
+            pass
+    except Exception as e:
+        logger.error(f"revisar_editar {nid}: {e}")
+        msg = 'erro_ia'
+    return redirect(f"/revisar?token={token}&msg={msg}")
+
+
+@app.route('/revisar/limpar')
+def revisar_limpar():
+    """🧹 Faxina manual em lote: descarta seguradas com mais de N dias (padrão 3)."""
+    if request.args.get('token', '') != _admin_pw_env and not session.get('admin_logged_in'):
+        return "<h3>Acesso negado</h3>", 403
+    dias = int(request.args.get('dias', '3') or 3)
+    try:
+        import vigia
+        n = vigia.faxina_fila(dias=dias)
+    except Exception as e:
+        logger.error(f"revisar_limpar: {e}")
+        n = 0
+    token = request.args.get('token') or _admin_pw_env
+    return redirect(f"/revisar?token={token}&msg=limpa{n}")
+
+
 @app.route('/revisar/capa')
 def revisar_capa():
     """🎨 Opção C (4/ago): gera a capa de um item SEGURADO pra ver ANTES de aprovar.
@@ -2276,7 +2351,7 @@ def revisar_fila():
     conn = distribuidor.get_db()
     distribuidor.ensure_column(conn)
     rows = conn.execute(
-        "SELECT id, title, city, summary, image_url, social_hold FROM news "
+        "SELECT id, title, city, summary, image_url, social_hold, created_at FROM news "
         "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%') "
         "AND (social_posted_at IS NULL OR social_posted_at='') "
         "ORDER BY datetime(published_at) DESC LIMIT 40"
@@ -2314,13 +2389,32 @@ def revisar_fila():
             btn_capa = (f'<a class="btn" style="background:#5b46a8" '
                         f'href="/revisar/capa?token={token}&id={r["id"]}">🎨 Ver capa antes</a>')
         resumo = _html.escape((r["summary"] or "")[:240])
+        # idade na fila (a faxina descarta com 7 dias)
+        idade = ""
+        try:
+            from datetime import datetime as _dt
+            dias_fila = (_dt.now() - _dt.fromisoformat((r["created_at"] or "")[:19])).days
+            idade = f' · na fila há {dias_fila}d' if dias_fila >= 1 else ''
+        except Exception:
+            pass
+        titulo_esc = _html.escape(r['title'] or '', quote=True)
         cards.append(f"""
         <div class="card">
-          <div class="tag">⚠️ segurada — termo: <b>{motivo}</b></div>
+          <div class="tag">⚠️ segurada — termo: <b>{motivo}</b>{idade}</div>
           <div class="cidade">📍 {_html.escape(r['city'] or '')}</div>
           <h3>{_html.escape(r['title'] or '')}</h3>
           <div class="media">{img}</div>
           <p class="resumo">{resumo}</p>
+          <form action="/revisar/editar" method="get" style="display:flex;gap:6px;margin:8px 0 4px;flex-wrap:wrap">
+            <input type="hidden" name="token" value="{token}"><input type="hidden" name="id" value="{r['id']}">
+            <input name="titulo" value="{titulo_esc}" style="flex:1;min-width:220px;background:#101322;border:1px solid #2a2d3a;border-radius:8px;color:#eee;padding:9px 10px;font-size:13px">
+            <button class="btn" style="background:#31589c;border:0" type="submit">💾 Salvar manchete</button>
+          </form>
+          <form action="/revisar/editar" method="get" style="display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap">
+            <input type="hidden" name="token" value="{token}"><input type="hidden" name="id" value="{r['id']}">
+            <input name="q" placeholder="🪄 dá uma ordem: 'tira o nome', 'foca no resgate', 'deixa mais leve'…" style="flex:1;min-width:220px;background:#101322;border:1px solid #3a2d5a;border-radius:8px;color:#eee;padding:9px 10px;font-size:13px">
+            <button class="btn" style="background:#5b46a8;border:0" type="submit">🪄 Aplicar ordem</button>
+          </form>
           <div class="row">
             <a class="btn ok" href="/revisar/aprovar?token={token}&id={r['id']}"
                onclick="return confirm('Aprovar e POSTAR esta materia no Instagram e Facebook?')">✅ Aprovar e postar</a>
@@ -2340,6 +2434,12 @@ def revisar_fila():
     elif msg == 'capa':
         aviso = ('<div class="flash" style="background:#5b46a8">🎨 Gerando a capa (~20s)… '
                  'atualize a página pra ver o resultado no card.</div>')
+    elif msg == 'editada':
+        aviso = '<div class="flash" style="background:#31589c">✏️ Matéria atualizada — manchete/resumo novos valem no site e no post.</div>'
+    elif msg == 'erro_ia':
+        aviso = '<div class="flash" style="background:#8c3b3b">⚠️ A IA não conseguiu aplicar a ordem — tenta reformular ou edita a manchete direto.</div>'
+    elif msg.startswith('limpa'):
+        aviso = f'<div class="flash">🧹 Faxina feita: {msg[5:] or "0"} segurada(s) antigas descartadas.</div>'
 
     pagina = f"""<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -2362,8 +2462,10 @@ def revisar_fila():
     </style></head><body>
     <header>
       <h1>🗂️ Fila de Revisão</h1>
-      <div class="sub">Matérias seguradas pelo filtro (tema sensível). Aprove ou descarte.
-      ({total_fila} na fila{f' — mostrando as {len(rows)} mais novas' if total_fila > len(rows) else ''})</div>
+      <div class="sub">Matérias seguradas pelo filtro (tema sensível). Aprove, edite, dê uma ordem ou descarte.
+      ({total_fila} na fila{f' — mostrando as {len(rows)} mais novas' if total_fila > len(rows) else ''})
+      &nbsp;·&nbsp; <a href="/revisar/limpar?token={token}&dias=3" style="color:#f5c518"
+        onclick="return confirm('Descartar TODAS as seguradas com mais de 3 dias?')">🧹 limpar +3 dias</a></div>
     </header>
     {aviso}
     {body}
