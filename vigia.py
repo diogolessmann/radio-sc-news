@@ -140,7 +140,7 @@ def _fila_real():
     Fix 3/ago: o VIGIA contava qualquer social_hold (dup:, descartada:, empresa:) e gritava
     '513 paradas' quando a fila real tinha 56. Três números diferentes = dono confuso."""
     return _q("SELECT COUNT(*) FROM news WHERE (social_hold LIKE 'sensivel%' OR "
-              "social_hold LIKE 'revisor%') "
+              "social_hold LIKE 'revisor%' OR social_hold LIKE 'empresa%') "
               "AND (social_posted_at IS NULL OR social_posted_at='') AND active=1")
 
 
@@ -151,7 +151,7 @@ def faxina_fila(dias=7):
         conn = sqlite3.connect(DB_PATH, timeout=10)
         cur = conn.execute(
             "UPDATE news SET social_hold='descartada: faxina-" + str(int(dias)) + "d' "
-            "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%') "
+            "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%' OR social_hold LIKE 'empresa%') "
             "AND (social_posted_at IS NULL OR social_posted_at='') "
             "AND replace(created_at,'T',' ') < datetime('now','-" + str(int(dias)) + " days')")
         conn.commit()

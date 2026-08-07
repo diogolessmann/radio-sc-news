@@ -1175,7 +1175,8 @@ def admin():
     try:                       # fila de revisão (seguradas + barradas no portão do revisor)
         stats['fila_revisao'] = conn.execute(
             "SELECT COUNT(*) FROM news WHERE (social_hold LIKE 'sensivel%' OR social_hold "
-            "LIKE 'revisor%') AND (social_posted_at IS NULL OR social_posted_at='')"
+            "LIKE 'revisor%' OR social_hold LIKE 'empresa%') "
+            "AND (social_posted_at IS NULL OR social_posted_at='')"
         ).fetchone()[0]
     except Exception:
         stats['fila_revisao'] = 0
@@ -1460,7 +1461,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-06-mesa-edicao", "ok": True}
+    return {"build": "2026-08-06-empresa-na-fila", "ok": True}
 
 
 @app.route('/admin/acervo')
@@ -2352,7 +2353,7 @@ def revisar_fila():
     distribuidor.ensure_column(conn)
     rows = conn.execute(
         "SELECT id, title, city, summary, image_url, social_hold, created_at FROM news "
-        "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%') "
+        "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%' OR social_hold LIKE 'empresa%') "
         "AND (social_posted_at IS NULL OR social_posted_at='') "
         "ORDER BY datetime(published_at) DESC LIMIT 40"
     ).fetchall()
@@ -2360,7 +2361,7 @@ def revisar_fila():
     # com 56 esperando; fix 3/ago: mesmo critério do badge do admin e do VIGIA)
     total_fila = conn.execute(
         "SELECT COUNT(*) FROM news "
-        "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%') "
+        "WHERE (social_hold LIKE 'sensivel%' OR social_hold LIKE 'revisor%' OR social_hold LIKE 'empresa%') "
         "AND (social_posted_at IS NULL OR social_posted_at='')").fetchone()[0]
     conn.close()
 
@@ -2389,12 +2390,14 @@ def revisar_fila():
             btn_capa = (f'<a class="btn" style="background:#5b46a8" '
                         f'href="/revisar/capa?token={token}&id={r["id"]}">🎨 Ver capa antes</a>')
         resumo = _html.escape((r["summary"] or "")[:240])
-        # idade na fila (a faxina descarta com 7 dias)
+        # entrada na fila SEMPRE visível (pedido 6/ago: "quando fica velha eu já sei")
         idade = ""
         try:
             from datetime import datetime as _dt
-            dias_fila = (_dt.now() - _dt.fromisoformat((r["created_at"] or "")[:19])).days
-            idade = f' · na fila há {dias_fila}d' if dias_fila >= 1 else ''
+            ent = _dt.fromisoformat((r["created_at"] or "")[:19])
+            dias_fila = (_dt.now() - ent).days
+            idade = (f' · 🕐 entrou {ent.strftime("%d/%m %H:%M")}'
+                     + (f' (há {dias_fila}d)' if dias_fila >= 1 else ''))
         except Exception:
             pass
         titulo_esc = _html.escape(r['title'] or '', quote=True)
