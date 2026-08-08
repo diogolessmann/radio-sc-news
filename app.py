@@ -1353,7 +1353,10 @@ def admin_empresas():
     import empresas as emp
     d = date.today()
     stamp = f"{d.isocalendar()[0]}w{d.isocalendar()[1]}"
-    marker = os.path.exists(os.path.join(emp._MARKER_DIR, f".empresa_{stamp}.done"))
+    # 8/ago: status pela verdade do BANCO (o marker em arquivo morre a cada deploy — a tela
+    # dizia "ainda não gerada" com a matéria JÁ na fila, e o botão estourava UNIQUE)
+    marker = emp.ja_gerou(d) or os.path.exists(
+        os.path.join(emp._MARKER_DIR, f".empresa_{stamp}.done"))
     if request.args.get('go') == '1':
         try:
             r = emp.run()

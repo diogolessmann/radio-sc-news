@@ -358,6 +358,7 @@ _FORA_DA_AREA = re.compile(
     r"Gr[ée]cia|Atenas|\bCuba\b|Argentina|Uruguai|\bChile\b|Venezuela|M[ée]xico|"
     r"Estados Unidos|\bEUA\b|R[úu]ssia|Ucr[âa]nia|\bChina\b|Jap[ãa]o|Israel|\bIr[ãa]\b|"
     r"\bGaza\b|Portugal|Espanha|Fran[çc]a|It[áa]lia|Alemanha|\bEuropa\b|"
+    r"\bKiev\b|\bKyiv\b|Moscou|russ[oa]s?\b|ucranian[oa]s?\b|Zelensky|Putin|"
     r"Cor[ée]ia|\b[ÍI]ndia\b|Indon[ée]sia|Austr[áa]lia|Canad[áa]|Turquia|Egito|"
     r"Filipinas|Tail[âa]ndia|Vietn[ãa]|Paquist[ãa]o|Afeganist[ãa]o|S[íi]ria|"
     r"\bL[íi]bano\b|Nig[ée]ria|\b[ÁA]frica\b|Col[ôo]mbia|\bPeru\b|Bol[íi]via|Equador|"

@@ -152,6 +152,26 @@ def _escrever(emp):
     return titulo, resumo
 
 
+def _link_semana(d):
+    emp = da_semana(d)
+    stamp = f"{d.isocalendar()[0]}w{d.isocalendar()[1]}"
+    return f"own://empresa/{emp.get('slug') or emp['nome'][:30]}/{stamp}"
+
+
+def ja_gerou(quando=None):
+    """Id da matéria desta semana no banco, ou None. Fonte da verdade = BANCO (sobrevive
+    a deploy; o marker em arquivo não)."""
+    d = quando or date.today()
+    try:
+        import distribuidor as dist
+        conn = dist.get_db()
+        row = conn.execute("SELECT id FROM news WHERE link=?", (_link_semana(d),)).fetchone()
+        conn.close()
+        return row[0] if row else None
+    except Exception:
+        return None
+
+
 def run(quando=None):
     """Gera a matéria da semana e SEGURA na fila /revisar (nunca auto-posta).
     Idempotente por semana (marker)."""
@@ -160,9 +180,15 @@ def run(quando=None):
     d = quando or date.today()
     stamp = f"{d.isocalendar()[0]}w{d.isocalendar()[1]}"
     marker = os.path.join(_MARKER_DIR, f".empresa_{stamp}.done")
+    emp = da_semana(d)
+    # 🔐 Idempotência pelo BANCO (fix 8/ago): o marker em arquivo MORRE a cada deploy do
+    # Railway — o dono clicou GERAR AGORA, o marker tinha sumido e estourou UNIQUE no link.
+    # O banco sobrevive a deploy: se o link da semana já existe, já gerou. Ponto.
+    ja = ja_gerou(d)
+    if ja:
+        return {"ok": False, "motivo": f"ja gerou esta semana (materia {ja} na fila /revisar)"}
     if os.path.exists(marker):
         return {"ok": False, "motivo": "ja gerou esta semana"}
-    emp = da_semana(d)
     titulo, resumo = _escrever(emp)
     import distribuidor as dist
     conn = dist.get_db()

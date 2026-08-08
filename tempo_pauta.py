@@ -188,6 +188,12 @@ def run(modo=None):
     import distribuidor as dist
     conn = dist.get_db()
     dist.ensure_column(conn)
+    # 🔐 idempotência pelo BANCO (8/ago): o marker morre a cada deploy do Railway — se a
+    # pauta do dia já existe no banco, não insere de novo (senão IntegrityError no link).
+    if conn.execute("SELECT 1 FROM news WHERE link=?",
+                    (f"own://tempo/{modo}/{stamp}",)).fetchone():
+        conn.close()
+        return {"ok": False, "motivo": "ja gerou hoje (banco)"}
     # link sintético único (fix 5/ago — news.link é UNIQUE; '' colidia entre matérias próprias)
     conn.execute(
         "INSERT INTO news (title, summary, title_own, resumo_own, link, source, city, category, "
