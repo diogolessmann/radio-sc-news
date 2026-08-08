@@ -2305,6 +2305,47 @@ def revisar_descartar():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/pauta', methods=['GET', 'POST'])
+def api_pauta():
+    """⛏️ Porta do GARIMPO LEGIÃO (8/ago): recebe uma pauta PRONTA (título+resumo) e insere
+    como matéria SEGURADA na fila /revisar — NUNCA posta direto (o dedo do dono é o portão).
+    Idempotente por hash do conteúdo. Token = ADMIN_PASSWORD."""
+    dados = request.form if request.method == 'POST' else request.args
+    if dados.get('token', '') != _admin_pw_env:
+        return jsonify({'error': 'unauthorized'}), 403
+    titulo = (dados.get('titulo') or '').strip()
+    resumo = (dados.get('resumo') or '').strip()
+    cidade = (dados.get('cidade') or 'Santa Catarina').strip()
+    categoria = (dados.get('categoria') or 'geral').strip()
+    if not titulo or not resumo:
+        return jsonify({'error': 'titulo e resumo obrigatorios'}), 400
+    try:
+        import hashlib
+        import distribuidor
+        from datetime import datetime as _dt
+        h = hashlib.sha1((titulo + resumo).encode('utf-8')).hexdigest()[:12]
+        link = f"own://garimpo/{h}"
+        conn = distribuidor.get_db()
+        distribuidor.ensure_column(conn)
+        if conn.execute("SELECT id FROM news WHERE link=?", (link,)).fetchone():
+            conn.close()
+            return jsonify({'ok': False, 'motivo': 'pauta ja existe (mesmo conteudo)'})
+        cur = conn.execute(
+            "INSERT INTO news (title, summary, title_own, resumo_own, link, source, city, "
+            "category, published_at, priority, created_at, social_hold) "
+            "VALUES (?, ?, ?, ?, ?, 'Radio SC News — Garimpo LEGIAO', ?, ?, ?, 0, ?, ?)",
+            (titulo[:500], resumo, titulo[:500], resumo, link, cidade, categoria,
+             _dt.now().isoformat(), _dt.now().isoformat(),
+             f"revisor: garimpo LEGIAO — aguardando aprovacao @ {_dt.now().isoformat(timespec='seconds')}"))
+        conn.commit()
+        nid = cur.lastrowid
+        conn.close()
+        return jsonify({'ok': True, 'id': nid})
+    except Exception as e:
+        logger.error(f"api_pauta: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route('/revisar/editar')
 def revisar_editar():
     """🛠️ MESA DE EDIÇÃO (6/ago, aprovada pelo dono): conserta a matéria SEM descartar.
