@@ -374,6 +374,28 @@ _GANCHO_SC = re.compile(
     re.IGNORECASE)
 
 
+# 🏠 SC-LONGE (8/ago, ordem do dono: "notícias de Criciúma, Blumenau etc de longe devem
+# sumir — ficar só as do Vale"). Cidade catarinense FORA da nossa região na manchete, sem
+# nenhuma cidade NOSSA junto, e que não seja CLIMA → nem entra. O gancho genérico "SC" não
+# salva (era por ele que o estado inteiro inundava o feed — 63% dos posts, views de 60-200).
+# Região NOSSA (fica): Vale do Itapocu + Joinville/litoral norte vizinho + planalto norte.
+_SC_LONGE = re.compile(
+    r"Florian[óo]polis|Blumenau|Itaja[íi]|Balne[áa]rio Cambori[úu]|\bCambori[úu]\b|Brusque|"
+    r"Crici[úu]ma|Tubar[ãa]o|\bLages\b|Chapec[óo]|Xanxer[êe]|Conc[óo]rdia|Ca[çc]ador|"
+    r"Videira|Joa[çc]aba|S[ãa]o Joaquim|Urussanga|Ararangu[áa]|\bLaguna\b|Imbituba|"
+    r"Itapema|Bombinhas|Porto Belo|Navegantes|Api[úu]na|Ibirama|Rio do Sul|Indaial|"
+    r"Timb[óo]|Gaspar|Ilhota|Palho[çc]a|S[ãa]o Jos[ée]\b|Bigua[çc]u|Tijucas|Forquilhinha|"
+    r"Guatambu|Capivari de Baixo|Campos Novos|Palma Sola|\bModelo\b|Fraiburgo|Curitibanos|"
+    r"Herval|Ituporanga|Ta[ió][óo]\b|Orleans|Bra[çc]o do Norte|Sombrio|Maravilha|Pinhalzinho",
+    re.IGNORECASE)
+_GANCHO_NORTE = re.compile(
+    r"Jaragu[áa]|Schroeder|Guaramirim|Corup[áa]|Massaranduba|Joinville|Barra Velha|"
+    r"S[ãa]o Jo[ãa]o do Itaperi[úu]|Pomerode|S[ãa]o Bento do Sul|Rio Negrinho|Mafra|"
+    r"Canoinhas|Itapo[áa]|Garuva|Araquari|S[ãa]o Francisco do Sul|Pi[çc]arras|\bPenha\b|"
+    r"Vale do Itapocu|Norte de SC|norte catarinense",
+    re.IGNORECASE)
+
+
 # Marca INEQUÍVOCA de esporte (usada só pra VETAR classificação policial — ver uso abaixo)
 _ESPORTE_FORTE = re.compile(
     r"sele[çc][ãa]o brasileira|liga das na[çc][õo]es|copa d[oa]|campeonato|brasileir[ãa]o|"
@@ -607,6 +629,11 @@ def fetch_feed(feed_config):
             category = 'policial'
         else:
             category = feed_cat if feed_cat and feed_cat != 'geral' else detected
+
+        # 🏠 SC-longe: cidade catarinense de longe, sem cidade nossa junto, fora clima → fora
+        if category != 'clima' and _SC_LONGE.search(full_text) and not _GANCHO_NORTE.search(full_text):
+            logger.info(f"🏠 SC-longe (fora do Vale): {title[:70]}")
+            continue
 
         articles.append({
             'title': title[:500],
