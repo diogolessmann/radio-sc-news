@@ -791,7 +791,7 @@ def caption_videoteca(filename):
             f"{pitch}\n\n"
             "✅ Sem CNH e sem emplacamento (CONTRAN 996)\n"
             "✅ Zero gasolina — recarrega na tomada de casa\n"
-            "💳 Até 48x no boleto ViaCredi · parcelas a partir de R$ 200*\n\n"
+            "💳 Até 48x ViaCredi · parcelas a partir de R$ 200*\n\n"
             "🏁 TEST-RIDE GRÁTIS: vem dar uma volta antes de decidir!\n"
             "📍 R. Mal. Castelo Branco, 2838 — Centro, Schroeder\n"
             "📲 WhatsApp (47) 99776-6831\n\n"
