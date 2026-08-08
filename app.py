@@ -1424,7 +1424,69 @@ def admin_despachante():
       <b>🎬 Reels prontos pra publicar</b><ul>{reels_html}</ul>
       <span style='color:#888;font-size:13px'>Processamento ~1-2 min após o clique. Publica no IG do despachante (tokens DESP).</span>
     </div>
+    <div style='background:#15151d;border:2px solid #25d366;border-radius:12px;padding:16px;margin:14px 0'>
+      <b>🎞️ VIDEOTECA DL — todo o material de scooter num lugar só</b><br>
+      <span style='color:#9aa0ae'>18 vídeos editados (48x · R$200* · logo) com botão pra publicar no
+      IG da <b style='color:#ff8a80'>Rádio</b> ou do <b style='color:#25d366'>Despachante</b> — manual, quando tu quiser.</span><br>
+      <a href='/admin/videoteca' style='color:#25d366;font-weight:bold;font-size:16px'>→ ABRIR A VIDEOTECA</a>
+    </div>
     <p><a href='/admin' style='color:#F5C518'>← voltar ao painel</a></p></div>""")
+
+
+@app.route('/admin/videoteca')
+@login_required
+def admin_videoteca():
+    """🎞️ VIDEOTECA DL (7/ago): a prateleira de vídeos do dono — cada um com botão pra
+    publicar como REEL no IG da RÁDIO ou do DESPACHANTE. Manual, na hora que ele quiser."""
+    import marcas
+    f = request.args.get('f', '')
+    dest = request.args.get('dest', '')
+    go = request.args.get('go', '') == '1'
+    vids = marcas.videoteca()
+    aviso = ''
+    if go and f in vids and dest in ('radio', 'desp'):
+        import threading
+        cap = marcas.caption_videoteca(f)
+
+        def _job(fname=f, d=dest, c=cap):
+            try:
+                r = marcas.publish_reel_dest(d, 'dlmob/' + fname, c)
+                logger.info(f"🎞️ videoteca: {fname} -> {d} ok {r}")
+            except Exception as e:
+                logger.error(f"🎞️ videoteca {fname} -> {d} FALHOU: {e}")
+                try:
+                    import vigia
+                    vigia.send_zap(f"🎞️ Videoteca: falha ao publicar {fname} no "
+                                   f"{'IG da Rádio' if d == 'radio' else 'IG do despachante'}: {e}")
+                except Exception:
+                    pass
+
+        threading.Thread(target=_job, daemon=True).start()
+        onde = 'IG da RÁDIO' if dest == 'radio' else 'IG do DESPACHANTE'
+        aviso = (f"<div style='background:#2e7d32;padding:12px 16px;border-radius:10px;margin:12px 0'>"
+                 f"🚀 <b>{f}</b> sendo publicado no <b>{onde}</b> — leva 1-2 min. "
+                 f"Se falhar, o VIGIA te avisa no zap.</div>")
+    linhas = []
+    for v in vids:
+        bonito = v.replace('.mp4', '').replace('_', ' ').replace('dl48x', '· 48x/R$200').title()
+        linhas.append(
+            f"<tr><td style='padding:8px 10px'>{bonito}</td>"
+            f"<td style='white-space:nowrap;padding:8px 6px'>"
+            f"<a href='/static/videos/dlmob/{v}' target='_blank' style='color:#9aa0ae'>▶ ver</a> · "
+            f"<a href='/admin/videoteca?f={v}&dest=radio&go=1' style='color:#ff8a80;font-weight:bold' "
+            f"onclick=\"return confirm('Publicar no IG da RÁDIO agora?')\">📻 Rádio</a> · "
+            f"<a href='/admin/videoteca?f={v}&dest=desp&go=1' style='color:#25d366;font-weight:bold' "
+            f"onclick=\"return confirm('Publicar no IG do DESPACHANTE agora?')\">🏛️ Despachante</a>"
+            f"</td></tr>")
+    corpo = "".join(linhas) or "<tr><td>nenhum vídeo em static/videos/dlmob</td></tr>"
+    return (f"""<div style='font-family:sans-serif;max-width:860px;margin:36px auto;color:#eee;background:#0c0c11;padding:28px;border-radius:14px'>
+    <h2>🎞️ Videoteca DL — {len(vids)} vídeos prontos</h2>
+    <p style='color:#9aa0ae'>Clica no destino e o reel sobe com legenda de venda pronta
+    (48x ViaCredi · a partir de R$200* · test-ride · zap da loja). Nada é automático — tu decide o dia.</p>
+    {aviso}
+    <table style='width:100%;font-size:14px;border-collapse:collapse'>{corpo}</table>
+    <p style='margin-top:16px'><a href='/admin/despachante' style='color:#F5C518'>← aba DL</a> ·
+    <a href='/admin' style='color:#F5C518'>painel</a></p></div>""")
 
 
 @app.route('/admin/reel-dlmob')
@@ -1461,7 +1523,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-06-empresa-na-fila", "ok": True}
+    return {"build": "2026-08-07-videoteca-dl", "ok": True}
 
 
 @app.route('/admin/acervo')

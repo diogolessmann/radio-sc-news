@@ -242,6 +242,11 @@ BRANDS = {
         "hashtags": ["#scootereletrica", "#nxt", "#mobilidadeeletrica", "#schroeder",
                      "#jaraguadosul", "#guaramirim", "#dlmobilidade", "#semcnh",
                      "#scooter", "#viacredi"],
+        "voz": ("Você é o social media da DL Mobilidade (scooters elétricas NXT, Schroeder/SC). "
+                "Fale como gente da região: direto, animado, sem marketês. Venda a SOLUÇÃO — "
+                "liberdade de rodar sem CNH, zero gasolina, patrimônio no lugar da despesa da "
+                "gasolina. Seja honesto: financiamento é sujeito a análise de crédito. Sem "
+                "sensacionalismo e sem prometer o que não pode."),
         "photo_based": True,   # usa FOTOS REAIS (assets/dl_scooters) com oferta por cima
         "ig_only": True,       # só Instagram (não posta no Facebook)
     },
@@ -385,22 +390,55 @@ def _dl_cta(t, photo_path, outdir, n=3):
     return p
 
 
+def _hashtags_do_dia(t):
+    """Evita postar o MESMO bloco de hashtags todo dia (sinal de spam do IG).
+    Mantém as âncoras locais fixas e rotaciona o resto por dia."""
+    import random as _r
+    tags = list(t.get("hashtags", []))
+    fixas = [x for x in tags if x in ("#schroeder", "#jaraguadosul", "#guaramirim")]
+    resto = [x for x in tags if x not in fixas]
+    _r.seed(datetime.now().timetuple().tm_yday)
+    _r.shuffle(resto)
+    return " ".join(fixas + resto[:6])
+
+
+# Legendas-base ROTATIVAS (fallback se a IA nao responder) — nunca a mesma 2 posts seguidos.
+_DL_CAP_FALLBACK = [
+    "🛴⚡ Liberdade de rodar sem CNH e sem gasolina.\nScooter elétrica NXT, do lado do despachante de 8 anos em Schroeder.",
+    "🛴 Cansou do posto? A recarga é na tomada de casa.\nScooter elétrica NXT — a economia fica no teu bolso todo mês.",
+    "⚡ Sem CNH, sem placa, sem IPVA (CONTRAN 996).\nVem conhecer a linha NXT aqui na loja, sem compromisso.",
+    "🛴 A parcela que cabe no lugar da gasolina.\nScooter elétrica NXT, até 48x pela Viacredi da nossa região.",
+]
+
+
 def _dl_caption(t, angle):
+    """Legenda da oferta de scooter — gerada na VOZ da marca e variando pelo ângulo do dia.
+    (Antes era FIXA: a mesma legenda em todo post = sinal de spam / perde alcance.)
+    Fallback: rotação de legendas-base (nunca idêntica 2 posts seguidos)."""
     ig = f"Siga {t['instagram']}\n" if t.get("instagram") else ""
-    return (
-        "🛴⚡ Scooters elétricas NXT na DL Mobilidade!\n\n"
-        "✅ Sem CNH e sem emplacamento (CONTRAN 996)\n"
-        "✅ Autonomia de 50 a 140 km por carga\n"
-        "✅ Zero gasolina — economia de verdade\n"
-        "💳 Até 24x no cartão ou 48x pela VIACREDI — exclusivo da DL!\n"
-        "🛡️ Respaldo do Grupo DL\n\n"
-        "📍 Schroeder/SC · a partir de R$ 4.990\n"
-        f"📲 Faça sua simulação no WhatsApp: {t['whats']}\n"
-        f"🌐 {t['site']}\n"
-        f"{ig}\n"
-        "*Financiamento sujeito a análise de crédito (com juros).\n\n"
-        + " ".join(t["hashtags"])
-    )
+    rodape = (f"\n📍 Schroeder/SC · a partir de R$ 4.990\n"
+              f"📲 Simule no WhatsApp: {t['whats']}\n"
+              f"🌐 {t['site']}\n{ig}"
+              "*Financiamento sujeito a análise de crédito (com juros).\n\n"
+              + _hashtags_do_dia(t))
+    try:
+        import cerebro
+        prompt = (
+            f"{t.get('voz', '')}\n\n"
+            "Escreva a legenda de UM post de Instagram (portugues BR) para a oferta de scooter "
+            "eletrica de hoje. "
+            f"ANGULO DE HOJE: {angle['badge']} — {angle['h1']} {angle['h2']} ({angle['sub']}).\n"
+            "Regras: 1a linha e um gancho curto (no max 1 emoji). Depois 3-4 linhas curtas. "
+            "Bata no angulo do dia. Termine convidando a CHAMAR NO WHATSAPP. "
+            "NAO invente preco nem modelo alem do citado. NAO use hashtags (eu adiciono depois)."
+        )
+        txt = cerebro.completar(prompt)
+        if txt:
+            return txt.strip().strip('"') + "\n" + rodape
+    except Exception:
+        pass
+    base = _DL_CAP_FALLBACK[datetime.now().timetuple().tm_yday % len(_DL_CAP_FALLBACK)]
+    return base + "\n" + rodape
 
 
 def generate_dl(brand_key, outdir=None):
@@ -532,7 +570,7 @@ def build_caption(t, item):
              f"\n🌐 {t['site']}\n\n")
     if t.get("instagram"):
         base += f"Siga {t['instagram']}\n\n"
-    base += " ".join(t["hashtags"])
+    base += _hashtags_do_dia(t)
     return base
 
 
@@ -552,7 +590,7 @@ def groq_caption(t, item):
         txt = cerebro.completar(prompt)          # Gemini -> Groq
         if txt:
             txt = txt.strip().strip('"')
-            return f"{txt}\n\n📲 WhatsApp: {t['whats']}  ·  🌐 {t['site']}\n\n" + " ".join(t["hashtags"])
+            return f"{txt}\n\n📲 WhatsApp: {t['whats']}  ·  🌐 {t['site']}\n\n" + _hashtags_do_dia(t)
     except Exception:
         pass
     return build_caption(t, item)
@@ -675,12 +713,28 @@ if __name__ == "__main__":
 def publish_reel_marca(brand_key, video_filename, caption):
     """Publica um REEL no IG da marca (vídeo já em static/social/, servido pelo site).
     Reusa o fluxo assíncrono do reels.py, mas com os TOKENS DA MARCA."""
-    import time
-    import requests as rq
     t = BRANDS[brand_key]
     token, ig_id, _ = _brand_tokens(t)
     if not (token and ig_id):
         raise RuntimeError(f"Tokens da marca ausentes ({t['env']}).")
+    return _publish_reel(token, ig_id, video_filename, caption)
+
+
+def publish_reel_dest(dest, video_filename, caption):
+    """🎞️ VIDEOTECA (7/ago, pedido do dono: 'todos os vídeos ali, eu escolho rádio ou
+    despachante, lanço quando eu quero'). dest='radio' usa os tokens da PRÓPRIA Rádio
+    (META_*); dest='desp' usa os da marca (DESP_*)."""
+    if dest == "radio":
+        if not (dist.META_PAGE_TOKEN and dist.META_IG_USER_ID):
+            raise RuntimeError("Tokens META_* da Rádio ausentes.")
+        return _publish_reel(dist.META_PAGE_TOKEN, dist.META_IG_USER_ID,
+                             video_filename, caption)
+    return publish_reel_marca("dl_mobilidade", video_filename, caption)
+
+
+def _publish_reel(token, ig_id, video_filename, caption):
+    import time
+    import requests as rq
     GRAPH = dist.GRAPH
     video_url = f"{dist.PUBLIC_BASE_URL}/static/videos/{video_filename}"
     cont = dist._graph_post(f"{GRAPH}/{ig_id}/media",
@@ -699,6 +753,50 @@ def publish_reel_marca(brand_key, video_filename, caption):
         raise RuntimeError("Reel não ficou pronto a tempo.")
     return dist._graph_post(f"{GRAPH}/{ig_id}/media_publish",
                             {"creation_id": cont, "access_token": token})
+
+
+# ── 🎞️ VIDEOTECA DL (7/ago — pedido do dono: todos os vídeos numa prateleira no admin,
+#    botão pra publicar no IG da RÁDIO ou do DESPACHANTE, manual, quando ele quiser) ──
+import os as _os
+
+VIDEOTECA_DIR = _os.path.join("static", "videos", "dlmob")
+
+
+def videoteca():
+    """Vídeos da prateleira (static/videos/dlmob), prontos pra publicar."""
+    try:
+        return sorted(f for f in _os.listdir(VIDEOTECA_DIR) if f.endswith(".mp4"))
+    except Exception:
+        return []
+
+
+_VT_MODELOS = [
+    ("akasha", "Akasha", "1000W de força, farol full LED e porte de moto grande."),
+    ("gataka", "Gataka", "a queridinha do dia a dia — confortável e estilosa."),
+    ("vega", "Vega", "leve, ágil e a mais econômica da linha."),
+    ("zilla", "Zilla", "a porta de entrada da linha NXT — pronta entrega."),
+    ("classe_b", "Scooter elétrica", "praticidade pra família inteira."),
+    ("classe_c", "Scooter elétrica", "chega de esperar ônibus — vá e volte no seu tempo."),
+    ("todas", "Linha NXT completa", "modelos pra todo perfil e bolso."),
+]
+
+
+def caption_videoteca(filename):
+    nome, pitch = "Scooter elétrica", "a mobilidade que cabe no teu bolso."
+    for chave, n, p in _VT_MODELOS:
+        if chave in filename:
+            nome, pitch = n, p
+            break
+    return (f"🛵 {nome} na DL Mobilidade — Schroeder!\n\n"
+            f"{pitch}\n\n"
+            "✅ Sem CNH e sem emplacamento (CONTRAN 996)\n"
+            "✅ Zero gasolina — recarrega na tomada de casa\n"
+            "💳 Até 48x no boleto ViaCredi · parcelas a partir de R$ 200*\n\n"
+            "🏁 TEST-RIDE GRÁTIS: vem dar uma volta antes de decidir!\n"
+            "📍 R. Mal. Castelo Branco, 2838 — Centro, Schroeder\n"
+            "📲 WhatsApp (47) 99776-6831\n\n"
+            "*sujeito a análise de crédito\n\n"
+            "#scootereletrica #Schroeder #JaraguaDoSul #ValeDoItapocu #DLMobilidade")
 
 
 REELS_DLMOB = {
