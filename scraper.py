@@ -418,11 +418,22 @@ def detect_category(text):
     return best
 
 
+# 🧽 Resíduo de scraping (fix 9/ago — auditoria jurídica): feeds WordPress terminam com
+# "The post X appeared first on FONTE." / "O post X apareceu primeiro em FONTE." — isso é
+# assinatura de cópia visível no fallback do site e nos cards da fila. Fora, sempre.
+_RODAPE_FEED = re.compile(
+    r"(The post\b.{0,300}?\bappeared first on\b[^.]{0,80}\.?|"
+    r"O post\b.{0,300}?\bapareceu primeiro em\b[^.]{0,80}\.?|"
+    r"Leia mais em[^.]{0,80}\.?)\s*$",
+    re.IGNORECASE | re.DOTALL)
+
+
 def clean_html(text):
     if not text:
         return ''
     soup = BeautifulSoup(text, 'lxml')
-    return soup.get_text(separator=' ').strip()
+    txt = soup.get_text(separator=' ').strip()
+    return _RODAPE_FEED.sub('', txt).strip()
 
 
 # Cabeçalhos de navegador real — portais regionais (ex: SchPost) devolvem 403 p/ UA de bot.
