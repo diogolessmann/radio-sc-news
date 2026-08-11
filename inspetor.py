@@ -106,7 +106,13 @@ _CHECKLIST = (
     "mas o texto chama de 'nosso/nossa', 'do Vale', 'coisa nossa', ou sugere que a pessoa/"
     "empresa/time é daqui. (Ex.: piloto italiano vencendo na Bélgica chamado de 'do Vale'.)\n"
     "7. ELOGIO A AUTORIDADE: matéria policial que elogia ou ataca a polícia/justiça "
-    "('trabalho sério da nossa polícia') em vez de só relatar.\n\n"
+    "('trabalho sério da nossa polícia') em vez de só relatar.\n"
+    "8. RISCO JURÍDICO NA IMAGEM (9/ago): a foto contém MARCA D'ÁGUA ou LOGOTIPO de outro "
+    "veículo de imprensa (G1, Globo, ND, NSC, OCP, Record, SBT, Band, MetSul...), crédito "
+    "de fotógrafo/agência QUEIMADO na própria imagem (ex.: 'Foto: Getty', '© Reuters', "
+    "'Estadão Conteúdo'), logotipo do TikTok, ou selo/frame de outra rede social. Foto "
+    "assim NÃO pode ir ao ar — é prova de cópia. (O selo da própria Radio SC News e o "
+    "crédito PEQUENO que NÓS escrevemos no rodapé do card são NOSSOS — esses são normais.)\n\n"
     "Responda APENAS JSON: {\"ok\": true} se nada grave, ou "
     "{\"ok\": false, \"problemas\": [\"<máx 12 palavras cada>\", ...]}. Problemas CURTOS.\n\n"
 )
@@ -147,7 +153,8 @@ def preflight(img_path, manchete, legenda, cidade, categoria):
 # o jornal. Ortografia/estilo continua sendo reportado à noite — mas nunca impede a publicação.
 _SO_GRAVE = ("\nCONTEXTO: este check decide SE O POST VAI AO AR. Liste problema APENAS se for "
              "grave o bastante para NAO PUBLICAR (imagem que contradiz o fato, opiniao em tema "
-             "divisivo, crime com lugar identificavel, bairrismo falso, elogio a autoridade). "
+             "divisivo, crime com lugar identificavel, bairrismo falso, elogio a autoridade, "
+             "MARCA D'AGUA/logotipo de outro veiculo ou credito de agencia queimado na foto). "
              "IGNORE o item 5 (portugues/acento) e qualquer questao de estilo ou preferencia — "
              "eles NUNCA bloqueiam. Na duvida, responda ok:true.\n")
 
