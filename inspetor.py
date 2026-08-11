@@ -146,6 +146,15 @@ def preflight(img_path, manchete, legenda, cidade, categoria):
             return v["problemas"]
     except Exception as e:
         print(f"[preflight] falhou ({e}) — liberando o post")
+        # 🧯 telemetria (11/ago): fail-open CONTADO — o VIGIA avisa no placar se o
+        # revisor passou o dia cego (Gemini fora = posts sem revisão silenciosamente)
+        try:
+            from datetime import date as _d
+            p = os.path.join("static", "social", f".saude_revisor_{_d.today().strftime('%Y%m%d')}")
+            n = int(open(p).read().strip()) if os.path.exists(p) else 0
+            open(p, "w").write(str(n + 1))
+        except Exception:
+            pass
     return None
 
 

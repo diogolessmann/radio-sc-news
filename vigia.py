@@ -197,10 +197,28 @@ def checar_dia():
         linha_img = f"\n🖼️ {usadas} imagem(ns) IA hoje (~R$ {usadas * 0.75:.2f})"
     except Exception:
         pass
+    # 🧯 saúde das IAs (11/ago): fail-open contado — cego não passa mais despercebido
+    linha_saude = ""
+    try:
+        from datetime import date as _d
+        stamp_hoje = _d.today().strftime("%Y%m%d")
+        avisos = []
+        for tipo, rotulo in (("revisor", "revisor CEGO (posts sem revisão)"),
+                             ("redator", "redator no texto reserva")):
+            p = os.path.join("static", "social", f".saude_{tipo}_{stamp_hoje}")
+            if os.path.exists(p):
+                n = int(open(p).read().strip() or 0)
+                if n >= 3:
+                    avisos.append(f"{rotulo}: {n}x hoje")
+        if avisos:
+            linha_saude = "\n🧯 ATENÇÃO: " + " · ".join(avisos) + " — confere a chave Gemini/Groq!"
+    except Exception:
+        pass
     send_zap(f"📊 VIGIA — placar do dia:\n"
              f"✅ {posts24} posts nas últimas 24h\n"
              f"🚦 {barradas24} barrada(s) pro /revisar{linha_img}"
-             + (f"\n📋 {fila} na fila de revisão" if fila else ""))
+             + (f"\n📋 {fila} na fila de revisão" if fila else "")
+             + linha_saude)
     return {"ok": True, "alerta": False, "posts": posts24, "fila": fila}
 
 

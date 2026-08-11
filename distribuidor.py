@@ -822,6 +822,19 @@ _NEUTRO_PROMPT = ("\nNEUTRALIDADE OBRIGATORIA (tema politico/divisivo): este ass
                   "por quem. Se houver debate, pode dizer que o tema divide opinioes.")
 
 
+def _conta_falha(tipo):
+    """🧯 Telemetria de saúde (11/ago): conta falha de IA do dia em arquivo — o VIGIA lê e
+    avisa no placar. Motor fail-open que falha CALADO é risco invisível."""
+    try:
+        from datetime import date as _d
+        p = os.path.join("static", "social", f".saude_{tipo}_{_d.today().strftime('%Y%m%d')}")
+        n = int(open(p).read().strip()) if os.path.exists(p) else 0
+        os.makedirs(os.path.dirname(p), exist_ok=True)
+        open(p, "w").write(str(n + 1))
+    except Exception:
+        pass
+
+
 def groq_summary(news):
     """Reescreve em ~5 linhas com pegada de rede social. HÍBRIDO: Gemini -> Groq -> local."""
     title = re.sub(r"\s+", " ", (news["title"] or "")).strip()
@@ -877,6 +890,7 @@ def groq_summary(news):
             return _limpa_sobra(r if daqui else _sem_bairrismo(r))
     except Exception as e:
         print(f"   ! IA indisponivel ({e}) — usando resumo local")
+    _conta_falha("redator")
     r = _fallback_summary(news)
     r = neutralizar_juridico(r) if sensivel else r
     r = neutralizar_opiniao(r) if divisivo else r
@@ -900,7 +914,11 @@ def flash_manchete(news):
         "abaixo como UMA CHAMADA DE CAPA estilo TikTok: no MAXIMO 2 linhas (ate ~16 palavras), "
         "que entregue a noticia COMPLETA — a pessoa le e JA SABE o que aconteceu, sem precisar de "
         "mais nada. Punchy, no tom de vizinho do Vale, com a emocao certa (celebracao na conquista, "
-        "atencao no alerta). Cite a cidade (" + cidade + ") quando fizer sentido. PROIBIDO: "
+        "atencao no alerta). Se o texto tiver NUMERO importante (mm de chuva, km/h, R$, mortos, "
+        "vagas, graus), o numero VAI NA CHAMADA — numero para o dedo. Em noticia de UTILIDADE "
+        "(previsao, prazo, regra nova), pode usar formato PERGUNTA quando cair bem "
+        "('Vai gear no Vale?') — e o que o povo digita na busca. "
+        "Cite a cidade (" + cidade + ") quando fizer sentido. PROIBIDO: "
         "inventar fato, clickbait, 'voce nao vai acreditar', as expressoes 'que orgulho' e 'boa "
         "noticia' (muletas repetidas), e mais de 1 emoji. Responda SO a chamada, sem aspas.\n\n"
         f"TITULO: {title}\nTEXTO: {body}"
