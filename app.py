@@ -1451,12 +1451,30 @@ def admin_videoteca():
         import threading
         cap = marcas.caption_videoteca(f)
 
+        def _vt_log(entrada):
+            """Registra o resultado no static/social/videoteca_log.json (últimos 20) —
+            9/ago: o dono clicou 📻 Rádio e a falha morreu calada no log do Railway.
+            Agora o resultado aparece NA PRÓPRIA página da videoteca."""
+            import json as _json
+            from datetime import datetime as _dt
+            p = os.path.join('static', 'social', 'videoteca_log.json')
+            try:
+                hist = _json.load(open(p, encoding='utf-8')) if os.path.exists(p) else []
+            except Exception:
+                hist = []
+            entrada['ts'] = _dt.now().strftime('%d/%m %H:%M')
+            hist = ([entrada] + hist)[:20]
+            os.makedirs(os.path.dirname(p), exist_ok=True)
+            _json.dump(hist, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
+
         def _job(fname=f, d=dest, c=cap):
             try:
                 r = marcas.publish_reel_dest(d, 'dlmob/' + fname, c)
                 logger.info(f"🎞️ videoteca: {fname} -> {d} ok {r}")
+                _vt_log({'arquivo': fname, 'dest': d, 'ok': True})
             except Exception as e:
                 logger.error(f"🎞️ videoteca {fname} -> {d} FALHOU: {e}")
+                _vt_log({'arquivo': fname, 'dest': d, 'ok': False, 'erro': str(e)[:300]})
                 try:
                     import vigia
                     vigia.send_zap(f"🎞️ Videoteca: falha ao publicar {fname} no "
@@ -1482,8 +1500,28 @@ def admin_videoteca():
             f"onclick=\"return confirm('Publicar no IG do DESPACHANTE agora?')\">🏛️ Despachante</a>"
             f"</td></tr>")
     corpo = "".join(linhas) or "<tr><td>nenhum vídeo em static/videos/dlmob</td></tr>"
+    # histórico das últimas publicações (sucesso E erro — nada morre calado)
+    hist_html = ''
+    try:
+        import json as _json
+        p = os.path.join('static', 'social', 'videoteca_log.json')
+        if os.path.exists(p):
+            hist = _json.load(open(p, encoding='utf-8'))[:6]
+            li = "".join(
+                f"<li style='margin:4px 0;color:{'#7fe4a5' if h.get('ok') else '#ff8a80'}'>"
+                f"{h.get('ts','')} · {h.get('arquivo','')[:38]} → "
+                f"{'📻 Rádio' if h.get('dest') == 'radio' else '🏛️ Desp'} · "
+                f"{'✅ publicado' if h.get('ok') else '❌ ' + h.get('erro', 'falhou')[:160]}</li>"
+                for h in hist)
+            if li:
+                hist_html = (f"<div style='background:#15151d;border:1px solid #23232e;border-radius:10px;"
+                             f"padding:12px 16px;margin:12px 0;font-size:13px'><b>📜 Últimas publicações</b>"
+                             f"<ul style='margin:6px 0 0;padding-left:18px'>{li}</ul></div>")
+    except Exception:
+        pass
     return (f"""<div style='font-family:sans-serif;max-width:860px;margin:36px auto;color:#eee;background:#0c0c11;padding:28px;border-radius:14px'>
     <h2>🎞️ Videoteca DL — {len(vids)} vídeos prontos</h2>
+    {hist_html}
     <p style='color:#9aa0ae'>Clica no destino e o reel sobe com legenda de venda pronta
     (48x ViaCredi · a partir de R$200* · test-ride · zap da loja). Nada é automático — tu decide o dia.</p>
     {aviso}
