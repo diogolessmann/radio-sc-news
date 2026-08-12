@@ -388,6 +388,10 @@ _SC_LONGE = re.compile(
     r"Guatambu|Capivari de Baixo|Campos Novos|Palma Sola|\bModelo\b|Fraiburgo|Curitibanos|"
     r"Herval|Ituporanga|Ta[ió][óo]\b|Orleans|Bra[çc]o do Norte|Sombrio|Maravilha|Pinhalzinho",
     re.IGNORECASE)
+# 🎯 REGRA MASTER do dono (11/ago): o jornal é DESSAS 5 CIDADES. Ponto.
+_CINCO_CIDADES = re.compile(
+    r"Jaragu[áa]|Schroeder|Guaramirim|Corup[áa]|Joinville", re.IGNORECASE)
+
 _GANCHO_NORTE = re.compile(
     r"Jaragu[áa]|Schroeder|Guaramirim|Corup[áa]|Massaranduba|Joinville|Barra Velha|"
     r"S[ãa]o Jo[ãa]o do Itaperi[úu]|Pomerode|S[ãa]o Bento do Sul|Rio Negrinho|Mafra|"
@@ -644,6 +648,14 @@ def fetch_feed(feed_config):
         # 🏠 SC-longe: cidade catarinense de longe, sem cidade nossa junto, fora clima → fora
         if category != 'clima' and _SC_LONGE.search(full_text) and not _GANCHO_NORTE.search(full_text):
             logger.info(f"🏠 SC-longe (fora do Vale): {title[:70]}")
+            continue
+
+        # 🎯 REGRA MASTER (11/ago — veredito do dono após 1 dia estudando o Insta):
+        # "notícias APENAS Schroeder · Jaraguá do Sul · Guaramirim · Corupá · Joinville."
+        # Única exceção: CLIMA (pode ser SC/Sul/Brasil — 1º lugar do Placar, todo mundo precisa).
+        # Estadual genérico, Brasil e demais cidades: NÃO entram mais, nem com selo SC.
+        if category != 'clima' and not _CINCO_CIDADES.search(full_text):
+            logger.info(f"🎯 regra master (fora das 5 cidades): {title[:70]}")
             continue
 
         articles.append({
