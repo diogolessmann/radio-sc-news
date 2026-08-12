@@ -1437,8 +1437,11 @@ def admin_despachante():
 
 
 @app.route('/admin/videoteca')
-@login_required
 def admin_videoteca():
+    # 12/ago: aceita token OU sessão (o @login_required mandava o token pro /login com 302
+    # — os testes por curl nunca executavam e a 'morte silenciosa' era miragem)
+    if request.args.get('token', '') != _admin_pw_env and not session.get('admin_logged_in'):
+        return redirect('/login')
     """🎞️ VIDEOTECA DL (7/ago): a prateleira de vídeos do dono — cada um com botão pra
     publicar como REEL no IG da RÁDIO ou do DESPACHANTE. Manual, na hora que ele quiser."""
     import marcas
