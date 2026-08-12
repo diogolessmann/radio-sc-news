@@ -26,6 +26,19 @@ logger = logging.getLogger(__name__)
 DB_PATH = os.environ.get('DB_PATH', 'radio_sc.db')
 
 RSS_FEEDS = [
+    # ── 🛰️ RADAR GOOGLE NEWS por cidade (11/ago — PROJETO HIPERLOCAL): pega QUALQUER
+    #    veículo que citar as 5 cidades, inclusive os que não temos no radar. É o
+    #    multiplicador de coleta local que a REGRA MASTER exige (cidade = 3-10 mil views).
+    {'url': 'https://news.google.com/rss/search?q=%22Jaragu%C3%A1+do+Sul%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Jaraguá do Sul', 'city': 'Jaraguá do Sul', 'category': 'geral', 'priority': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Schroeder%22+SC&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Schroeder', 'city': 'Schroeder', 'category': 'geral', 'priority': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Guaramirim%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Guaramirim', 'city': 'Guaramirim', 'category': 'geral', 'priority': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Corup%C3%A1%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Corupá', 'city': 'Corupá', 'category': 'geral', 'priority': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Joinville%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Joinville', 'city': 'Joinville', 'category': 'geral', 'priority': False},
     # ── Santa Catarina (geral) ──────────────────
     {
         'url': 'https://g1.globo.com/rss/g1/sc/',
