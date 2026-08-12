@@ -1427,11 +1427,10 @@ def admin_despachante():
       <b>🎬 Reels prontos pra publicar</b><ul>{reels_html}</ul>
       <span style='color:#888;font-size:13px'>Processamento ~1-2 min após o clique. Publica no IG do despachante (tokens DESP).</span>
     </div>
-    <div style='background:#15151d;border:2px solid #25d366;border-radius:12px;padding:16px;margin:14px 0'>
-      <b>🎞️ VIDEOTECA DL — todo o material de scooter num lugar só</b><br>
-      <span style='color:#9aa0ae'>18 vídeos editados (48x · R$200* · logo) com botão pra publicar no
-      IG da <b style='color:#ff8a80'>Rádio</b> ou do <b style='color:#25d366'>Despachante</b> — manual, quando tu quiser.</span><br>
-      <a href='/admin/videoteca' style='color:#25d366;font-weight:bold;font-size:16px'>→ ABRIR A VIDEOTECA</a>
+    <div style='background:#15151d;border:1px solid #555;border-radius:12px;padding:16px;margin:14px 0'>
+      <b>🔧 VIDEOTECA DL — em manutenção</b><br>
+      <span style='color:#9aa0ae'>Vídeos sendo re-editados um a um pelo dono. Os botões de
+      publicação voltam quando o material estiver aprovado.</span>
     </div>
     <p><a href='/admin' style='color:#F5C518'>← voltar ao painel</a></p></div>""")
 
@@ -1442,8 +1441,17 @@ def admin_videoteca():
     # — os testes por curl nunca executavam e a 'morte silenciosa' era miragem)
     if request.args.get('token', '') != _admin_pw_env and not session.get('admin_logged_in'):
         return redirect('/login')
-    """🎞️ VIDEOTECA DL (7/ago): a prateleira de vídeos do dono — cada um com botão pra
-    publicar como REEL no IG da RÁDIO ou do DESPACHANTE. Manual, na hora que ele quiser."""
+    # 🔧 EM MANUTENÇÃO (12/ago, dono: "os vídeos precisam ser arrumados, vou editar 1 a 1").
+    # Nada foi removido — os botões voltam com ?forcar=1 ou tirando este bloqueio.
+    if request.args.get('forcar') != '1':
+        return ("<div style='font-family:sans-serif;max-width:560px;margin:60px auto;color:#eee;"
+                "background:#0c0c11;padding:32px;border-radius:14px;text-align:center'>"
+                "<h2>🔧 Videoteca em manutenção</h2>"
+                "<p style='color:#9aa0ae'>Os vídeos estão sendo re-editados um a um pelo dono. "
+                "Os botões de publicação voltam quando o material estiver aprovado.</p>"
+                "<p><a href='/admin/despachante' style='color:#F5C518'>← aba DL</a></p></div>")
+    # 🎞️ VIDEOTECA DL (7/ago): a prateleira de vídeos do dono — publicar como REEL no IG
+    # da RÁDIO ou do DESPACHANTE. Manual, na hora que ele quiser.
     import marcas
     f = request.args.get('f', '')
     dest = request.args.get('dest', '')
