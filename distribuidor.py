@@ -871,7 +871,23 @@ def groq_summary(news):
         f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
     )
     sensivel = _sensivel(news)
-    if sensivel:
+    if sensivel and os.environ.get("TEASER_POLICIAL", "1").strip() != "0":
+        # 🎭 MODO TEASER (11/ago, regra do dono): sensivel/policial ENTRA, mas o Instagram
+        # só ANUNCIA que houve — sem dizer o quê. O detalhe fica no SITE (o clique é nosso).
+        # Ex.: 'Filho mata a mãe' -> 'Ocorrência em família mobiliza a polícia em Schroeder'.
+        prompt = (
+            "Voce e o editor do RadioSC News (Vale do Itapocu, Norte de SC). A noticia abaixo e "
+            "POLICIAL/SENSIVEL. Escreva uma legenda-TEASER de Instagram em portugues do Brasil:\n"
+            "1) 2 a 3 linhas SOBRIAS anunciando que HOUVE uma ocorrencia, SEM descrever o crime: "
+            "use termos genericos ('ocorrencia em familia', 'caso grave', 'ocorrencia policial', "
+            "'tragedia registrada') + a cidade + quando.\n"
+            "2) PROIBIDO: verbo grafico (mata/assassina/esfaqueia/estupra), arma, metodo, nome de "
+            "pessoa, idade da vitima, detalhe do ato. PROIBIDO opiniao e sensacionalismo.\n"
+            "3) TERMINE EXATAMENTE com a linha: '🔗 A matéria completa está no nosso site — link na bio.'\n"
+            "4) PRESUNCAO DE INOCENCIA se citar investigacao: 'suspeito', 'segundo a policia'.\n\n"
+            f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
+        )
+    elif sensivel:
         prompt += ("\nATENCAO JURIDICA (tema policial): PRESUNCAO DE INOCENCIA. Trate como SUSPEITA, "
                    "nunca afirme culpa. Use 'suspeito', 'teria', 'segundo a policia'. NAO escreva "
                    "'confessou/e o autor/culpado'. Foque no FATO, nao na pessoa. NAO cite nome de "
@@ -891,6 +907,13 @@ def groq_summary(news):
     except Exception as e:
         print(f"   ! IA indisponivel ({e}) — usando resumo local")
     _conta_falha("redator")
+    # 🎭 fresta fechada (11/ago): sensível em modo teaser NUNCA cai no resumo cru —
+    # o fallback local repetia 'mata a mãe a facadas' inteiro na legenda
+    if sensivel and os.environ.get("TEASER_POLICIAL", "1").strip() != "0":
+        r = (f"Uma ocorrência policial foi registrada em {cidade}. "
+             "A polícia acompanha o caso.\n"
+             "🔗 A matéria completa está no nosso site — link na bio.")
+        return _limpa_sobra(r)
     r = _fallback_summary(news)
     r = neutralizar_juridico(r) if sensivel else r
     r = neutralizar_opiniao(r) if divisivo else r
@@ -924,7 +947,19 @@ def flash_manchete(news):
         f"TITULO: {title}\nTEXTO: {body}"
     )
     sensivel = _sensivel(news)
-    if sensivel:
+    if sensivel and os.environ.get("TEASER_POLICIAL", "1").strip() != "0":
+        # 🎭 MODO TEASER (11/ago): a CAPA de sensivel anuncia SEM descrever — o detalhe é do site.
+        prompt = (
+            "Voce e o editor do RadioSC News (Vale do Itapocu, Norte de SC). A noticia abaixo e "
+            "POLICIAL/SENSIVEL. Escreva a CHAMADA DE CAPA em modo TEASER: no maximo 2 linhas "
+            "(~12 palavras) que ANUNCIAM que houve uma ocorrencia SEM descrever o crime — termo "
+            "generico ('Ocorrencia em familia', 'Caso grave', 'Ocorrencia policial') + cidade + "
+            "'detalhes no site'. Ex.: 'Ocorrencia em familia mobiliza a policia em Schroeder — "
+            "detalhes no site'. PROIBIDO: verbo grafico (mata/esfaqueia), arma, metodo, nome, "
+            "idade, sensacionalismo, emoji. Responda SO a chamada, sem aspas.\n\n"
+            f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
+        )
+    elif sensivel:
         prompt += ("\nATENCAO JURIDICA (tema policial): PRESUNCAO DE INOCENCIA — trate como SUSPEITA, "
                    "nunca afirme culpa. Use 'suspeito/teria/segundo a policia'. NAO escreva 'confessou/"
                    "e o autor/culpado'. Foque no FATO, nao na pessoa. NAO cite nome de pessoa comum.")
@@ -946,6 +981,10 @@ def flash_manchete(news):
                 return m
     except Exception:
         pass
+    # fallback (IA fora do ar): sensível em modo teaser NUNCA mostra o título cru —
+    # sai o teaser genérico construído na mão (a fresta que vazaria 'filho mata a mãe')
+    if sensivel and os.environ.get("TEASER_POLICIAL", "1").strip() != "0":
+        return f"Ocorrência policial registrada em {cidade} — detalhes no site"
     title = neutralizar_juridico(title) if sensivel else title   # fallback: título cru neutralizado se sensível
     return neutralizar_opiniao(title) if divisivo else title
 
