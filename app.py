@@ -1468,6 +1468,9 @@ def admin_videoteca():
             _json.dump(hist, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
 
         def _job(fname=f, d=dest, c=cap):
+            # rastro etapa a etapa (12/ago): a publicação morria CALADA — agora cada fase
+            # grava no log; se morrer, o último rastro aponta o assassino
+            _vt_log({'arquivo': fname, 'dest': d, 'ok': None, 'erro': '⏳ iniciando…'})
             try:
                 r = marcas.publish_reel_dest(d, 'dlmob/' + fname, c)
                 logger.info(f"🎞️ videoteca: {fname} -> {d} ok {r}")
@@ -1511,7 +1514,7 @@ def admin_videoteca():
                 f"<li style='margin:4px 0;color:{'#7fe4a5' if h.get('ok') else '#ff8a80'}'>"
                 f"{h.get('ts','')} · {h.get('arquivo','')[:38]} → "
                 f"{'📻 Rádio' if h.get('dest') == 'radio' else '🏛️ Desp'} · "
-                f"{'✅ publicado' if h.get('ok') else '❌ ' + h.get('erro', 'falhou')[:160]}</li>"
+                f"{'✅ publicado' if h.get('ok') else ('⏳ ' + h.get('erro','')[:80] if h.get('ok') is None else '❌ ' + h.get('erro', 'falhou')[:160])}</li>"
                 for h in hist)
             if li:
                 hist_html = (f"<div style='background:#15151d;border:1px solid #23232e;border-radius:10px;"
