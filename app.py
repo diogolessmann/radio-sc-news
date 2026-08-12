@@ -1564,7 +1564,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-07-videoteca-dl", "ok": True}
+    return {"build": "2026-08-12-hiperlocal-redondo", "ok": True}
 
 
 @app.route('/admin/acervo')
@@ -2341,6 +2341,47 @@ def revisar_descartar():
         return redirect(f"/revisar?token={request.args.get('token')}&msg=descartada")
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/admin/faxina-master')
+def admin_faxina_master():
+    """🎯 Aplica a REGRA MASTER no acervo PENDENTE (12/ago): matéria antiga — coletada
+    ANTES dos filtros — que não cita as 5 cidades e não é clima, é descartada. Não toca
+    em postadas, matérias próprias (own://) nem nas de empresa aguardando aprovação."""
+    if request.args.get('token', '') != _admin_pw_env and not session.get('admin_logged_in'):
+        return "<h3>Acesso negado</h3>", 403
+    import re as _re
+    import distribuidor
+    cinco = _re.compile(r"Jaragu[áa]|Schroeder|Guaramirim|Corup[áa]|Joinville", _re.I)
+    conn = distribuidor.get_db()
+    distribuidor.ensure_column(conn)
+    rows = conn.execute(
+        "SELECT id, title, summary, category, link, social_hold FROM news WHERE active=1 "
+        "AND (social_posted_at IS NULL OR social_posted_at='')").fetchall()
+    n = 0
+    for r in rows:
+        hold = (r['social_hold'] or '')
+        if hold.startswith(('descartada', 'dup', 'empresa')):
+            continue
+        if (r['link'] or '').startswith('own://'):
+            continue
+        if (r['category'] or '') == 'clima':
+            continue
+        if not cinco.search(f"{r['title'] or ''} {r['summary'] or ''}"):
+            conn.execute("UPDATE news SET social_hold='descartada: regra-master (acervo antigo)' "
+                         "WHERE id=?", (r['id'],))
+            n += 1
+    conn.commit()
+    restam = conn.execute(
+        "SELECT COUNT(*) FROM news WHERE active=1 AND (social_posted_at IS NULL OR "
+        "social_posted_at='') AND (social_hold IS NULL OR social_hold='')").fetchone()[0]
+    conn.close()
+    return (f"<div style='font-family:sans-serif;max-width:600px;margin:40px auto;color:#eee;"
+            f"background:#0c0c11;padding:28px;border-radius:14px'>"
+            f"<h2>🎯 Regra master aplicada no acervo</h2>"
+            f"<p>{n} matérias antigas (fora das 5 cidades) descartadas.</p>"
+            f"<p>Restam {restam} pendentes conformes na esteira.</p>"
+            f"<p><a href='/admin' style='color:#F5C518'>← painel</a></p></div>")
 
 
 @app.route('/api/pauta', methods=['GET', 'POST'])
