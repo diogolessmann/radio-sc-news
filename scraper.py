@@ -912,6 +912,20 @@ def collect_all():
         articles = fetch_feed(feed_config)
         saved = save_articles(articles)
         total += saved
+    # 🏛️ FONTES OFICIAIS (12/ago, carta branca do dono): prefeitura direto da fonte —
+    # ato oficial é livre (Art. 8º da 9.610) e vira SERVIÇO exclusivo (interdição/obra/
+    # prazo). Já vem só das 5 cidades por construção; categoria detectada aqui.
+    try:
+        import fontes_oficiais
+        oficiais = fontes_oficiais.coletar()
+        for art in oficiais:
+            art['category'] = art.get('category') or detect_category(art['title'])
+        saved = save_articles(oficiais)
+        total += saved
+        if saved:
+            logger.info(f"🏛️ fontes oficiais: {saved} novas")
+    except Exception as e:
+        logger.warning(f"🏛️ fontes oficiais falharam: {e}")
     logger.info(f"Coleta concluída. Total de novas notícias: {total}")
     # backfill gradual do texto antigo (converte a base p/ o nosso tom, um pouco por coleta)
     try:
