@@ -685,6 +685,66 @@ def _sensivel(news):
         return False
 
 
+# 🎭 Gatilho do TEASER (fix 12/ago — o dia em que o prompt vazou): a trava de FOTO é larga DE
+# PROPÓSITO (falso positivo em foto custa R$0), mas usada pro teaser ela mandou "vereadores
+# mirins" e "empreendedor de sucesso" pro modo POLICIAL — o Gemini discordou por escrito e a
+# bronca foi publicada como legenda. Teaser agora só liga com crime DE VERDADE: categoria
+# policial OU termo de crime no TÍTULO (não no corpo — corpo cita 'acidente' até em pauta de
+# calçada). A trava de foto continua larga, cada uma no seu ofício.
+_TEASER_CRIME = re.compile(
+    r"homic[ií]d|assassin|\bmat(?:ou|a)\b|feminic[ií]d|latroc[ií]n|estupr|abuso sexual|"
+    r"esfaquead|esfaque|balead|\btiros?\b|tiroteio|chacina|execu[çc]|sequestr|"
+    r"\bpres[oa]s?\b|pris[ãa]o|flagrante|apreens[ãa]o|delegacia|tr[áa]fico|traficant|"
+    r"agress[ãa]o|espanc|linchad|degolad|decapit|ossada|cad[áa]ver|"
+    r"encontrad[oa]s?\s+(?:mort|sem vida)|\bsem vida\b|"
+    # 'violência' solta NÃO entra: título de LEI/campanha usa a palavra sem haver ocorrência
+    r"golpe do pix|estelionat|\broub|assalt|\bfurt",
+    re.IGNORECASE)
+
+
+def _teaser_policial(news):
+    """True SÓ quando o modo teaser deve ligar (crime claro). Estreito de propósito."""
+    try:
+        cat = (news["category"] or "").lower()
+    except (KeyError, IndexError, TypeError):
+        cat = ""
+    if cat in ("policial", "policia", "polícia", "seguranca", "segurança"):
+        return True
+    for k in ("title_own", "title"):
+        try:
+            t = news[k]
+        except (KeyError, IndexError, TypeError):
+            t = None
+        if t and _TEASER_CRIME.search(t):
+            return True
+    return False
+
+
+# 🤖 FALA DE IA (fix 12/ago): quando o modelo discorda do prompt, ele responde coisas como
+# "Atenção: houve um equívoco... o texto refere-se a uma **notícia de empreendedorismo**" —
+# e isso foi PUBLICADO como legenda/card. Nenhuma resposta com cara de meta-conversa passa
+# mais: vira falha de IA e cai no fallback construído (que é seguro e sóbrio).
+_META_IA = re.compile(
+    r"houve um (?:erro|equ[íi]voco)|texto (?:fornecido|enviado)|t[íi]tulo e o texto|"
+    r"informa[çc][õo]es (?:enviadas|fornecidas)|no fornecimento d|"
+    r"diretrizes de|instru[çc][õo]es (?:iniciais|fornecidas|recebidas)|"
+    r"aqui est[áa] a (?:legenda|chamada|vers[ãa]o)|seu comando|formato editorial|"
+    r"n[ãa]o (?:é|se trata) de uma ocorr[êe]ncia|e n[ãa]o (?:de|a) uma ocorr[êe]ncia|"
+    r"conforme (?:as instru|solicitado)|como (?:uma )?(?:IA|intelig[êe]ncia artificial|modelo de linguagem)|"
+    r"n[ãa]o posso (?:criar|escrever|atender)|\*\*",
+    re.IGNORECASE)
+
+
+def _fala_de_ia(texto):
+    """True se a resposta é o modelo CONVERSANDO (aviso/desculpa/meta) em vez do texto pedido.
+    'Atenção:' só condena quando ABRE a resposta — no meio de previsão do tempo é legítimo."""
+    if not texto:
+        return False
+    if re.match(r"\s*(?:Aten[çc][ãa]o|Nota|Observa[çc][ãa]o|Desculp\w*)\s*[:,]", texto):
+        return True
+    return bool(_META_IA.search(texto))
+
+
 # ---------------------------------------------------------------- NEUTRALIDADE (tema divisivo)
 # 🗳️ Lição de 16/jul: o motor chamou de "Boa notícia 🙌" um PROJETO DE LEI polêmico (religião/
 # costumes) e o público reclamou nos comentários que a Rádio tomou lado. Jornal local NÃO torce
@@ -871,20 +931,30 @@ def groq_summary(news):
         f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
     )
     sensivel = _sensivel(news)
-    if sensivel and os.environ.get("TEASER_POLICIAL", "1").strip() != "0":
+    # 🎭 gatilho ESTREITO (12/ago): teaser só pra crime claro — a trava larga mandava pauta de
+    # ônibus pro modo policial, o Gemini reclamava por texto e a reclamação ia pro ar.
+    teaser = _teaser_policial(news) and os.environ.get("TEASER_POLICIAL", "1").strip() != "0"
+    if teaser:
         # 🎭 MODO TEASER (11/ago, regra do dono): sensivel/policial ENTRA, mas o Instagram
         # só ANUNCIA que houve — sem dizer o quê. O detalhe fica no SITE (o clique é nosso).
-        # Ex.: 'Filho mata a mãe' -> 'Ocorrência em família mobiliza a polícia em Schroeder'.
+        # Ex.: 'Filho mata a mãe' -> 'Ocorrencia em familia mobiliza a policia em Schroeder'.
         prompt = (
             "Voce e o editor do RadioSC News (Vale do Itapocu, Norte de SC). A noticia abaixo e "
-            "POLICIAL/SENSIVEL. Escreva uma legenda-TEASER de Instagram em portugues do Brasil:\n"
-            "1) 2 a 3 linhas SOBRIAS anunciando que HOUVE uma ocorrencia, SEM descrever o crime: "
-            "use termos genericos ('ocorrencia em familia', 'caso grave', 'ocorrencia policial', "
-            "'tragedia registrada') + a cidade + quando.\n"
+            "POLICIAL/SENSIVEL. Escreva uma legenda-TEASER de Instagram em portugues do Brasil, "
+            "no estilo do vizinho que sabe contar historia: ele CONTA O QUE rolou, mas SEGURA "
+            "os detalhes — e todo mundo corre atras do resto.\n"
+            "1) 2 a 3 linhas que digam o TIPO do acontecimento e o clima dele (tragedia em "
+            "familia, caso que chocou o bairro, situacao grave dentro de casa) + a cidade + "
+            "quando. A pessoa tem que ENTENDER que algo serio aconteceu e ficar CURIOSA — "
+            "sem voce entregar quem, como, nem o desfecho.\n"
             "2) PROIBIDO: verbo grafico (mata/assassina/esfaqueia/estupra), arma, metodo, nome de "
             "pessoa, idade da vitima, detalhe do ato. PROIBIDO opiniao e sensacionalismo.\n"
             "3) TERMINE EXATAMENTE com a linha: '🔗 A matéria completa está no nosso site — link na bio.'\n"
-            "4) PRESUNCAO DE INOCENCIA se citar investigacao: 'suspeito', 'segundo a policia'.\n\n"
+            "4) PRESUNCAO DE INOCENCIA se citar investigacao: 'suspeito', 'segundo a policia'.\n"
+            "5) Sua resposta vai DIRETO pro ar, sem revisao humana. Se o texto NAO parecer "
+            "policial, NAO comente, NAO avise, NAO explique: escreva a legenda sobria do fato e "
+            "pronto. PROIBIDO abrir com 'Atencao', citar estas instrucoes ou dizer que houve "
+            "erro/equivoco. PROIBIDO inventar ligacao com a regiao que nao esteja no texto.\n\n"
             f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
         )
     elif sensivel:
@@ -898,6 +968,11 @@ def groq_summary(news):
     try:
         import cerebro
         txt = cerebro.completar(prompt)          # Gemini -> Groq
+        # 🤖 fix 12/ago ("vazou o prompt"): resposta que CONVERSA em vez de escrever a
+        # legenda ('Atencao: houve um equivoco...') é lixo — cai no fallback construído.
+        if txt and _fala_de_ia(txt):
+            print(f"   🤖 IA comentou o prompt em vez de escrever — descartei: {txt[:80]!r}")
+            txt = None
         if txt:
             r = txt.strip('"').strip() or _fallback_summary(news)
             r = neutralizar_juridico(r) if sensivel else r
@@ -909,7 +984,7 @@ def groq_summary(news):
     _conta_falha("redator")
     # 🎭 fresta fechada (11/ago): sensível em modo teaser NUNCA cai no resumo cru —
     # o fallback local repetia 'mata a mãe a facadas' inteiro na legenda
-    if sensivel and os.environ.get("TEASER_POLICIAL", "1").strip() != "0":
+    if teaser:
         r = (f"Uma ocorrência policial foi registrada em {cidade}. "
              "A polícia acompanha o caso.\n"
              "🔗 A matéria completa está no nosso site — link na bio.")
@@ -949,16 +1024,22 @@ def flash_manchete(news):
         f"TITULO: {title}\nTEXTO: {body}"
     )
     sensivel = _sensivel(news)
-    if sensivel and os.environ.get("TEASER_POLICIAL", "1").strip() != "0":
+    # 🎭 gatilho ESTREITO (12/ago): mesmo motivo da legenda — teaser só pra crime claro.
+    teaser = _teaser_policial(news) and os.environ.get("TEASER_POLICIAL", "1").strip() != "0"
+    if teaser:
         # 🎭 MODO TEASER (11/ago): a CAPA de sensivel anuncia SEM descrever — o detalhe é do site.
         prompt = (
             "Voce e o editor do RadioSC News (Vale do Itapocu, Norte de SC). A noticia abaixo e "
-            "POLICIAL/SENSIVEL. Escreva a CHAMADA DE CAPA em modo TEASER: no maximo 2 linhas "
-            "(~12 palavras) que ANUNCIAM que houve uma ocorrencia SEM descrever o crime — termo "
-            "generico ('Ocorrencia em familia', 'Caso grave', 'Ocorrencia policial') + cidade + "
-            "'detalhes no site'. Ex.: 'Ocorrencia em familia mobiliza a policia em Schroeder — "
-            "detalhes no site'. PROIBIDO: verbo grafico (mata/esfaqueia), arma, metodo, nome, "
-            "idade, sensacionalismo, emoji. Responda SO a chamada, sem aspas.\n\n"
+            "POLICIAL/SENSIVEL. Escreva a CHAMADA DE CAPA em modo TEASER — o estilo do vizinho "
+            "que conta O QUE rolou mas segura os detalhes: no maximo 2 linhas (~12 palavras) "
+            "que digam o TIPO do acontecimento (tragedia em familia, caso que chocou o bairro, "
+            "situacao grave) + cidade + 'detalhes no site'. Ex.: 'Tragedia em familia mobiliza "
+            "a policia em Schroeder — detalhes no site'. A pessoa entende que foi serio e fica "
+            "curiosa; quem entrega o resto e o site. PROIBIDO: verbo grafico (mata/esfaqueia), "
+            "arma, metodo, nome, idade, sensacionalismo, emoji. PROIBIDO inventar ligacao com a "
+            "regiao que nao esteja no texto. Sua resposta vai DIRETO pro ar: se o texto NAO "
+            "parecer policial, NAO comente nem avise — escreva a chamada normal do fato. "
+            "Responda SO a chamada, sem aspas.\n\n"
             f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
         )
     elif sensivel:
@@ -971,6 +1052,10 @@ def flash_manchete(news):
     try:
         import cerebro
         m = (cerebro.completar(prompt) or "").strip().strip('"').strip()
+        # 🤖 fix 12/ago ("vazou o prompt"): IA que comenta em vez de escrever = resposta fora
+        if m and _fala_de_ia(m):
+            print(f"   🤖 IA comentou o prompt na CAPA — descartei: {m[:80]!r}")
+            m = ""
         m = re.sub(r"#\S+", "", m)              # capa não é lugar de hashtag
         m = re.sub(r"\s+", " ", m).strip()
         if m and len(m) <= 160:        # guarda-corpo: descarta resposta longa/estranha
@@ -985,7 +1070,7 @@ def flash_manchete(news):
         pass
     # fallback (IA fora do ar): sensível em modo teaser NUNCA mostra o título cru —
     # sai o teaser genérico construído na mão (a fresta que vazaria 'filho mata a mãe')
-    if sensivel and os.environ.get("TEASER_POLICIAL", "1").strip() != "0":
+    if teaser:
         return f"Ocorrência policial registrada em {cidade} — detalhes no site"
     title = neutralizar_juridico(title) if sensivel else title   # fallback: título cru neutralizado se sensível
     return neutralizar_opiniao(title) if divisivo else title
