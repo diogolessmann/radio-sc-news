@@ -623,6 +623,17 @@ def slide_cover(news, outdir, manchete=None):
         except Exception:
             pass
     if bg:
+        # 🔁 ESPELHO DO ARSENAL (12/ago, pedido do dono): id par sai normal, id ímpar sai
+        # invertida — dobra o repertório percebido das ilustrativas/IA sem gastar um centavo.
+        # SÓ nas ilustrativas (arsenal/acervo IA/Pexels): foto real, landmark próprio e Street
+        # View NUNCA espelham — placa/fachada ao contrário entrega o truque pro morador.
+        if (ilustrativa or arte_ia) and not foto_credito:
+            try:
+                if int(news["id"]) % 2 == 1:
+                    from PIL import ImageOps
+                    bg = ImageOps.mirror(bg)
+            except (KeyError, IndexError, TypeError, ValueError):
+                pass
         canvas = gradient_overlay(bg)
     else:
         canvas = brand_card_bg()   # card de marca (gradiente sóbrio) — melhor que foto errada
