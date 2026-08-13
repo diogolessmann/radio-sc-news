@@ -3,7 +3,9 @@ scraper.py — Coleta automática de notícias via RSS
 Rádio SC News
 """
 import feedparser
+import json
 import requests
+from urllib.parse import quote
 from bs4 import BeautifulSoup
 from datetime import datetime
 import sqlite3
@@ -559,6 +561,43 @@ def fetch_article_text(link, min_total=180, max_total=1400):
 MAX_NEWS_AGE_DIAS = int(os.environ.get("MAX_NEWS_AGE_DIAS", "3") or 3)
 
 
+_UA_NAV = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0 Safari/537.36"}
+
+
+def _resolve_gnews(link):
+    """🛰️ Destrava a URL REAL por trás de news.google.com/rss/articles/... (fix 12/ago).
+
+    Sem isso o Radar salvava o link do GOOGLE: o corpo da matéria vinha errado/misturado
+    (fetch_article_text batia na página do Google), a foto vinha do CDN do Google FURANDO
+    o bloqueio de imagem regional (_image_blocked checa o link — e o link era google.com),
+    e o dedup com o feed direto da mesma fonte não casava. Método do googlenewsdecoder:
+    página do artigo -> assinatura/timestamp -> API batchexecute. Fail-open (devolve o
+    link original se qualquer etapa falhar)."""
+    try:
+        m = re.search(r"/articles/([^?/]+)", link)
+        if not m:
+            return link
+        art_id = m.group(1)
+        pg = requests.get(f"https://news.google.com/articles/{art_id}",
+                          headers=_UA_NAV, timeout=15).text
+        sg = re.search(r'data-n-a-sg="([^"]*)"', pg).group(1)
+        ts = re.search(r'data-n-a-ts="([^"]*)"', pg).group(1)
+        payload = ["Fbv4je",
+                   f'["garturlreq",[["X","X",["X","X"],null,null,1,1,"US:en",null,1,'
+                   f'null,null,null,null,null,0,1],"X","X",1,[1,1,1],1,1,null,0,0,null,0],'
+                   f'"{art_id}",{ts},"{sg}"]']
+        r = requests.post("https://news.google.com/_/DotsSplashUi/data/batchexecute",
+                          headers={"content-type": "application/x-www-form-urlencoded;charset=UTF-8",
+                                   **_UA_NAV},
+                          data="f.req=" + quote(json.dumps([[payload]])), timeout=15)
+        real = json.loads(json.loads(r.text.split("\n\n")[1])[:-2][0][2])[1]
+        if real and isinstance(real, str) and real.startswith("http"):
+            return real
+    except Exception as e:
+        logger.info(f"🛰️ radar: não destravei a URL real ({type(e).__name__}) — mantive o link do Google")
+    return link
+
+
 def fetch_feed(feed_config):
     """Coleta notícias de um feed RSS."""
     url = feed_config['url']
@@ -671,11 +710,28 @@ def fetch_feed(feed_config):
             logger.info(f"🎯 regra master (fora das 5 cidades): {title[:70]}")
             continue
 
+        # 🛰️ RADAR (12/ago): item do Google News chega com link do GOOGLE, '- Fonte' colada
+        # no título e descrição-lixo (âncora pro próprio Google). Aqui — DEPOIS dos filtros,
+        # pra não gastar requisição com item barrado — destrava a URL real, assume a fonte
+        # verdadeira e zera o resumo (o corpo REAL vem no save_articles via o link real).
+        # Com o link real, o bloqueio de imagem regional e o dedup voltam a funcionar.
+        source_name = feed_config['source']
+        if 'news.google.com' in link:
+            real = _resolve_gnews(link)
+            if real != link:
+                link = real
+                partes = title.rsplit(' - ', 1)
+                if len(partes) == 2 and 0 < len(partes[1].strip()) <= 40:
+                    title, source_name = partes[0].strip(), partes[1].strip()
+                summary = ''
+                if image_url and _image_blocked(link, source_name):
+                    image_url = None
+
         articles.append({
             'title': title[:500],
             'summary': summary[:2000],
             'link': link,
-            'source': feed_config['source'],
+            'source': source_name,
             'city': city,
             'category': category,
             'published_at': published,
