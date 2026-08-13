@@ -692,13 +692,22 @@ def _sensivel(news):
 # policial OU termo de crime no TÍTULO (não no corpo — corpo cita 'acidente' até em pauta de
 # calçada). A trava de foto continua larga, cada uma no seu ofício.
 _TEASER_CRIME = re.compile(
+    # crime
     r"homic[ií]d|assassin|\bmat(?:ou|a)\b|feminic[ií]d|latroc[ií]n|estupr|abuso sexual|"
     r"esfaquead|esfaque|balead|\btiros?\b|tiroteio|chacina|execu[çc]|sequestr|"
     r"\bpres[oa]s?\b|pris[ãa]o|flagrante|apreens[ãa]o|delegacia|tr[áa]fico|traficant|"
     r"agress[ãa]o|espanc|linchad|degolad|decapit|ossada|cad[áa]ver|"
     r"encontrad[oa]s?\s+(?:mort|sem vida)|\bsem vida\b|"
     # 'violência' solta NÃO entra: título de LEI/campanha usa a palavra sem haver ocorrência
-    r"golpe do pix|estelionat|\broub|assalt|\bfurt",
+    r"golpe do pix|estelionat|\broub|assalt|\bfurt|"
+    # regra completa do dono (12/ago): bombeiro/acidente/tragédia = HYPE, entra em teaser tbm.
+    # 'queda' só com complemento físico ('queda na produção' NÃO é ocorrência); 'bombeir'
+    # entra porque no TÍTULO quase sempre é atendimento (campanha de doação é exceção rara —
+    # e o prompt manda escrever legenda normal quando não parecer ocorrência).
+    r"acidente|colis[ãa]o|atropel|capot|engavet|bombeir|inc[êe]ndi|afogad|afogament|"
+    r"soterr|desmoron|deslizament|resgat|naufrag|desaparecid|carboniz|"
+    r"queda de (?:avi[ãa]o|aeronave|helic[óo]ptero|muro|[áa]rvore|barranco|laje|ponte)|"
+    r"aeronave|helic[óo]ptero|tromba d'?[áa]gua",
     re.IGNORECASE)
 
 
@@ -940,21 +949,22 @@ def groq_summary(news):
         # Ex.: 'Filho mata a mãe' -> 'Ocorrencia em familia mobiliza a policia em Schroeder'.
         prompt = (
             "Voce e o editor do RadioSC News (Vale do Itapocu, Norte de SC). A noticia abaixo e "
-            "POLICIAL/SENSIVEL. Escreva uma legenda-TEASER de Instagram em portugues do Brasil, "
-            "no estilo do vizinho que sabe contar historia: ele CONTA O QUE rolou, mas SEGURA "
-            "os detalhes — e todo mundo corre atras do resto.\n"
+            "uma OCORRENCIA (policial, acidente, resgate/bombeiros ou caso que da falatorio). "
+            "Escreva uma legenda-TEASER de Instagram em portugues do Brasil, no estilo do "
+            "vizinho que sabe contar historia: ele CONTA O QUE rolou, mas SEGURA os detalhes — "
+            "e todo mundo corre atras do resto.\n"
             "1) 2 a 3 linhas que digam o TIPO do acontecimento e o clima dele (tragedia em "
-            "familia, caso que chocou o bairro, situacao grave dentro de casa) + a cidade + "
-            "quando. A pessoa tem que ENTENDER que algo serio aconteceu e ficar CURIOSA — "
-            "sem voce entregar quem, como, nem o desfecho.\n"
+            "familia, acidente grave na rodovia, caso que chocou o bairro, situacao que mobilizou "
+            "os bombeiros) + a cidade + quando. A pessoa tem que ENTENDER que algo aconteceu e "
+            "ficar CURIOSA — sem voce entregar quem, como, nem o desfecho.\n"
             "2) PROIBIDO: verbo grafico (mata/assassina/esfaqueia/estupra), arma, metodo, nome de "
             "pessoa, idade da vitima, detalhe do ato. PROIBIDO opiniao e sensacionalismo.\n"
             "3) TERMINE EXATAMENTE com a linha: '🔗 A matéria completa está no nosso site — link na bio.'\n"
             "4) PRESUNCAO DE INOCENCIA se citar investigacao: 'suspeito', 'segundo a policia'.\n"
             "5) Sua resposta vai DIRETO pro ar, sem revisao humana. Se o texto NAO parecer "
-            "policial, NAO comente, NAO avise, NAO explique: escreva a legenda sobria do fato e "
-            "pronto. PROIBIDO abrir com 'Atencao', citar estas instrucoes ou dizer que houve "
-            "erro/equivoco. PROIBIDO inventar ligacao com a regiao que nao esteja no texto.\n\n"
+            "uma ocorrencia, NAO comente, NAO avise, NAO explique: escreva a legenda sobria do "
+            "fato e pronto. PROIBIDO abrir com 'Atencao', citar estas instrucoes ou dizer que "
+            "houve erro/equivoco. PROIBIDO inventar ligacao com a regiao que nao esteja no texto.\n\n"
             f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
         )
     elif sensivel:
@@ -1030,15 +1040,16 @@ def flash_manchete(news):
         # 🎭 MODO TEASER (11/ago): a CAPA de sensivel anuncia SEM descrever — o detalhe é do site.
         prompt = (
             "Voce e o editor do RadioSC News (Vale do Itapocu, Norte de SC). A noticia abaixo e "
-            "POLICIAL/SENSIVEL. Escreva a CHAMADA DE CAPA em modo TEASER — o estilo do vizinho "
+            "uma OCORRENCIA (policial, acidente, resgate/bombeiros ou caso que da falatorio). "
+            "Escreva a CHAMADA DE CAPA em modo TEASER — o estilo do vizinho "
             "que conta O QUE rolou mas segura os detalhes: no maximo 2 linhas (~12 palavras) "
-            "que digam o TIPO do acontecimento (tragedia em familia, caso que chocou o bairro, "
-            "situacao grave) + cidade + 'detalhes no site'. Ex.: 'Tragedia em familia mobiliza "
-            "a policia em Schroeder — detalhes no site'. A pessoa entende que foi serio e fica "
-            "curiosa; quem entrega o resto e o site. PROIBIDO: verbo grafico (mata/esfaqueia), "
+            "que digam o TIPO do acontecimento (tragedia em familia, acidente grave na rodovia, "
+            "caso que chocou o bairro) + cidade + 'detalhes no site'. Ex.: 'Tragedia em familia "
+            "mobiliza a policia em Schroeder — detalhes no site'. A pessoa entende que foi serio "
+            "e fica curiosa; quem entrega o resto e o site. PROIBIDO: verbo grafico (mata/esfaqueia), "
             "arma, metodo, nome, idade, sensacionalismo, emoji. PROIBIDO inventar ligacao com a "
             "regiao que nao esteja no texto. Sua resposta vai DIRETO pro ar: se o texto NAO "
-            "parecer policial, NAO comente nem avise — escreva a chamada normal do fato. "
+            "parecer uma ocorrencia, NAO comente nem avise — escreva a chamada normal do fato. "
             "Responda SO a chamada, sem aspas.\n\n"
             f"CIDADE: {cidade}\nTITULO: {title}\nTEXTO: {body}"
         )
