@@ -41,6 +41,18 @@ RSS_FEEDS = [
      'source': 'Radar Corupá', 'city': 'Corupá', 'category': 'geral', 'priority': True},
     {'url': 'https://news.google.com/rss/search?q=%22Joinville%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
      'source': 'Radar Joinville', 'city': 'Joinville', 'category': 'geral', 'priority': False},
+    # 🚧 RADAR BR-280 (13/ago) — a novela diária do Vale: obra, interdição, acidente, fila.
+    #    A rodovia corta Corupá-Jaraguá-Guaramirim; regra master deixa passar só o trecho nosso.
+    {'url': 'https://news.google.com/rss/search?q=%22BR-280%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar BR-280', 'city': None, 'category': 'geral', 'priority': True},
+    # 🚨 RADAR POLICIAL/BOMBEIROS por cidade (13/ago, aprovado: alimentar o teaser) — ocorrência
+    #    que qualquer blog cobrir, a gente fica sabendo. Categoria fixa: policial (modo teaser).
+    {'url': 'https://news.google.com/rss/search?q=pol%C3%ADcia+%22Jaragu%C3%A1+do+Sul%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Policial Jaraguá', 'city': 'Jaraguá do Sul', 'category': 'policial', 'priority': True,
+     'max_entries': 8},
+    {'url': 'https://news.google.com/rss/search?q=bombeiros+%22Jaragu%C3%A1+do+Sul%22+OR+%22Guaramirim%22+OR+%22Schroeder%22+OR+%22Corup%C3%A1%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Bombeiros Vale', 'city': None, 'category': 'policial', 'priority': True,
+     'max_entries': 8},
     # ── Santa Catarina (geral) ──────────────────
     {
         'url': 'https://g1.globo.com/rss/g1/sc/',
@@ -292,6 +304,14 @@ CATEGORY_KEYWORDS = {
     'economia': ['emprego', 'empresa', 'mercado', 'economia', 'negócio', 'indústria', 'comércio', 'renda'],
     'clima': ['chuva', 'temporal', 'vento', 'frio', 'calor', 'enchente', 'clima', 'previsão do tempo'],
     'cultura': ['evento', 'festa', 'show', 'cultura', 'música', 'teatro', 'exposição', 'festival'],
+    # 🚧 TRÂNSITO (13/ago, ordem do dono: "o buraco que os vizinhos têm e nós não") — a novela
+    # diária da BR-280. Obra/fluxo/interdição é TRÂNSITO; acidente com vítima segue POLICIAL
+    # (o detect escolhe por MAIS acertos, e acidente puxa termos policiais junto).
+    'transito': ['trânsito', 'transito', 'br-280', 'br 280', 'sc-108', 'sc-416', 'rodovia',
+                 'interdição', 'interditada', 'interditado', 'desvio', 'duplicação', 'pedágio',
+                 'congestionamento', 'fila de veículos', 'obras na pista', 'pista', 'viaduto',
+                 'ponte', 'asfalto', 'pavimentação', 'semáforo', 'rotatória', 'binário',
+                 'faixa de pedestre', 'estacionamento rotativo', 'detran', 'radar de velocidade'],
 }
 
 

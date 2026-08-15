@@ -110,6 +110,7 @@ CAT_LABEL = {
     "policial": "POLICIAL", "politica": "POLITICA", "saude": "SAUDE",
     "esporte": "ESPORTE", "economia": "ECONOMIA", "clima": "CLIMA",
     "cultura": "CULTURA", "local": "LOCAL", "geral": "GERAL",
+    "transito": "TRÂNSITO",   # 🚧 13/ago — a novela diária da BR-280
 }
 
 
