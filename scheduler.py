@@ -628,14 +628,18 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
-    # 🗣️ COMUNIDADE — franquia "Diz Aí, Vale" (pergunta da semana) toda quarta 18h. Puxa comentário.
-    _scheduler.add_job(
-        func=comunidade_job,
-        trigger=CronTrigger(day_of_week='wed', hour=18, minute=0, timezone='America/Sao_Paulo'),
-        id='comunidade_diz_ai',
-        name='Comunidade: Diz Aí, Vale (pergunta semanal, quarta 18h)',
-        replace_existing=True
-    )
+    # 🗣️ COMUNIDADE "Diz Aí, Vale" — ☠️ DESLIGADA (12/ago, ordem do dono: "interação que não
+    # funciona, precisa sumir"). Pergunta genérica em card preto fez 146 views e ZERO resposta —
+    # engajamento não se pede, se conquista com pauta (clima/serviço/nostalgia). O módulo
+    # comunidade.py fica no repo caso um dia volte com formato melhor (ex.: enquete de STORY,
+    # que tem botão nativo). Pra religar: descomentar o add_job.
+    # _scheduler.add_job(
+    #     func=comunidade_job,
+    #     trigger=CronTrigger(day_of_week='wed', hour=18, minute=0, timezone='America/Sao_Paulo'),
+    #     id='comunidade_diz_ai',
+    #     name='Comunidade: Diz Aí, Vale (pergunta semanal, quarta 18h)',
+    #     replace_existing=True
+    # )
 
     # 💙 PUBLIPOST — parceiro da semana (produto pago) toda sexta 19h. Pula sozinho se não há parceiro.
     _scheduler.add_job(
