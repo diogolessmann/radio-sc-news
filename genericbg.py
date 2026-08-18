@@ -155,11 +155,37 @@ _CATEGORIA = {
 }
 
 
+# 🗑️ APOSENTADORIA (18/ago — aba Arsenal do admin): imagem de repo não some com delete
+# (o deploy ressuscita), então o dono aposenta pelo painel e o nome entra nesta lista no
+# VOLUME. _file() pula aposentadas na hora de sortear.
+_APOSENTADAS_PATH = os.path.join(
+    _VOL if _VOL else os.path.dirname(os.path.abspath(__file__)), "arsenal_aposentadas.json")
+
+
+def aposentadas():
+    try:
+        import json
+        with open(_APOSENTADAS_PATH, encoding="utf-8") as f:
+            return set(json.load(f))
+    except Exception:
+        return set()
+
+
+def aposentar(nome, voltar=False):
+    import json
+    s = aposentadas()
+    (s.discard if voltar else s.add)(nome)
+    with open(_APOSENTADAS_PATH, "w", encoding="utf-8") as f:
+        json.dump(sorted(s), f)
+    return s
+
+
 def _file(slug, seed=0):
     """Acha <slug>.<ext> (+ rotação <slug>-1, <slug>-2...) no arsenal fixo (static/bg) E no
-    acervo IA (volume). Rotaciona pela seed. None se não há em lugar nenhum."""
+    acervo IA (volume). Pula APOSENTADAS. Rotaciona pela seed. None se não há em lugar nenhum."""
     if not slug:
         return None
+    fora = aposentadas()
     cands = []
     for root in (BG_DIR, IA_BG_DIR):
         if not os.path.isdir(root):
@@ -176,9 +202,48 @@ def _file(slug, seed=0):
                     i += 1
                 else:
                     break
+    cands = [c for c in cands if os.path.basename(c) not in fora]
     if not cands:
         return None
     return cands[seed % len(cands)]
+
+
+def listar_arsenal():
+    """Inventário completo pro painel: [{nome, slug, origem, aposentada}] agrupável por slug."""
+    fora = aposentadas()
+    itens = []
+    for root, origem in ((BG_DIR, "repo"), (IA_BG_DIR, "acervo")):
+        if not os.path.isdir(root):
+            continue
+        for f in sorted(os.listdir(root)):
+            if not f.lower().endswith(EXTS):
+                continue
+            m = re.match(r"(.+?)(?:-\d+)?\.[a-z]+$", f, re.I)
+            itens.append({"nome": f, "slug": m.group(1) if m else f,
+                          "origem": origem, "aposentada": f in fora})
+    return itens
+
+
+def guardar_no_acervo(slug, stream):
+    """Upload do painel: recorta pra 4:5 (1080x1350) e salva no acervo IA (volume) com o
+    próximo nome CONTÍGUO do root (slug.jpg, depois slug-1.jpg...) — a busca para no buraco."""
+    from PIL import Image, ImageOps
+    os.makedirs(IA_BG_DIR, exist_ok=True)
+    im = ImageOps.exif_transpose(Image.open(stream)).convert("RGB")
+    w, h = im.size
+    alvo = 4 / 5
+    if w / h > alvo:
+        nw = int(h * alvo); x = (w - nw) // 2; im = im.crop((x, 0, x + nw, h))
+    else:
+        nh = int(w / alvo); y = (h - nh) // 2; im = im.crop((0, y, w, y + nh))
+    im = im.resize((1080, 1350), Image.LANCZOS)
+    destino = os.path.join(IA_BG_DIR, f"{slug}.jpg")
+    i = 1
+    while os.path.exists(destino):
+        destino = os.path.join(IA_BG_DIR, f"{slug}-{i}.jpg")
+        i += 1
+    im.save(destino, "JPEG", quality=88, optimize=True)
+    return os.path.basename(destino)
 
 
 def _situacao_slug(title):

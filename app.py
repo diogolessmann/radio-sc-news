@@ -1630,6 +1630,115 @@ def admin_midiateca_excluir():
     return redirect('/admin/midiateca?token=%s&ok=excluido: %s' % (tok, arquivo))
 
 
+@app.route('/bg-acervo/<path:arquivo>')
+def bg_acervo_file(arquivo):
+    """Serve o acervo IA do arsenal (volume)."""
+    import genericbg as gb
+    if '..' in arquivo:
+        abort(404)
+    return send_from_directory(gb.IA_BG_DIR, arquivo)
+
+
+@app.route('/admin/arsenal')
+def admin_arsenal():
+    """🎨 ABA ARSENAL (18/ago, pedido do dono: 'ver o que tem, adicionar, remover').
+    Todos os fundos de card por SITUAÇÃO; aposentar tira do sorteio (volume, sobrevive a
+    deploy); upload recorta pra 4:5 e entra no acervo na hora."""
+    if not _midia_auth():
+        return redirect('/login')
+    import genericbg as gb
+    tok = request.args.get('token', '')
+    aviso = request.args.get('ok', '')
+    itens = gb.listar_arsenal()
+    grupos = {}
+    for it in itens:
+        grupos.setdefault(it['slug'], []).append(it)
+    slugs = sorted(grupos)
+
+    blocos = []
+    for slug in slugs:
+        cards = []
+        for it in grupos[slug]:
+            url = ('/static/bg/' + it['nome']) if it['origem'] == 'repo' else ('/bg-acervo/' + it['nome'])
+            acao = 'voltar' if it['aposentada'] else 'aposentar'
+            rotulo = '↩️ Voltar' if it['aposentada'] else '🗑️ Aposentar'
+            estilo_img = "width:100%;border-radius:9px;aspect-ratio:4/5;object-fit:cover" +                          (";opacity:.25;filter:grayscale(1)" if it['aposentada'] else "")
+            cards.append(
+                "<div style='width:132px'>"
+                "<img src='%s' loading='lazy' style='%s'>"
+                "<div style='font-size:10.5px;color:#889;word-break:break-all'>%s%s</div>"
+                "<form method='post' action='/admin/arsenal/acao'>"
+                "<input type='hidden' name='token' value='%s'><input type='hidden' name='nome' value='%s'>"
+                "<button name='acao' value='%s' style='background:none;border:1px solid #444;color:#ccc;"
+                "border-radius:99px;padding:3px 10px;font-size:11px;cursor:pointer;margin-top:3px'>%s</button>"
+                "</form></div>"
+                % (url, estilo_img, it['nome'],
+                   (" <span style=\"color:#667\">(%s)</span>" % it['origem']) if it['origem'] != 'repo' else '',
+                   tok, it['nome'], acao, rotulo))
+        blocos.append(
+            "<h3 style='margin:22px 0 8px;color:#F5C518;font-size:15px'>%s "
+            "<span style='color:#667;font-size:12px'>(%d)</span></h3>"
+            "<div style='display:flex;flex-wrap:wrap;gap:10px'>%s</div>" % (slug, len(grupos[slug]), ''.join(cards)))
+
+    opcoes = ''.join("<option>%s</option>" % s for s in slugs)
+    aviso_html = ("<div style='background:#132;border:1px solid #2a5;color:#8f8;border-radius:10px;"
+                  "padding:10px'>%s</div>" % aviso) if aviso else ''
+    return ("<!doctype html><meta charset='utf-8'>"
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            "<title>Arsenal de fundos</title>"
+            "<body style='font-family:system-ui,sans-serif;background:#0c0c11;color:#eee;margin:0;padding:20px'>"
+            "<div style='max-width:1100px;margin:0 auto'>"
+            "<h2>🎨 ARSENAL — fundos dos cards por situação</h2>"
+            "<p style='color:#9aa0ae'>O sorteio usa tudo que está ATIVO (repo + acervo). Aposentar tira do "
+            "sorteio na hora (e sobrevive a deploy); voltar reativa. Upload recorta pra 4:5 sozinho.</p>"
+            "%s"
+            "<div style='background:#15151d;border:1px solid #2a2a35;border-radius:14px;padding:14px;margin:12px 0'>"
+            "<b>⬆️ Nova imagem</b>"
+            "<form method='post' action='/admin/arsenal/upload' enctype='multipart/form-data' "
+            "style='margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;align-items:center'>"
+            "<input type='hidden' name='token' value='%s'>"
+            "<select name='slug' style='background:#0c0c11;color:#dde;border:1px solid #333;border-radius:8px;"
+            "padding:7px'>%s</select>"
+            "<input list='slugs-novos' name='slug_novo' placeholder='ou situação NOVA (ex.: enchente)' "
+            "style='background:#0c0c11;color:#dde;border:1px solid #333;border-radius:8px;padding:7px'>"
+            "<input type='file' name='arquivo' accept='image/jpeg,image/png,image/webp' required style='color:#dde'>"
+            "<button style='background:#F5C518;color:#000;font-weight:bold;border:0;border-radius:99px;"
+            "padding:8px 18px;cursor:pointer'>Enviar</button></form>"
+            "<span style='color:#667;font-size:12px'>Sem texto legível, sem marca d'água, sem rosto — o olho "
+            "jurídico agradece.</span></div>"
+            "%s"
+            "<p style='margin-top:18px'><a href='/admin' style='color:#F5C518'>← painel</a> · "
+            "<a href='/admin/midiateca' style='color:#F5C518'>🗂️ Midiateca</a></p></div></body>"
+            ) % (aviso_html, tok, opcoes, ''.join(blocos))
+
+
+@app.route('/admin/arsenal/acao', methods=['POST'])
+def admin_arsenal_acao():
+    if not _midia_auth():
+        return redirect('/login')
+    import genericbg as gb
+    nome = request.form.get('nome', '')
+    acao = request.form.get('acao', '')
+    tok = request.form.get('token', '')
+    gb.aposentar(nome, voltar=(acao == 'voltar'))
+    return redirect('/admin/arsenal?token=%s&ok=%s: %s' % (tok, acao, nome))
+
+
+@app.route('/admin/arsenal/upload', methods=['POST'])
+def admin_arsenal_upload():
+    if not _midia_auth():
+        return redirect('/login')
+    import genericbg as gb
+    tok = request.form.get('token', '')
+    slug = (request.form.get('slug_novo') or request.form.get('slug') or '').strip().lower()
+    slug = re.sub(r'[^a-z0-9_]+', '_', slug).strip('_')
+    f = request.files.get('arquivo')
+    if not (slug and f):
+        return redirect('/admin/arsenal?token=%s&ok=faltou situação ou arquivo' % tok)
+    nome = gb.guardar_no_acervo(slug, f.stream)
+    return redirect('/admin/arsenal?token=%s&ok=⬆️ %s no acervo (entra no sorteio já)' % (tok, nome))
+
+
 @app.route('/admin/midiateca/publicar', methods=['POST'])
 def admin_midiateca_publicar():
     if not _midia_auth():
@@ -1683,7 +1792,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-18-midiateca", "ok": True}
+    return {"build": "2026-08-18-arsenal-aba", "ok": True}
 
 
 @app.route('/admin/acervo')
