@@ -32,7 +32,8 @@ import marcas
 # ------------------------------------------------------------------ configuração por marca
 MARCAS_MIDIA = {
     "dlmob": {
-        "label": "DL Mobilidade · Despachante Lessmann",
+        "label": "🛵 Scooters · DL Mobilidade",
+        "tipo": "scooter",
         "telefone_loja": "(47) 99776-6831",
         "endereco": "R. Mal. Castelo Branco, 2838 — Centro, Schroeder/SC",
         "video_dir": os.path.join("static", "videos", "dlmob"),
@@ -41,6 +42,18 @@ MARCAS_MIDIA = {
         "hashtags": "#scootereletrica #Schroeder #JaraguaDoSul #ValeDoItapocu #DLMobilidade",
         "disclaimer": "*sujeito a análise de crédito",
         # destinos de publicação: rótulo -> como publicar
+        "destinos": {"desp": "🏛️ IG Despachante", "radio": "📻 IG Rádio"},
+    },
+    "despachante": {
+        "label": "🏛️ Despachante Lessmann",
+        "tipo": "servicos",
+        "telefone_loja": "(47) 99716-2967",
+        "endereco": "R. Mal. Castelo Branco, 2838, Sala 02 — Centro, Schroeder/SC",
+        "video_dir": os.path.join("static", "videos", "despachante"),
+        "foto_dir": os.path.join("static", "midia", "despachante"),
+        "video_url_prefix": "despachante/",
+        "hashtags": "#despachante #Schroeder #detransc #transferencia #licenciamento #DespachanteLessmann",
+        "disclaimer": "Credencial DETRAN/SC nº 2095",
         "destinos": {"desp": "🏛️ IG Despachante", "radio": "📻 IG Rádio"},
     },
 }
@@ -159,7 +172,23 @@ def _acha(marca, arquivo):
 
 
 # ------------------------------------------------------------------ legendas (o motor de venda)
+def _fallback_venda_servicos(cfg, titulo, contexto, preco):
+    linhas = [f"🏛️ {titulo or 'Documentação veicular'} — Despachante Lessmann, Schroeder!", ""]
+    if contexto:
+        linhas += [contexto, ""]
+    linhas += ["✅ Veículo 0km: documento em até 2 horas",
+               "✅ Transferência pronta em até 1 dia útil",
+               "✅ Tudo pelo WhatsApp, sem fila de DETRAN"]
+    if preco:
+        linhas.insert(2, f"💰 {preco}")
+    linhas += ["", f"📍 {cfg['endereco']}", f"📲 WhatsApp {cfg['telefone_loja']}", "",
+               cfg["disclaimer"], "", cfg["hashtags"]]
+    return "\n".join(linhas)
+
+
 def _fallback_venda(cfg, titulo, contexto, preco):
+    if cfg.get("tipo") == "servicos":
+        return _fallback_venda_servicos(cfg, titulo, contexto, preco)
     linhas = [f"🛵 {titulo or 'Scooter elétrica'} na DL Mobilidade — Schroeder!", ""]
     if contexto:
         linhas += [contexto, ""]
@@ -202,8 +231,7 @@ def gerar_legendas(marca, arquivo):
                  "análise de crédito); test-ride grátis na loja.")
 
     p_venda = (
-        "Você escreve legendas de Instagram que VENDEM para uma loja de scooters elétricas "
-        "em Schroeder/SC. Escreva UMA legenda pronta (sem opções, sem comentários) sobre a "
+        "Você escreve legendas de Instagram que VENDEM para a CASA descrita abaixo, em Schroeder/SC. Escreva UMA legenda pronta (sem opções, sem comentários) sobre a "
         "mídia abaixo. Método: EMOÇÃO ABRE (a cena da vida melhor: sem fila de ônibus, sem "
         "gasolina, liberdade no dia a dia), RAZÃO FECHA (48x ViaCredi, parcela a partir de "
         "R$ 200*, sem CNH pela CONTRAN 996). 6-10 linhas curtas com emojis com gosto, "

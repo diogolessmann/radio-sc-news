@@ -1555,6 +1555,15 @@ def admin_midiateca():
             "padding:5px 14px;font-size:12px;cursor:pointer'>&#128465;&#65039; Excluir</button></form>" % a
             + blocos_leg + "</div>")
 
+    pills = ''.join(
+        "<a href='/admin/midiateca?marca=%s&token=%s' style='display:inline-block;"
+        "padding:8px 18px;border-radius:999px;margin:0 8px 8px 0;font-weight:700;"
+        "text-decoration:none;%s'>%s</a>" % (
+            k, tok,
+            ('background:rgba(255,122,0,.15);border:1px solid rgba(255,122,0,.5);color:#FF7A00'
+             if k == marca else 'background:#15151d;border:1px solid #333;color:#9aa0ae'),
+            c['label'])
+        for k, c in mt.MARCAS_MIDIA.items())
     aviso_html = ("<div style='background:#132;border:1px solid #2a5;color:#8f8;border-radius:10px;"
                   "padding:10px'>%s</div>" % aviso) if aviso else ''
     return ("<!doctype html><meta charset='utf-8'>"
@@ -1562,7 +1571,7 @@ def admin_midiateca():
             "<title>Midiateca — %(label)s</title>"
             "<body style='font-family:system-ui,sans-serif;background:#0c0c11;color:#eee;margin:0;padding:20px'>"
             "<div style='max-width:1100px;margin:0 auto'>"
-            "<h2>&#128450;&#65039; MIDIATECA — %(label)s</h2>"
+            "<h2>&#128450;&#65039; MIDIATECA</h2><div style='margin:4px 0 10px'>%(pills)s</div>"
             "<p style='color:#9aa0ae'>Foto e v&iacute;deo da marca num lugar s&oacute;. O motor escreve a "
             "legenda de VENDA (IG da marca) e a de VITRINE (IG da R&aacute;dio); tu revisa e publica com 1 clique.<br><b style='color:#F5C518'>&#128248; Foto com CLIENTE (entregas): publica s&oacute; com o 'pode postar?' confirmado no zap.</b></p>"
             "%(aviso)s"
@@ -1579,7 +1588,7 @@ def admin_midiateca():
             "<div style='display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px'>%(cards)s</div>"
             "<p style='margin-top:16px'><a href='/admin/despachante' style='color:#F5C518'>&larr; aba DL</a> &middot; "
             "<a href='/admin' style='color:#F5C518'>painel</a></p></div></body>"
-            ) % {"label": cfg['label'], "marca": marca, "tok": tok, "aviso": aviso_html,
+            ) % {"label": cfg['label'], "pills": pills, "marca": marca, "tok": tok, "aviso": aviso_html,
                  "log": log_html or "<div style='color:#667;font-size:13px'>nenhuma ainda</div>",
                  "cards": ''.join(cards)}
 
