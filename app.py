@@ -1546,7 +1546,14 @@ def admin_midiateca():
             % ((m.get('contexto') or '').replace('"', '&quot;'), _MID_IN) +
             "<button style='background:#F5C518;color:#000;font-weight:bold;border:0;border-radius:99px;"
             "padding:8px 18px;cursor:pointer'>&#9997;&#65039; Gerar/atualizar legendas</button>"
-            "</form>" + blocos_leg + "</div>")
+            "</form>" +
+            "<form method='post' action='/admin/midiateca/excluir' style='margin-top:4px'>"
+            "<input type='hidden' name='marca' value='%s'><input type='hidden' name='token' value='%s'>"
+            "<input type='hidden' name='arquivo' value='%s'>" % (marca, tok, a) +
+            "<button onclick=\"return confirm('Excluir %s do grid?')\" "
+            "style='background:#40222a;color:#ff8a80;border:1px solid #663;border-radius:99px;"
+            "padding:5px 14px;font-size:12px;cursor:pointer'>&#128465;&#65039; Excluir</button></form>" % a
+            + blocos_leg + "</div>")
 
     aviso_html = ("<div style='background:#132;border:1px solid #2a5;color:#8f8;border-radius:10px;"
                   "padding:10px'>%s</div>" % aviso) if aviso else ''
@@ -1557,7 +1564,7 @@ def admin_midiateca():
             "<div style='max-width:1100px;margin:0 auto'>"
             "<h2>&#128450;&#65039; MIDIATECA — %(label)s</h2>"
             "<p style='color:#9aa0ae'>Foto e v&iacute;deo da marca num lugar s&oacute;. O motor escreve a "
-            "legenda de VENDA (IG da marca) e a de VITRINE (IG da R&aacute;dio); tu revisa e publica com 1 clique.</p>"
+            "legenda de VENDA (IG da marca) e a de VITRINE (IG da R&aacute;dio); tu revisa e publica com 1 clique.<br><b style='color:#F5C518'>&#128248; Foto com CLIENTE (entregas): publica s&oacute; com o 'pode postar?' confirmado no zap.</b></p>"
             "%(aviso)s"
             "<div style='background:#15151d;border:1px solid #2a2a35;border-radius:14px;padding:14px;margin:12px 0'>"
             "<b>&#11014;&#65039; Enviar nova m&iacute;dia</b> "
@@ -1609,6 +1616,18 @@ def admin_midiateca_legenda():
     mt.gerar_legendas(marca, arquivo)
     return redirect('/admin/midiateca?token=%s&ok=legendas prontas pra %s — revisa e publica'
                     % (tok, arquivo))
+
+
+@app.route('/admin/midiateca/excluir', methods=['POST'])
+def admin_midiateca_excluir():
+    if not _midia_auth():
+        return redirect('/login')
+    import midiateca as mt
+    marca = request.form.get('marca', 'dlmob')
+    arquivo = request.form.get('arquivo', '')
+    tok = request.form.get('token', '')
+    mt.excluir(marca, arquivo)
+    return redirect('/admin/midiateca?token=%s&ok=excluido: %s' % (tok, arquivo))
 
 
 @app.route('/admin/midiateca/publicar', methods=['POST'])

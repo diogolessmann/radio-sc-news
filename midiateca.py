@@ -122,8 +122,21 @@ def listar(marca):
     _scan(cfg["video_dir"], "repo")
     _scan(cfg["foto_dir"], "repo")
     _scan(upload_dir(marca), "upload")
+    # 🗑️ excluídos pelo dono somem do grid (marca no meta — sobrevive a deploy;
+    # arquivo de repo só sai de verdade num commit posterior de limpeza)
+    itens = [i for i in itens if not i["meta"].get("excluido")]
     itens.sort(key=lambda x: -x["mtime"])
     return itens
+
+
+def excluir(marca, arquivo):
+    """Upload: apaga o arquivo. Item do repo: marca 'excluido' no meta (deploy não ressuscita)."""
+    up = os.path.join(upload_dir(marca), arquivo)
+    if os.path.exists(up):
+        os.remove(up)
+    meta_set(marca, arquivo, excluido=True)
+    _log(f"🗑️ excluído do grid: {arquivo}")
+    return True
 
 
 def _acha(marca, arquivo):
