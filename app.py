@@ -1630,6 +1630,123 @@ def admin_midiateca_excluir():
     return redirect('/admin/midiateca?token=%s&ok=excluido: %s' % (tok, arquivo))
 
 
+@app.route('/admin/legiao')
+def admin_legiao():
+    """💬 FALAR COM LEGIÃO (18/ago, pedido "ousado" do dono): posto avançado da Legião
+    no painel — sabe o estado da operação, orienta os botões, e deixa recado pro
+    Legião-mestre quando o pedido passa da alçada. NÃO tem mãos (não publica/apaga/
+    edita) — regra de ferro de segurança."""
+    if not _midia_auth():
+        return redirect('/login')
+    import legiao
+    tok = request.args.get('token', '')
+    aviso = request.args.get('ok', '')
+    hist = legiao.historico()[-16:]
+
+    bolhas = []
+    for h in hist:
+        if h['quem'] == 'pessoa':
+            bolhas.append(
+                "<div style='display:flex;justify-content:flex-end;margin:7px 0'>"
+                "<div style='background:#26313f;border-radius:14px 14px 3px 14px;padding:9px 13px;"
+                "max-width:78%%;font-size:14px'>%s"
+                "<div style='color:#667;font-size:10.5px;margin-top:3px'>%s · %s</div></div></div>"
+                % (h['txt'].replace('<', '&lt;'), h.get('autor', ''), h.get('quando', '')))
+        else:
+            bolhas.append(
+                "<div style='display:flex;margin:7px 0'>"
+                "<div style='background:#1d1610;border:1px solid rgba(255,122,0,.35);"
+                "border-radius:14px 14px 14px 3px;padding:9px 13px;max-width:78%%;font-size:14px'>"
+                "<b style='color:#FF7A00;font-size:11px;letter-spacing:.6px'>LEGIÃO</b><br>%s"
+                "<div style='color:#667;font-size:10.5px;margin-top:3px'>%s</div></div></div>"
+                % (h['txt'].replace('<', '&lt;'), h.get('quando', '')))
+
+    pend = legiao.recados()
+    recs = ''.join(
+        "<div style='border-top:1px solid #262d38;padding:8px 0;font-size:13px'>"
+        "<span style='color:#FFC24B'>📩 %s</span> <span style='color:#667'>(%s, %s)</span></div>"
+        % (r['texto'].replace('<', '&lt;')[:160], r.get('autor', ''), r.get('quando', ''))
+        for r in pend[:5])
+
+    aviso_html = ("<div style='background:#132;border:1px solid #2a5;color:#8f8;border-radius:10px;"
+                  "padding:10px;margin-bottom:10px'>%s</div>" % aviso) if aviso else ''
+    return ("<!doctype html><meta charset='utf-8'>"
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            "<title>Falar com Legião</title>"
+            "<body style='font-family:system-ui,sans-serif;background:#0c0c11;color:#eee;margin:0;padding:20px'>"
+            "<div style='max-width:720px;margin:0 auto'>"
+            "<h2>💬 Falar com Legião</h2>"
+            "<p style='color:#9aa0ae;font-size:13.5px'>O posto avançado: sabe o estado do motor agora e te "
+            "orienta. Ele <b>não publica nem apaga nada</b> — quem age é você nos botões, ou o "
+            "Legião-mestre via recado.</p>"
+            "%s"
+            "<div style='background:#12161d;border:1px solid #262d38;border-radius:14px;padding:14px;"
+            "min-height:220px'>%s</div>"
+            "<form method='post' action='/admin/legiao/msg' style='display:flex;gap:8px;margin-top:10px'>"
+            "<input type='hidden' name='token' value='%s'>"
+            "<input name='autor' placeholder='quem fala? (ex.: Thais)' style='width:130px;background:#0c0c11;"
+            "color:#dde;border:1px solid #333;border-radius:10px;padding:10px;font-size:13px'>"
+            "<input name='msg' placeholder='fala com a Legião…' required autofocus style='flex:1;"
+            "background:#0c0c11;color:#dde;border:1px solid #333;border-radius:10px;padding:10px;font-size:14px'>"
+            "<button style='background:#FF7A00;color:#14100A;font-weight:800;border:0;border-radius:10px;"
+            "padding:10px 20px;cursor:pointer'>Enviar</button></form>"
+            "<form method='post' action='/admin/legiao/recado' style='display:flex;gap:8px;margin-top:8px'>"
+            "<input type='hidden' name='token' value='%s'>"
+            "<input name='autor' placeholder='quem?' style='width:130px;background:#0c0c11;color:#dde;"
+            "border:1px solid #333;border-radius:10px;padding:9px;font-size:12.5px'>"
+            "<input name='msg' placeholder='📩 deixar recado pro Legião-mestre (ele executa na próxima ronda)' "
+            "required style='flex:1;background:#0c0c11;color:#dde;border:1px solid #333;border-radius:10px;"
+            "padding:9px;font-size:12.5px'>"
+            "<button style='background:none;border:1px solid #FFC24B;color:#FFC24B;font-weight:700;"
+            "border-radius:10px;padding:9px 14px;cursor:pointer;font-size:12.5px'>Deixar recado</button></form>"
+            "<h3 style='color:#FFC24B;font-size:13px;margin:18px 0 4px'>Recados pendentes (%d)</h3>%s"
+            "<p style='margin-top:16px'><a href='/admin' style='color:#F5C518'>← painel</a> · "
+            "<a href='/admin/midiateca' style='color:#F5C518'>🗂️ Midiateca</a> · "
+            "<a href='/admin/arsenal' style='color:#F5C518'>🎨 Arsenal</a></p>"
+            "</div></body>"
+            ) % (aviso_html, ''.join(bolhas) or "<p style='color:#5c6675;font-size:13px'>Conversa nova — "
+                 "pergunta qualquer coisa da operação. 🧡</p>", tok, tok, len(pend), recs or
+                 "<p style='color:#5c6675;font-size:12.5px'>nenhum</p>")
+
+
+@app.route('/admin/legiao/msg', methods=['POST'])
+def admin_legiao_msg():
+    if not _midia_auth():
+        return redirect('/login')
+    import legiao
+    tok = request.form.get('token', '')
+    msg = request.form.get('msg', '').strip()
+    autor = request.form.get('autor', '').strip() or 'painel'
+    if msg:
+        legiao.responder(msg, autor=autor)
+    return redirect('/admin/legiao?token=' + tok)
+
+
+@app.route('/admin/legiao/recado', methods=['POST'])
+def admin_legiao_recado():
+    if not _midia_auth():
+        return redirect('/login')
+    import legiao
+    tok = request.form.get('token', '')
+    msg = request.form.get('msg', '').strip()
+    autor = request.form.get('autor', '').strip() or 'painel'
+    if msg:
+        legiao.deixar_recado(msg, autor=autor)
+    return redirect('/admin/legiao?token=%s&ok=📩 recado guardado — o Legião-mestre lê na próxima ronda' % tok)
+
+
+@app.route('/api/legiao/recados')
+def api_legiao_recados():
+    """O Legião-mestre (Claude Code / ronda cloud) lê e baixa recados por aqui (token)."""
+    if request.args.get('token', '') != _admin_pw_env:
+        abort(403)
+    import legiao
+    if request.args.get('feito'):
+        legiao.marcar_recado_feito(int(request.args.get('feito')))
+        return jsonify({"ok": True})
+    return jsonify({"pendentes": legiao.recados(), "todos": len(legiao.recados(pendentes=False))})
+
+
 @app.route('/bg-acervo/<path:arquivo>')
 def bg_acervo_file(arquivo):
     """Serve o acervo IA do arsenal (volume)."""
@@ -1792,7 +1909,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-18-arsenal-aba", "ok": True}
+    return {"build": "2026-08-18-falar-com-legiao", "ok": True}
 
 
 @app.route('/admin/acervo')
