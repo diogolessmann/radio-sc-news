@@ -3,6 +3,7 @@ app.py — Backend principal Flask
 Rádio SC News — Portal de notícias com áudio e painel admin
 """
 import os
+import re
 import sqlite3
 import logging
 from datetime import datetime, timedelta
@@ -10,7 +11,7 @@ from functools import wraps
 
 from flask import (Flask, render_template, request, jsonify,
                    redirect, url_for, session, send_from_directory,
-                   render_template_string)
+                   render_template_string, abort)
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -1427,121 +1428,206 @@ def admin_despachante():
       <b>🎬 Reels prontos pra publicar</b><ul>{reels_html}</ul>
       <span style='color:#888;font-size:13px'>Processamento ~1-2 min após o clique. Publica no IG do despachante (tokens DESP).</span>
     </div>
-    <div style='background:#15151d;border:1px solid #555;border-radius:12px;padding:16px;margin:14px 0'>
-      <b>🔧 VIDEOTECA DL — em manutenção</b><br>
-      <span style='color:#9aa0ae'>Vídeos sendo re-editados um a um pelo dono. Os botões de
-      publicação voltam quando o material estiver aprovado.</span>
+    <div style='background:#15151d;border:1px solid #F5C518;border-radius:12px;padding:16px;margin:14px 0'>
+      <b>🗂️ MIDIATECA DL — fotos e vídeos da marca</b><br>
+      <span style='color:#9aa0ae'>Material novo do dono (18/ago) + motor de legenda de VENDA e
+      de VITRINE. Publica no IG do Despachante ou da Rádio com 1 clique.</span><br>
+      <a href='/admin/midiateca' style='color:#F5C518;font-weight:bold'>Abrir a Midiateca →</a>
     </div>
     <p><a href='/admin' style='color:#F5C518'>← voltar ao painel</a></p></div>""")
 
 
 @app.route('/admin/videoteca')
 def admin_videoteca():
-    # 12/ago: aceita token OU sessão (o @login_required mandava o token pro /login com 302
-    # — os testes por curl nunca executavam e a 'morte silenciosa' era miragem)
-    if request.args.get('token', '') != _admin_pw_env and not session.get('admin_logged_in'):
+    """A videoteca cresceu e virou MIDIATECA (18/ago). Redirect preservando token."""
+    tok = request.args.get('token', '')
+    return redirect('/admin/midiateca' + (('?token=' + tok) if tok else ''))
+
+
+# ============================== MIDIATECA (18/ago/2026) ==============================
+# Visao do dono: "painel que tem tudo — foto, video — e o motor cria o texto mais
+# adequado para venda; se eu quiser postar na Radio ja ta ali; ferramenta que no futuro
+# serve outros sites/instas". midiateca.py: marca e configuracao (semente do
+# motor-como-servico).
+
+def _midia_auth():
+    return request.values.get('token', '') == _admin_pw_env or session.get('admin_logged_in')
+
+
+@app.route('/midia-up/<marca>/<path:arquivo>')
+def midia_upload_file(marca, arquivo):
+    """Serve uploads do painel (ficam no VOLUME — sobrevivem a deploy)."""
+    import midiateca as mt
+    if marca not in mt.MARCAS_MIDIA or '..' in arquivo:
+        abort(404)
+    return send_from_directory(mt.upload_dir(marca), arquivo)
+
+
+_MID_IN = ("style='width:100%;background:#0c0c11;color:#dde;border:1px solid #333;"
+           "border-radius:8px;padding:7px;font-size:13px;margin:3px 0'")
+_MID_TA = ("style='width:100%;background:#0c0c11;color:#dde;border:1px solid #333;"
+           "border-radius:8px;padding:8px;font-size:13px'")
+
+
+@app.route('/admin/midiateca')
+def admin_midiateca():
+    if not _midia_auth():
         return redirect('/login')
-    # 🔧 EM MANUTENÇÃO (12/ago, dono: "os vídeos precisam ser arrumados, vou editar 1 a 1").
-    # Nada foi removido — os botões voltam com ?forcar=1 ou tirando este bloqueio.
-    if request.args.get('forcar') != '1':
-        return ("<div style='font-family:sans-serif;max-width:560px;margin:60px auto;color:#eee;"
-                "background:#0c0c11;padding:32px;border-radius:14px;text-align:center'>"
-                "<h2>🔧 Videoteca em manutenção</h2>"
-                "<p style='color:#9aa0ae'>Os vídeos estão sendo re-editados um a um pelo dono. "
-                "Os botões de publicação voltam quando o material estiver aprovado.</p>"
-                "<p><a href='/admin/despachante' style='color:#F5C518'>← aba DL</a></p></div>")
-    # 🎞️ VIDEOTECA DL (7/ago): a prateleira de vídeos do dono — publicar como REEL no IG
-    # da RÁDIO ou do DESPACHANTE. Manual, na hora que ele quiser.
-    import marcas
-    f = request.args.get('f', '')
-    dest = request.args.get('dest', '')
-    go = request.args.get('go', '') == '1'
-    vids = marcas.videoteca()
-    aviso = ''
-    if go and f in vids and dest in ('radio', 'desp'):
-        import threading
-        cap = marcas.caption_videoteca(f)
+    import midiateca as mt
+    marca = request.args.get('marca', 'dlmob')
+    if marca not in mt.MARCAS_MIDIA:
+        marca = 'dlmob'
+    cfg = mt.MARCAS_MIDIA[marca]
+    tok = request.args.get('token', '')
+    itens = mt.listar(marca)
+    aviso = request.args.get('ok', '')
 
-        def _vt_log(entrada):
-            """Registra o resultado no static/social/videoteca_log.json (últimos 20) —
-            9/ago: o dono clicou 📻 Rádio e a falha morreu calada no log do Railway.
-            Agora o resultado aparece NA PRÓPRIA página da videoteca."""
-            import json as _json
-            from datetime import datetime as _dt
-            p = os.path.join('static', 'social', 'videoteca_log.json')
-            try:
-                hist = _json.load(open(p, encoding='utf-8')) if os.path.exists(p) else []
-            except Exception:
-                hist = []
-            entrada['ts'] = _dt.now().strftime('%d/%m %H:%M')
-            hist = ([entrada] + hist)[:20]
-            os.makedirs(os.path.dirname(p), exist_ok=True)
-            _json.dump(hist, open(p, 'w', encoding='utf-8'), ensure_ascii=False)
+    log_html = ''.join(
+        "<div style='color:#9aa0ae;font-size:13px'>%s — %s</div>" % (e['quando'], e['msg'])
+        for e in mt.log_recente())
 
-        def _job(fname=f, d=dest, c=cap):
-            # rastro etapa a etapa (12/ago): a publicação morria CALADA — agora cada fase
-            # grava no log; se morrer, o último rastro aponta o assassino
-            _vt_log({'arquivo': fname, 'dest': d, 'ok': None, 'erro': '⏳ iniciando…'})
-            try:
-                r = marcas.publish_reel_dest(d, 'dlmob/' + fname, c)
-                logger.info(f"🎞️ videoteca: {fname} -> {d} ok {r}")
-                _vt_log({'arquivo': fname, 'dest': d, 'ok': True})
-            except Exception as e:
-                logger.error(f"🎞️ videoteca {fname} -> {d} FALHOU: {e}")
-                _vt_log({'arquivo': fname, 'dest': d, 'ok': False, 'erro': str(e)[:300]})
-                try:
-                    import vigia
-                    vigia.send_zap(f"🎞️ Videoteca: falha ao publicar {fname} no "
-                                   f"{'IG da Rádio' if d == 'radio' else 'IG do despachante'}: {e}")
-                except Exception:
-                    pass
+    cards = []
+    for it in itens:
+        a, m = it['arquivo'], it['meta']
+        if it['tipo'] == 'video':
+            midia = ("<video src='%s' controls muted preload='metadata' style='width:100%%;"
+                     "border-radius:10px;background:#000;max-height:340px'></video>" % it['url'])
+        else:
+            midia = ("<img src='%s' loading='lazy' style='width:100%%;border-radius:10px;"
+                     "object-fit:cover;max-height:340px'>" % it['url'])
+        pubs = ''.join(
+            "<span style='background:#173;color:#8f8;border-radius:99px;padding:2px 10px;"
+            "font-size:12px;margin-right:6px'>OK %s %s</span>" % (p['dest'], p['quando'])
+            for p in m.get('publicados', []))
+        leg_v = (m.get('legenda_venda') or '').replace('<', '&lt;')
+        leg_r = (m.get('legenda_vitrine') or '').replace('<', '&lt;')
+        blocos_leg = ''
+        if leg_v or leg_r:
+            blocos_leg = (
+                "<form method='post' action='/admin/midiateca/publicar'>"
+                "<input type='hidden' name='marca' value='%(marca)s'>"
+                "<input type='hidden' name='token' value='%(tok)s'>"
+                "<input type='hidden' name='arquivo' value='%(a)s'>"
+                "<b style='color:#25d366;font-size:13px'>&#127963;&#65039; Legenda VENDA (IG Despachante)</b>"
+                "<textarea name='legenda' rows='7' %(ta)s>%(leg_v)s</textarea>"
+                "<button name='dest' value='desp' "
+                "onclick=\"return confirm('Publicar %(a)s no IG do DESPACHANTE?')\" "
+                "style='background:#25d366;color:#000;font-weight:bold;border:0;border-radius:99px;"
+                "padding:8px 18px;margin:6px 0;cursor:pointer'>&#127963;&#65039; Publicar no Despachante</button>"
+                "</form>"
+                "<form method='post' action='/admin/midiateca/publicar'>"
+                "<input type='hidden' name='marca' value='%(marca)s'>"
+                "<input type='hidden' name='token' value='%(tok)s'>"
+                "<input type='hidden' name='arquivo' value='%(a)s'>"
+                "<b style='color:#ff8a80;font-size:13px'>&#128251; Legenda VITRINE (IG R&aacute;dio)</b>"
+                "<textarea name='legenda' rows='5' %(ta)s>%(leg_r)s</textarea>"
+                "<button name='dest' value='radio' "
+                "onclick=\"return confirm('Publicar %(a)s no IG da RADIO?')\" "
+                "style='background:#ff8a80;color:#000;font-weight:bold;border:0;border-radius:99px;"
+                "padding:8px 18px;margin:6px 0;cursor:pointer'>&#128251; Publicar na R&aacute;dio</button>"
+                "</form>"
+            ) % {"marca": marca, "tok": tok, "a": a, "ta": _MID_TA,
+                 "leg_v": leg_v, "leg_r": leg_r}
+        cards.append(
+            "<div style='background:#15151d;border:1px solid #2a2a35;border-radius:14px;padding:14px'>"
+            + midia +
+            "<div style='margin:8px 0 4px;font-weight:bold'>%s %s "
+            "<span style='color:#667;font-size:11px'>(%s)</span></div>"
+            % ('&#127916;' if it['tipo'] == 'video' else '&#128247;', a, it['origem'])
+            + "<div>%s</div>" % pubs +
+            "<form method='post' action='/admin/midiateca/legenda' style='margin-top:8px'>"
+            "<input type='hidden' name='marca' value='%s'><input type='hidden' name='token' value='%s'>"
+            "<input type='hidden' name='arquivo' value='%s'>" % (marca, tok, a) +
+            "<input name='titulo' placeholder='titulo (ex.: Akasha 1000W)' value=\"%s\" %s>"
+            % ((m.get('titulo') or '').replace('"', '&quot;'), _MID_IN) +
+            "<input name='preco' placeholder='preco (ex.: R$ 7.990) — opcional' value=\"%s\" %s>"
+            % ((m.get('preco') or '').replace('"', '&quot;'), _MID_IN) +
+            "<input name='contexto' placeholder='contexto pro motor (ex.: pronta entrega, preta)' value=\"%s\" %s>"
+            % ((m.get('contexto') or '').replace('"', '&quot;'), _MID_IN) +
+            "<button style='background:#F5C518;color:#000;font-weight:bold;border:0;border-radius:99px;"
+            "padding:8px 18px;cursor:pointer'>&#9997;&#65039; Gerar/atualizar legendas</button>"
+            "</form>" + blocos_leg + "</div>")
 
-        threading.Thread(target=_job, daemon=True).start()
-        onde = 'IG da RÁDIO' if dest == 'radio' else 'IG do DESPACHANTE'
-        aviso = (f"<div style='background:#2e7d32;padding:12px 16px;border-radius:10px;margin:12px 0'>"
-                 f"🚀 <b>{f}</b> sendo publicado no <b>{onde}</b> — leva 1-2 min. "
-                 f"Se falhar, o VIGIA te avisa no zap.</div>")
-    linhas = []
-    for v in vids:
-        bonito = v.replace('.mp4', '').replace('_', ' ').replace('dl48x', '· 48x/R$200').title()
-        linhas.append(
-            f"<tr><td style='padding:8px 10px'>{bonito}</td>"
-            f"<td style='white-space:nowrap;padding:8px 6px'>"
-            f"<a href='/static/videos/dlmob/{v}' target='_blank' style='color:#9aa0ae'>▶ ver</a> · "
-            f"<a href='/admin/videoteca?f={v}&dest=radio&go=1' style='color:#ff8a80;font-weight:bold' "
-            f"onclick=\"return confirm('Publicar no IG da RÁDIO agora?')\">📻 Rádio</a> · "
-            f"<a href='/admin/videoteca?f={v}&dest=desp&go=1' style='color:#25d366;font-weight:bold' "
-            f"onclick=\"return confirm('Publicar no IG do DESPACHANTE agora?')\">🏛️ Despachante</a>"
-            f"</td></tr>")
-    corpo = "".join(linhas) or "<tr><td>nenhum vídeo em static/videos/dlmob</td></tr>"
-    # histórico das últimas publicações (sucesso E erro — nada morre calado)
-    hist_html = ''
-    try:
-        import json as _json
-        p = os.path.join('static', 'social', 'videoteca_log.json')
-        if os.path.exists(p):
-            hist = _json.load(open(p, encoding='utf-8'))[:6]
-            li = "".join(
-                f"<li style='margin:4px 0;color:{'#7fe4a5' if h.get('ok') else '#ff8a80'}'>"
-                f"{h.get('ts','')} · {h.get('arquivo','')[:38]} → "
-                f"{'📻 Rádio' if h.get('dest') == 'radio' else '🏛️ Desp'} · "
-                f"{'✅ publicado' if h.get('ok') else ('⏳ ' + h.get('erro','')[:80] if h.get('ok') is None else '❌ ' + h.get('erro', 'falhou')[:160])}</li>"
-                for h in hist)
-            if li:
-                hist_html = (f"<div style='background:#15151d;border:1px solid #23232e;border-radius:10px;"
-                             f"padding:12px 16px;margin:12px 0;font-size:13px'><b>📜 Últimas publicações</b>"
-                             f"<ul style='margin:6px 0 0;padding-left:18px'>{li}</ul></div>")
-    except Exception:
-        pass
-    return (f"""<div style='font-family:sans-serif;max-width:860px;margin:36px auto;color:#eee;background:#0c0c11;padding:28px;border-radius:14px'>
-    <h2>🎞️ Videoteca DL — {len(vids)} vídeos prontos</h2>
-    {hist_html}
-    <p style='color:#9aa0ae'>Clica no destino e o reel sobe com legenda de venda pronta
-    (48x ViaCredi · a partir de R$200* · test-ride · zap da loja). Nada é automático — tu decide o dia.</p>
-    {aviso}
-    <table style='width:100%;font-size:14px;border-collapse:collapse'>{corpo}</table>
-    <p style='margin-top:16px'><a href='/admin/despachante' style='color:#F5C518'>← aba DL</a> ·
-    <a href='/admin' style='color:#F5C518'>painel</a></p></div>""")
+    aviso_html = ("<div style='background:#132;border:1px solid #2a5;color:#8f8;border-radius:10px;"
+                  "padding:10px'>%s</div>" % aviso) if aviso else ''
+    return ("<!doctype html><meta charset='utf-8'>"
+            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+            "<title>Midiateca — %(label)s</title>"
+            "<body style='font-family:system-ui,sans-serif;background:#0c0c11;color:#eee;margin:0;padding:20px'>"
+            "<div style='max-width:1100px;margin:0 auto'>"
+            "<h2>&#128450;&#65039; MIDIATECA — %(label)s</h2>"
+            "<p style='color:#9aa0ae'>Foto e v&iacute;deo da marca num lugar s&oacute;. O motor escreve a "
+            "legenda de VENDA (IG da marca) e a de VITRINE (IG da R&aacute;dio); tu revisa e publica com 1 clique.</p>"
+            "%(aviso)s"
+            "<div style='background:#15151d;border:1px solid #2a2a35;border-radius:14px;padding:14px;margin:12px 0'>"
+            "<b>&#11014;&#65039; Enviar nova m&iacute;dia</b> "
+            "<span style='color:#667;font-size:12px'>(cai no volume, sobrevive a deploy)</span>"
+            "<form method='post' action='/admin/midiateca/upload' enctype='multipart/form-data' style='margin-top:8px'>"
+            "<input type='hidden' name='marca' value='%(marca)s'><input type='hidden' name='token' value='%(tok)s'>"
+            "<input type='file' name='arquivo' accept='image/jpeg,image/png,image/webp,video/mp4' required style='color:#dde'> "
+            "<button style='background:#F5C518;color:#000;font-weight:bold;border:0;border-radius:99px;"
+            "padding:8px 18px;cursor:pointer'>Enviar</button></form></div>"
+            "<div style='background:#15151d;border:1px solid #2a2a35;border-radius:14px;padding:12px;margin:12px 0'>"
+            "<b>&#128220; &Uacute;ltimas publica&ccedil;&otilde;es</b>%(log)s</div>"
+            "<div style='display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px'>%(cards)s</div>"
+            "<p style='margin-top:16px'><a href='/admin/despachante' style='color:#F5C518'>&larr; aba DL</a> &middot; "
+            "<a href='/admin' style='color:#F5C518'>painel</a></p></div></body>"
+            ) % {"label": cfg['label'], "marca": marca, "tok": tok, "aviso": aviso_html,
+                 "log": log_html or "<div style='color:#667;font-size:13px'>nenhuma ainda</div>",
+                 "cards": ''.join(cards)}
+
+
+@app.route('/admin/midiateca/upload', methods=['POST'])
+def admin_midiateca_upload():
+    if not _midia_auth():
+        return redirect('/login')
+    import midiateca as mt
+    marca = request.form.get('marca', 'dlmob')
+    f = request.files.get('arquivo')
+    tok = request.form.get('token', '')
+    if not f or marca not in mt.MARCAS_MIDIA:
+        return redirect('/admin/midiateca?token=' + tok)
+    nome = re.sub(r'[^A-Za-z0-9._-]+', '-', f.filename or 'arquivo')
+    if not nome.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.mp4')):
+        return redirect('/admin/midiateca?token=%s&ok=formato nao aceito' % tok)
+    f.save(os.path.join(mt.upload_dir(marca), nome))
+    return redirect('/admin/midiateca?token=%s&ok=recebido: %s' % (tok, nome))
+
+
+@app.route('/admin/midiateca/legenda', methods=['POST'])
+def admin_midiateca_legenda():
+    if not _midia_auth():
+        return redirect('/login')
+    import midiateca as mt
+    marca = request.form.get('marca', 'dlmob')
+    arquivo = request.form.get('arquivo', '')
+    tok = request.form.get('token', '')
+    mt.meta_set(marca, arquivo,
+                titulo=request.form.get('titulo', '').strip(),
+                preco=request.form.get('preco', '').strip(),
+                contexto=request.form.get('contexto', '').strip())
+    mt.gerar_legendas(marca, arquivo)
+    return redirect('/admin/midiateca?token=%s&ok=legendas prontas pra %s — revisa e publica'
+                    % (tok, arquivo))
+
+
+@app.route('/admin/midiateca/publicar', methods=['POST'])
+def admin_midiateca_publicar():
+    if not _midia_auth():
+        return redirect('/login')
+    import midiateca as mt
+    marca = request.form.get('marca', 'dlmob')
+    arquivo = request.form.get('arquivo', '')
+    dest = request.form.get('dest', '')
+    legenda = request.form.get('legenda', '').strip()
+    tok = request.form.get('token', '')
+    if dest not in ('radio', 'desp') or not legenda:
+        return redirect('/admin/midiateca?token=%s&ok=falta destino ou legenda' % tok)
+    campo = 'legenda_vitrine' if dest == 'radio' else 'legenda_venda'
+    mt.meta_set(marca, arquivo, **{campo: legenda})
+    mt.publicar(marca, arquivo, dest, legenda)
+    return redirect('/admin/midiateca?token=%s&ok=publicando %s no %s — acompanha no log '
+                    '(recarrega em ~1 min)' % (tok, arquivo, dest))
 
 
 @app.route('/admin/reel-dlmob')
@@ -1578,7 +1664,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-12-radar-destravado", "ok": True}
+    return {"build": "2026-08-18-midiateca", "ok": True}
 
 
 @app.route('/admin/acervo')

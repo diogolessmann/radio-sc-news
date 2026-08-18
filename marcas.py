@@ -720,23 +720,27 @@ def publish_reel_marca(brand_key, video_filename, caption):
     return _publish_reel(token, ig_id, video_filename, caption)
 
 
-def publish_reel_dest(dest, video_filename, caption):
-    """🎞️ VIDEOTECA (7/ago, pedido do dono: 'todos os vídeos ali, eu escolho rádio ou
-    despachante, lanço quando eu quero'). dest='radio' usa os tokens da PRÓPRIA Rádio
-    (META_*); dest='desp' usa os da marca (DESP_*)."""
+def publish_reel_dest(dest, video_filename, caption, video_url=None):
+    """🎞️ VIDEOTECA/MIDIATECA (7/ago + 18/ago). dest='radio' usa os tokens da PRÓPRIA
+    Rádio (META_*); dest='desp' usa os da marca (DESP_*). video_url opcional: vídeo
+    servido de fora de static/videos (ex.: upload da midiateca no volume)."""
     if dest == "radio":
         if not (dist.META_PAGE_TOKEN and dist.META_IG_USER_ID):
             raise RuntimeError("Tokens META_* da Rádio ausentes.")
         return _publish_reel(dist.META_PAGE_TOKEN, dist.META_IG_USER_ID,
-                             video_filename, caption)
-    return publish_reel_marca("dl_mobilidade", video_filename, caption)
+                             video_filename, caption, video_url=video_url)
+    t = BRANDS["dl_mobilidade"]
+    token, ig_id, _ = _brand_tokens(t)
+    if not (token and ig_id):
+        raise RuntimeError(f"Tokens da marca ausentes ({t['env']}).")
+    return _publish_reel(token, ig_id, video_filename, caption, video_url=video_url)
 
 
-def _publish_reel(token, ig_id, video_filename, caption):
+def _publish_reel(token, ig_id, video_filename, caption, video_url=None):
     import time
     import requests as rq
     GRAPH = dist.GRAPH
-    video_url = f"{dist.PUBLIC_BASE_URL}/static/videos/{video_filename}"
+    video_url = video_url or f"{dist.PUBLIC_BASE_URL}/static/videos/{video_filename}"
     cont = dist._graph_post(f"{GRAPH}/{ig_id}/media",
                             {"media_type": "REELS", "video_url": video_url,
                              "caption": caption, "share_to_feed": "true",
