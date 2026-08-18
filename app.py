@@ -1918,7 +1918,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-18-falar-com-legiao", "ok": True}
+    return {"build": "2026-08-18-radar-empresas", "ok": True}
 
 
 @app.route('/admin/acervo')

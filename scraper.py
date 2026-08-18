@@ -53,6 +53,63 @@ RSS_FEEDS = [
     {'url': 'https://news.google.com/rss/search?q=bombeiros+%22Jaragu%C3%A1+do+Sul%22+OR+%22Guaramirim%22+OR+%22Schroeder%22+OR+%22Corup%C3%A1%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
      'source': 'Radar Bombeiros Vale', 'city': None, 'category': 'policial', 'priority': True,
      'max_entries': 8},
+    # ── 🏭 TURBO EMPRESAS (18/ago, pedido do dono): tudo que a internet falar dos GIGANTES
+    #    da região vira matéria NOSSA (orgulho local = ibope comprovado: Lunelli 930, Antidio
+    #    4mi). bypass_master: empresa daqui É notícia daqui, mesmo sem cidade no texto. ──
+    {'url': 'https://news.google.com/rss/search?q=%22WEG%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar WEG', 'city': 'Jaraguá do Sul', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Malwee%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Malwee', 'city': 'Jaraguá do Sul', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Duas+Rodas%22+ingredientes&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Duas Rodas', 'city': 'Jaraguá do Sul', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Lunelli%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Lunelli', 'city': 'Guaramirim', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Live%21%22+moda+fitness&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Live!', 'city': 'Jaraguá do Sul', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Elian%22+moda&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Elian', 'city': 'Massaranduba', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Grupo+Mime%22+OR+%22Postos+Mime%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Mime', 'city': 'Joinville', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Agricopel%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Agricopel', 'city': 'Guaramirim', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Menegotti%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Menegotti', 'city': 'Schroeder', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Marisol%22+moda&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Marisol', 'city': 'Jaraguá do Sul', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Urbano+Alimentos%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Urbano', 'city': 'Jaraguá do Sul', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Zanotti%22+el%C3%A1sticos+OR+Jaragu%C3%A1&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Zanotti', 'city': 'Jaraguá do Sul', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Bretzke%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Bretzke', 'city': 'Jaraguá do Sul', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Tigre%22+tubos+OR+Joinville&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Tigre', 'city': 'Joinville', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22D%C3%B6hler%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Döhler', 'city': 'Joinville', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Schulz%22+Joinville&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Schulz', 'city': 'Joinville', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Ciser%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Ciser', 'city': 'Joinville', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Embraco%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Embraco', 'city': 'Joinville', 'category': 'economia',
+     'priority': True, 'max_entries': 4, 'bypass_master': True},
     # ── Santa Catarina (geral) ──────────────────
     {
         'url': 'https://g1.globo.com/rss/g1/sc/',
@@ -726,7 +783,8 @@ def fetch_feed(feed_config):
         # "notícias APENAS Schroeder · Jaraguá do Sul · Guaramirim · Corupá · Joinville."
         # Única exceção: CLIMA (pode ser SC/Sul/Brasil — 1º lugar do Placar, todo mundo precisa).
         # Estadual genérico, Brasil e demais cidades: NÃO entram mais, nem com selo SC.
-        if category != 'clima' and not _CINCO_CIDADES.search(full_text):
+        if (category != 'clima' and not feed_config.get('bypass_master')
+                and not _CINCO_CIDADES.search(full_text)):
             logger.info(f"🎯 regra master (fora das 5 cidades): {title[:70]}")
             continue
 
