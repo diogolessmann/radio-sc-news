@@ -27,6 +27,26 @@ logger = logging.getLogger(__name__)
 
 DB_PATH = os.environ.get('DB_PATH', 'radio_sc.db')
 
+
+# 🏭 DICIONÁRIO DE EMPRESAS DA REGIÃO (18/ago — leva 3, "tem MUITAS"): menção a qualquer
+# uma destas em QUALQUER feed promove a matéria (passe-livre da regra master + cidade da
+# empresa + prioridade). Escala pra centenas sem custo de coleta — pra adicionar, é uma
+# linha: "Nome": "Cidade". Radar individual fica só pros gigantes que geram pauta sozinhos.
+EMPRESAS_REGIAO = {
+    # Schroeder
+    "Metal Nox": "Schroeder", "Real Vidro": "Schroeder", "Castertech": "Schroeder",
+    "FAMAC": "Schroeder",
+    # Guaramirim
+    "Falbran": "Guaramirim", "Modely": "Guaramirim", "Nanete": "Guaramirim",
+    "IMB Behrendt": "Guaramirim", "WEG Tintas": "Guaramirim",
+    # Jaraguá do Sul
+    "Chocoleite": "Jaraguá do Sul", "Argi ": "Jaraguá do Sul",
+    "Caraguá Veículos": "Jaraguá do Sul",
+    # Joinville
+    "Docol": "Joinville", "Buschle": "Joinville", "Whirlpool": "Joinville",
+    "Amanco": "Joinville",
+}
+
 RSS_FEEDS = [
     # ── 🛰️ RADAR GOOGLE NEWS por cidade (11/ago — PROJETO HIPERLOCAL): pega QUALQUER
     #    veículo que citar as 5 cidades, inclusive os que não temos no radar. É o
@@ -147,6 +167,16 @@ RSS_FEEDS = [
     {'url': 'https://news.google.com/rss/search?q=%22Dibrape%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
      'source': 'Radar Dibrape', 'city': 'Guaramirim', 'category': 'economia',
      'priority': True, 'max_entries': 3, 'bypass_master': True},
+    # ── 🏭 LOTES do dicionário (1 busca cobre várias — sem estourar a coleta) ──
+    {'url': 'https://news.google.com/rss/search?q=%22Metal+Nox%22+OR+%22Real+Vidro%22+OR+%22Castertech%22+OR+%22FAMAC%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Empresas Schroeder', 'city': 'Schroeder', 'category': 'economia',
+     'priority': True, 'max_entries': 5, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Falbran%22+OR+%22Modely%22+OR+%22Nanete%22+OR+%22IMB+Behrendt%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Empresas Guaramirim', 'city': 'Guaramirim', 'category': 'economia',
+     'priority': True, 'max_entries': 5, 'bypass_master': True},
+    {'url': 'https://news.google.com/rss/search?q=%22Docol%22+OR+%22Buschle%22+OR+%28Whirlpool+Joinville%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Empresas Joinville 2', 'city': 'Joinville', 'category': 'economia',
+     'priority': True, 'max_entries': 5, 'bypass_master': True},
     # ── Santa Catarina (geral) ──────────────────
     {
         'url': 'https://g1.globo.com/rss/g1/sc/',
@@ -820,7 +850,18 @@ def fetch_feed(feed_config):
         # "notícias APENAS Schroeder · Jaraguá do Sul · Guaramirim · Corupá · Joinville."
         # Única exceção: CLIMA (pode ser SC/Sul/Brasil — 1º lugar do Placar, todo mundo precisa).
         # Estadual genérico, Brasil e demais cidades: NÃO entram mais, nem com selo SC.
-        if (category != 'clima' and not feed_config.get('bypass_master')
+        # 🏭 DETECTOR: empresa da região citada em qualquer feed = matéria promovida
+        emp_hit = None
+        _ft_low = full_text.lower()
+        for _nome, _cid in EMPRESAS_REGIAO.items():
+            if _nome.lower() in _ft_low:
+                emp_hit = (_nome, _cid)
+                break
+        if emp_hit:
+            city = city or emp_hit[1]
+            logger.info(f"🏭 empresa da região ({emp_hit[0]}): {title[:60]}")
+
+        if (category != 'clima' and not feed_config.get('bypass_master') and not emp_hit
                 and not _CINCO_CIDADES.search(full_text)):
             logger.info(f"🎯 regra master (fora das 5 cidades): {title[:70]}")
             continue
@@ -851,7 +892,7 @@ def fetch_feed(feed_config):
             'category': category,
             'published_at': published,
             'image_url': image_url,
-            'priority': feed_config.get('priority', False),
+            'priority': True if emp_hit else feed_config.get('priority', False),
         })
 
     return articles
