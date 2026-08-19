@@ -1550,6 +1550,10 @@ def admin_midiateca():
             "<form method='post' action='/admin/midiateca/excluir' style='margin-top:4px'>"
             "<input type='hidden' name='marca' value='%s'><input type='hidden' name='token' value='%s'>"
             "<input type='hidden' name='arquivo' value='%s'>" % (marca, tok, a) +
+            "<a href='/admin/midiateca/baixar?marca=%s&arquivo=%s&token=%s' "
+            "style='display:inline-block;background:none;border:1px solid #F5C518;color:#F5C518;"
+            "border-radius:99px;padding:5px 14px;font-size:12px;text-decoration:none;"
+            "margin:3px 8px 0 0'>&#11015;&#65039; Baixar</a>" % (marca, a, tok) +
             "<button onclick=\"return confirm('Excluir %s do grid?')\" "
             "style='background:#40222a;color:#ff8a80;border:1px solid #663;border-radius:99px;"
             "padding:5px 14px;font-size:12px;cursor:pointer'>&#128465;&#65039; Excluir</button></form>" % a
@@ -1625,6 +1629,25 @@ def admin_midiateca_legenda():
     mt.gerar_legendas(marca, arquivo)
     return redirect('/admin/midiateca?token=%s&ok=legendas prontas pra %s — revisa e publica'
                     % (tok, arquivo))
+
+
+@app.route('/admin/midiateca/baixar')
+def admin_midiateca_baixar():
+    """⬇️ Download forçado (19/ago, dono: 'abri no celular e não consigo baixar pro
+    status do zap'). Serve o arquivo com attachment — funciona em qualquer celular."""
+    if not _midia_auth():
+        return redirect('/login')
+    import midiateca as mt
+    marca = request.args.get('marca', 'dlmob')
+    arquivo = request.args.get('arquivo', '')
+    if marca not in mt.MARCAS_MIDIA or '..' in arquivo:
+        abort(404)
+    try:
+        caminho, _url, _tipo = mt._acha(marca, arquivo)
+    except FileNotFoundError:
+        abort(404)
+    return send_from_directory(os.path.dirname(os.path.abspath(caminho)),
+                               os.path.basename(caminho), as_attachment=True)
 
 
 @app.route('/admin/midiateca/excluir', methods=['POST'])
