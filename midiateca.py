@@ -44,6 +44,18 @@ MARCAS_MIDIA = {
         # destinos de publicação: rótulo -> como publicar
         "destinos": {"desp": "🏛️ IG Despachante", "radio": "📻 IG Rádio"},
     },
+    "defesas": {
+        "label": "⚖️ DL Defesas",
+        "tipo": "defesa",
+        "telefone_loja": "(47) 99716-2967",
+        "endereco": "R. Mal. Castelo Branco, 2838, Sala 02 — Centro, Schroeder/SC",
+        "video_dir": os.path.join("static", "videos", "defesas"),
+        "foto_dir": os.path.join("static", "midia", "defesas"),
+        "video_url_prefix": "defesas/",
+        "hashtags": "#defesademulta #cnhsuspensa #recursodemulta #multa #Schroeder #DespachanteLessmann",
+        "disclaimer": "Análise gratuita · atendimento digital em todo o Brasil",
+        "destinos": {"desp": "🏛️ IG Despachante", "radio": "📻 IG Rádio"},
+    },
     "despachante": {
         "label": "🏛️ Despachante Lessmann",
         "tipo": "servicos",
@@ -186,7 +198,22 @@ def _fallback_venda_servicos(cfg, titulo, contexto, preco):
     return "\n".join(linhas)
 
 
+def _fallback_venda_defesa(cfg, titulo, contexto):
+    linhas = [f"⚖️ {titulo or 'Recebeu multa ou notificação?'} — DL Defesas!", ""]
+    if contexto:
+        linhas += [contexto, ""]
+    linhas += ["✅ Análise GRATUITA da tua notificação",
+               "✅ Recurso com efeito suspensivo: você continua dirigindo",
+               "✅ Casos reais já arquivados · sigilo total",
+               "✅ Atendimento digital em todo o Brasil", "",
+               f"📲 Manda a FOTO da notificação: WhatsApp {cfg['telefone_loja']}", "",
+               cfg["hashtags"]]
+    return "\n".join(linhas)
+
+
 def _fallback_venda(cfg, titulo, contexto, preco):
+    if cfg.get("tipo") == "defesa":
+        return _fallback_venda_defesa(cfg, titulo, contexto)
     if cfg.get("tipo") == "servicos":
         return _fallback_venda_servicos(cfg, titulo, contexto, preco)
     linhas = [f"🛵 {titulo or 'Scooter elétrica'} na DL Mobilidade — Schroeder!", ""]
@@ -222,13 +249,31 @@ def gerar_legendas(marca, arquivo):
     contexto = m.get("contexto") or ""
     preco = m.get("preco") or ""
 
+    if cfg.get("tipo") == "defesa":
+        fatos = ("FATOS FIXOS: DL Defesas do Despachante Lessmann (credencial DETRAN/SC 2095, "
+                 "Schroeder); defesa de multa e CNH suspensa em todas as instâncias (defesa "
+                 "prévia, JARI, CETRAN); o recurso tem efeito suspensivo — a pessoa CONTINUA "
+                 "dirigindo enquanto o processo corre; análise GRATUITA da notificação pelo "
+                 "WhatsApp; casos reais já ARQUIVADOS (embriaguez, ultrapassagem, celular); "
+                 "sigilo total; atendimento 100%% digital para TODO o Brasil. PROIBIDO "
+                 "prometer resultado ('garantimos') — usar 'análise gratuita'.")
+        casa = "DL Defesas — Despachante Lessmann"
+    elif cfg.get("tipo") == "servicos":
+        fatos = ("FATOS FIXOS: despachante credenciado DETRAN/SC nº 2095, em Schroeder; "
+                 "veículo 0km com documento em até 2 horas; transferência em até 1 dia útil; "
+                 "IPVA em 3x direto (dia 10) ou débitos em até 24x no cartão; tudo pelo "
+                 "WhatsApp. Para DOCUMENTOS, citar só Schroeder como cidade.")
+        casa = "Despachante Lessmann"
+    else:
+        fatos = ("FATOS FIXOS: scooters elétricas NXT; sem CNH e sem emplacamento (CONTRAN "
+                 "996); zero gasolina; até 48x ViaCredi; parcelas a partir de R$ 200 (com "
+                 "asterisco de análise de crédito); test-ride grátis. PROIBIDO 'boleto'.")
+        casa = "DL Mobilidade"
     base_info = (f"PRODUTO/CENA: {titulo}\n"
                  f"CONTEXTO DO DONO: {contexto or '(nenhum)'}\n"
                  f"PREÇO: {preco or '(não citar valor)'}\n"
-                 f"LOJA: DL Mobilidade, {cfg['endereco']} — WhatsApp {cfg['telefone_loja']}\n"
-                 "FATOS FIXOS: scooters elétricas NXT; sem CNH e sem emplacamento (CONTRAN 996); "
-                 "zero gasolina; até 48x ViaCredi; parcelas a partir de R$ 200 (com asterisco de "
-                 "análise de crédito); test-ride grátis na loja.")
+                 f"CASA: {casa}, {cfg['endereco']} — WhatsApp {cfg['telefone_loja']}\n"
+                 + fatos)
 
     p_venda = (
         "Você escreve legendas de Instagram que VENDEM para a CASA descrita abaixo, em Schroeder/SC. Escreva UMA legenda pronta (sem opções, sem comentários) sobre a "
