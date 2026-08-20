@@ -101,7 +101,7 @@ RSS_FEEDS = [
      'source': 'Radar Agricopel', 'city': 'Guaramirim', 'category': 'economia',
      'priority': True, 'max_entries': 4, 'bypass_master': True},
     {'url': 'https://news.google.com/rss/search?q=%22Menegotti%22&hl=pt-BR&gl=BR&ceid=BR:pt-419',
-     'source': 'Radar Menegotti', 'city': 'Schroeder', 'category': 'economia',
+     'source': 'Radar Menegotti', 'city': 'Jaraguá do Sul', 'category': 'economia',  # fix Thais 20/ago
      'priority': True, 'max_entries': 4, 'bypass_master': True},
     {'url': 'https://news.google.com/rss/search?q=%22Marisol%22+moda&hl=pt-BR&gl=BR&ceid=BR:pt-419',
      'source': 'Radar Marisol', 'city': 'Jaraguá do Sul', 'category': 'economia',
@@ -177,6 +177,23 @@ RSS_FEEDS = [
     {'url': 'https://news.google.com/rss/search?q=%22Docol%22+OR+%22Buschle%22+OR+%28Whirlpool+Joinville%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
      'source': 'Radar Empresas Joinville 2', 'city': 'Joinville', 'category': 'economia',
      'priority': True, 'max_entries': 5, 'bypass_master': True},
+    # ── 🎉 RADAR DE EVENTOS/FESTAS (20/ago — 'localizar tudo que tem de festa e anunciar';
+    #    prova: festival no Baile do MOA = 16,9 MIL views, recorde do perfil) ──
+    {'url': 'https://news.google.com/rss/search?q=%22Jaragu%C3%A1+do+Sul%22+%28festa+OR+festival+OR+show+OR+feira+OR+baile+OR+inaugura%C3%A7%C3%A3o+OR+edi%C3%A7%C3%A3o%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Eventos Jaraguá', 'city': 'Jaraguá do Sul', 'category': 'cultura',
+     'priority': True, 'max_entries': 5},
+    {'url': 'https://news.google.com/rss/search?q=%22Schroeder%22+SC+%28festa+OR+festival+OR+show+OR+feira+OR+baile+OR+inaugura%C3%A7%C3%A3o+OR+edi%C3%A7%C3%A3o%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Eventos Schroeder', 'city': 'Schroeder', 'category': 'cultura',
+     'priority': True, 'max_entries': 5},
+    {'url': 'https://news.google.com/rss/search?q=%22Guaramirim%22+%28festa+OR+festival+OR+show+OR+feira+OR+baile+OR+inaugura%C3%A7%C3%A3o+OR+edi%C3%A7%C3%A3o%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Eventos Guaramirim', 'city': 'Guaramirim', 'category': 'cultura',
+     'priority': True, 'max_entries': 5},
+    {'url': 'https://news.google.com/rss/search?q=%22Corup%C3%A1%22+%28festa+OR+festival+OR+show+OR+feira+OR+baile+OR+inaugura%C3%A7%C3%A3o+OR+edi%C3%A7%C3%A3o%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Eventos Corupá', 'city': 'Corupá', 'category': 'cultura',
+     'priority': True, 'max_entries': 5},
+    {'url': 'https://news.google.com/rss/search?q=%22Joinville%22+%28festa+OR+festival+OR+show+OR+feira+OR+baile+OR+inaugura%C3%A7%C3%A3o+OR+edi%C3%A7%C3%A3o%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Eventos Joinville', 'city': 'Joinville', 'category': 'cultura',
+     'priority': True, 'max_entries': 5},
     # ── Santa Catarina (geral) ──────────────────
     {
         'url': 'https://g1.globo.com/rss/g1/sc/',
