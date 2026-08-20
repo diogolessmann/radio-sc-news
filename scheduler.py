@@ -628,6 +628,29 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
+    # 📦 COMPILADOS — matéria NOSSA da colheita dos radares (20/ago, diretiva do dono:
+    # "pesquisas na internet e material nosso"). Vagas seg 08h30 · Agenda qui 16h30.
+    def _vagas_semana_job():
+        try:
+            import compilados
+            compilados.vagas_da_semana()
+        except Exception as e:
+            logger.error(f"📦 vagas da semana falhou: {e}")
+
+    def _agenda_fds_job():
+        try:
+            import compilados
+            compilados.agenda_fim_de_semana()
+        except Exception as e:
+            logger.error(f"📦 agenda do fds falhou: {e}")
+
+    _scheduler.add_job(func=_vagas_semana_job,
+        trigger=CronTrigger(day_of_week='mon', hour=8, minute=30, timezone='America/Sao_Paulo'),
+        id='compilado_vagas', name='Compilado: Vagas da semana (seg 08h30)', replace_existing=True)
+    _scheduler.add_job(func=_agenda_fds_job,
+        trigger=CronTrigger(day_of_week='thu', hour=16, minute=30, timezone='America/Sao_Paulo'),
+        id='compilado_agenda', name='Compilado: Agenda do fim de semana (qui 16h30)', replace_existing=True)
+
     # 🗣️ COMUNIDADE "Diz Aí, Vale" — ☠️ DESLIGADA (12/ago, ordem do dono: "interação que não
     # funciona, precisa sumir"). Pergunta genérica em card preto fez 146 views e ZERO resposta —
     # engajamento não se pede, se conquista com pauta (clima/serviço/nostalgia). O módulo
