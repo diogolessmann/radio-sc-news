@@ -194,6 +194,23 @@ RSS_FEEDS = [
     {'url': 'https://news.google.com/rss/search?q=%22Joinville%22+%28festa+OR+festival+OR+show+OR+feira+OR+baile+OR+inaugura%C3%A7%C3%A3o+OR+edi%C3%A7%C3%A3o%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
      'source': 'Radar Eventos Joinville', 'city': 'Joinville', 'category': 'cultura',
      'priority': True, 'max_entries': 5},
+    # ── 💼 RADAR DE EMPREGO/VAGAS (20/ago — 'procurar entrevista de emprego na região';
+    #    prova: WEG vagas = 5.060 views, 3º maior do feed. Vaga = bolso = compartilhado) ──
+    {'url': 'https://news.google.com/rss/search?q=%22Jaragu%C3%A1+do+Sul%22+%28vagas+OR+emprego+OR+contrata+OR+%22processo+seletivo%22+OR+recrutamento+OR+%22mutir%C3%A3o%22+OR+SINE%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Vagas Jaraguá', 'city': 'Jaraguá do Sul', 'category': 'economia',
+     'priority': True, 'max_entries': 5},
+    {'url': 'https://news.google.com/rss/search?q=%22Schroeder%22+SC+%28vagas+OR+emprego+OR+contrata+OR+%22processo+seletivo%22+OR+recrutamento+OR+%22mutir%C3%A3o%22+OR+SINE%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Vagas Schroeder', 'city': 'Schroeder', 'category': 'economia',
+     'priority': True, 'max_entries': 5},
+    {'url': 'https://news.google.com/rss/search?q=%22Guaramirim%22+%28vagas+OR+emprego+OR+contrata+OR+%22processo+seletivo%22+OR+recrutamento+OR+%22mutir%C3%A3o%22+OR+SINE%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Vagas Guaramirim', 'city': 'Guaramirim', 'category': 'economia',
+     'priority': True, 'max_entries': 5},
+    {'url': 'https://news.google.com/rss/search?q=%22Corup%C3%A1%22+%28vagas+OR+emprego+OR+contrata+OR+%22processo+seletivo%22+OR+recrutamento+OR+%22mutir%C3%A3o%22+OR+SINE%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Vagas Corupá', 'city': 'Corupá', 'category': 'economia',
+     'priority': True, 'max_entries': 5},
+    {'url': 'https://news.google.com/rss/search?q=%22Joinville%22+%28vagas+OR+emprego+OR+contrata+OR+%22processo+seletivo%22+OR+recrutamento+OR+%22mutir%C3%A3o%22+OR+SINE%29&hl=pt-BR&gl=BR&ceid=BR:pt-419',
+     'source': 'Radar Vagas Joinville', 'city': 'Joinville', 'category': 'economia',
+     'priority': True, 'max_entries': 5},
     # ── Santa Catarina (geral) ──────────────────
     {
         'url': 'https://g1.globo.com/rss/g1/sc/',
