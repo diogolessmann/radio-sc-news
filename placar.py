@@ -1,161 +1,114 @@
 # -*- coding: utf-8 -*-
+"""🏆 PLACAR — o motor aprende com as views SOZINHO (20/ago/2026).
+
+Diretiva do dono: "dos números de views é pra você aprender o que tá bombando" —
+até hoje ele mandava PRINT por print. Este job puxa as views reais de cada post
+da semana direto da Graph API, ranqueia campeões e fracassos, tira a AULA
+(média por categoria) e manda o boletim no zap (mesma Evolution do Vigia).
+
+Histórico acumulado em DATA_DIR/placar_historico.json — é a memória que depois
+alimenta o afinamento das fórmulas de manchete no cérebro.
+
+Roda toda segunda 07h45 (antes do compilado de vagas — o dono acorda com o placar).
 """
-placar.py — A CAMADA DE INTELIGÊNCIA (Rádio SC News).
-
-Fase 1 do "motor que aprende": lê o resultado REAL de cada post (post_insights, coletado pelo
-insights.py) e cruza com os ATRIBUTOS da notícia (tema, cidade, formato, horário) pra descobrir
-O QUE O VALE MAIS SALVA E COMPARTILHA. Não decide nada ainda — só mostra o padrão (o dono e,
-depois, o distribuidor aprendem com isso).
-
-Nota (placar):
-  saved e shares são o ouro de 2026. A nota normaliza pelo ALCANCE (pontos por 1.000 de reach),
-  pra não premiar só post que já teve sorte de alcance. Posts com alcance ínfimo (<20) viram ruído
-  e ficam de fora.
-
-Uso: placar.painel()  -> dict pronto pro /admin/placar
-"""
+import json
+import logging
 import os
-import sqlite3
 from datetime import datetime
 
-DB_PATH = os.environ.get("DB_PATH", "radio_sc.db")
+import requests
 
-_REACH_MIN = 20          # piso de alcance pra entrar no placar (abaixo disso é ruído)
-_W_SAVED, _W_SHARES, _W_COMMENTS = 3.0, 4.0, 2.0   # pesos (share > save > comentário)
+logger = logging.getLogger(__name__)
 
-
-def _db():
-    c = sqlite3.connect(DB_PATH, timeout=10)
-    c.row_factory = sqlite3.Row
-    return c
+META_TOKEN = (os.environ.get("META_PAGE_TOKEN") or "").strip()
+GRAPH = "https://graph.facebook.com/v21.0"
+DATA_DIR = os.environ.get("DATA_DIR", ".")
+HIST = os.path.join(DATA_DIR, "placar_historico.json")
 
 
-def _score(r):
-    """Nota de qualidade do post: (saves, shares, comentários ponderados) por 1.000 de alcance."""
-    reach = r["reach"] or 0
-    if reach < _REACH_MIN:
-        return None
-    pts = (r["saved"] or 0) * _W_SAVED + (r["shares"] or 0) * _W_SHARES + (r["comments"] or 0) * _W_COMMENTS
-    return pts / reach * 1000.0
+def _views(media_id):
+    """Views do post (métrica 'views' v21+; fallback reach). None se a API negar tudo."""
+    for metricas in ("views,reach,likes,comments,shares,saved", "reach,total_interactions"):
+        try:
+            r = requests.get(f"{GRAPH}/{media_id}/insights",
+                             params={"metric": metricas, "access_token": META_TOKEN}, timeout=25)
+            if r.status_code != 200:
+                continue
+            vals = {d["name"]: (d.get("values") or [{}])[0].get("value") or 0
+                    for d in r.json().get("data", [])}
+            v = vals.get("views") or vals.get("reach") or 0
+            return {"views": int(v), "likes": int(vals.get("likes") or 0),
+                    "shares": int(vals.get("shares") or 0), "saves": int(vals.get("saved") or 0)}
+        except Exception as e:
+            logger.warning(f"🏆 insights falhou p/ {media_id}: {e}")
+    return None
 
 
-def _formato(r):
-    return "Reels" if (r["plays"] or 0) and r["plays"] > 0 else "Carrossel"
-
-
-def _hora(r):
-    try:
-        return f"{datetime.fromisoformat(r['social_posted_at']).hour:02d}h"
-    except Exception:
-        return None
-
-
-def _cidade(r):
-    """Cidade REAL do post: detecta pelo TÍTULO (o campo city vem genérico 'Santa Catarina' mesmo
-    quando a notícia é de uma cidade -> Jaraguá aparecia subcontada). Mesmo critério da imagem/
-    legenda (gi._cidade_real). Sem cidade no título, cai no campo city."""
-    try:
-        import genericbg
-        c = genericbg.cidade_no_titulo(r["title_own"] or r["title"] or "")
-        if c:
-            return c
-    except Exception:
-        pass
-    return r["city"] or "(sem cidade)"
-
-
-def _agg(scored, keyfn, minimo=2):
-    """Agrega a lista [(row, score)] por uma dimensão. Ignora grupos com poucos posts (ruído)."""
-    buckets = {}
-    for r, sc in scored:
-        k = keyfn(r)
-        if not k:
+def coletar(conn, dias=7):
+    rows = conn.execute(
+        "SELECT id, title_own, title, city, category, ig_media_id, ig_permalink "
+        "FROM news WHERE ig_media_id IS NOT NULL AND ig_media_id != '' "
+        "AND replace(social_posted_at,'T',' ') >= datetime('now', ?) "
+        "ORDER BY social_posted_at DESC LIMIT 120", (f"-{dias} days",)).fetchall()
+    posts = []
+    for r in rows:
+        m = _views(r["ig_media_id"])
+        if m is None:
             continue
-        b = buckets.setdefault(k, {"n": 0, "reach": 0, "saves": 0, "shares": 0, "score": 0.0})
-        b["n"] += 1
-        b["reach"] += r["reach"] or 0
-        b["saves"] += r["saved"] or 0
-        b["shares"] += r["shares"] or 0
-        b["score"] += sc
-    out = []
-    for k, b in buckets.items():
-        if b["n"] < minimo:
-            continue
-        out.append({
-            "nome": k, "n": b["n"],
-            "reach_medio": round(b["reach"] / b["n"]),
-            "saves_medio": round(b["saves"] / b["n"], 1),
-            "shares_medio": round(b["shares"] / b["n"], 1),
-            "score": round(b["score"] / b["n"], 1),
-        })
-    return sorted(out, key=lambda x: -x["score"])
+        posts.append({"id": r["id"], "titulo": (r["title_own"] or r["title"] or "")[:90],
+                      "cidade": r["city"] or "", "categoria": r["category"] or "geral",
+                      "link": r["ig_permalink"] or "", **m})
+    return posts
 
 
-def painel(dias=90):
-    """Foto do que funciona: rankings por tema, cidade, formato e horário + top posts + resumo."""
-    conn = _db()
-    try:
-        rows = conn.execute(
-            """SELECT n.id, n.title, n.title_own, n.category, n.city, n.social_posted_at,
-                      p.reach, p.saved, p.shares, p.comments, p.plays
-               FROM post_insights p JOIN news n ON n.id = p.news_id
-               WHERE p.reach IS NOT NULL AND p.reach > 0""").fetchall()
-    except Exception:
-        conn.close()
-        return {"tem_dado": False, "n_posts": 0}
+def _boletim(posts):
+    posts.sort(key=lambda p: p["views"], reverse=True)
+    top, flop = posts[:5], [p for p in posts[-5:] if p not in posts[:5]]
+    # aula: média por categoria (o que a audiência está premiando ESTA semana)
+    cats = {}
+    for p in posts:
+        cats.setdefault(p["categoria"], []).append(p["views"])
+    aula = sorted(((c, sum(v) // len(v), len(v)) for c, v in cats.items()),
+                  key=lambda x: x[1], reverse=True)
+    L = [f"🏆 *PLACAR DA SEMANA* — {len(posts)} posts medidos", "", "*CAMPEÕES:*"]
+    for i, p in enumerate(top, 1):
+        L.append(f"{i}º {p['views']:,} views — {p['titulo']} ({p['cidade']})".replace(",", "."))
+    if flop:
+        L += ["", "*💤 FICARAM PRA TRÁS:*"]
+        for p in flop:
+            L.append(f"• {p['views']} views — {p['titulo'][:60]}")
+    L += ["", "*📚 AULA (média por categoria):*"]
+    for c, m, n in aula[:6]:
+        L.append(f"• {c}: {m:,} views médias ({n} posts)".replace(",", "."))
+    if top:
+        L += ["", f"👉 Campeão: {top[0]['link']}"]
+    return "\n".join(L)
+
+
+def run(enviar=True, dias=7):
+    if not META_TOKEN:
+        return {"ok": False, "motivo": "sem META_PAGE_TOKEN"}
+    import distribuidor as dist
+    conn = dist.get_db()
+    posts = coletar(conn, dias)
     conn.close()
-
-    scored = [(r, s) for r in rows if (s := _score(r)) is not None]
-    if not scored:
-        return {"tem_dado": False, "n_posts": len(rows)}
-
-    # top posts (os campeões de verdade)
-    top = sorted(scored, key=lambda x: -x[1])[:6]
-    top_posts = [{
-        "titulo": (r["title_own"] or r["title"] or "")[:70],
-        "cidade": _cidade(r), "categoria": r["category"], "formato": _formato(r),
-        "reach": r["reach"] or 0, "saves": r["saved"] or 0, "shares": r["shares"] or 0,
-        "score": round(sc, 1),
-    } for r, sc in top]
-
-    por_categoria = _agg(scored, lambda r: (r["category"] or "outros").lower())
-    por_cidade = _agg(scored, _cidade)      # cidade REAL (pelo título), não o campo cru
-    por_formato = _agg(scored, _formato, minimo=1)
-    por_hora = _agg(scored, _hora, minimo=1)
-
-    def _top(lst):
-        return lst[0]["nome"] if lst else None
-
-    resumo = {
-        "tema": _top(por_categoria), "cidade": _top(por_cidade),
-        "formato": _top(por_formato), "hora": _top(por_hora),
-    }
-    return {
-        "tem_dado": True, "n_posts": len(scored),
-        "por_categoria": por_categoria, "por_cidade": por_cidade,
-        "por_formato": por_formato, "por_hora": por_hora,
-        "top_posts": top_posts, "resumo": resumo,
-        "gerado_em": datetime.now().strftime("%d/%m %H:%M"),
-    }
-
-
-def pesos(dias=90):
-    """Pesos NORMALIZADOS (0..1) por tema e cidade — o que o motor (Fase 2) consulta pra dar
-    bônus de prioridade ao que mais rende. Devolve {} se ainda não há dado (aí o motor não mexe)."""
-    p = painel(dias)
-    if not p.get("tem_dado"):
-        return {}
-
-    def _norm(lst):
-        if not lst:
-            return {}
-        mx = max((x["score"] for x in lst), default=0) or 1.0
-        return {x["nome"]: round(x["score"] / mx, 3) for x in lst}
-
-    return {"categoria": _norm(p.get("por_categoria")), "cidade": _norm(p.get("por_cidade"))}
-
-
-if __name__ == "__main__":
-    import json
-    print(json.dumps(painel(), ensure_ascii=False, indent=2))
-    print("PESOS:", json.dumps(pesos(), ensure_ascii=False))
+    if not posts:
+        return {"ok": False, "motivo": "nenhum post com media_id na janela"}
+    # memória: acumula a semana no histórico (alimenta o afinamento das fórmulas depois)
+    try:
+        hist = []
+        if os.path.exists(HIST):
+            hist = json.load(open(HIST, encoding="utf-8"))
+        hist.append({"semana": datetime.now().strftime("%Y-%m-%d"), "posts": posts})
+        json.dump(hist[-26:], open(HIST, "w", encoding="utf-8"), ensure_ascii=False)
+    except Exception as e:
+        logger.warning(f"🏆 histórico falhou: {e}")
+    rel = _boletim(posts)
+    if enviar:
+        try:
+            import vigia
+            vigia.send_zap(rel)
+        except Exception as e:
+            logger.error(f"🏆 zap falhou: {e}")
+    logger.info(f"🏆 Placar: {len(posts)} posts medidos, campeão {posts[0]['views']} views")
+    return {"ok": True, "medidos": len(posts), "campeao": posts[0]["titulo"]}

@@ -1146,8 +1146,13 @@ def social_caption(news, resumo):
         f"👉 {WHATSAPP_CHANNEL}\n\n"
         if WHATSAPP_CHANNEL else ""
     )
-    # gatilho de pertencimento: marcar alguém DA CIDADE (não genérico) = mais compartilhamento
-    marca = f"Marca quem é de {city}" if city in gi.NORTE_SC else "Marca um amigo do Vale"
+    # gatilho de pertencimento: marcar alguém DA CIDADE (não genérico) = mais compartilhamento.
+    # Festa/evento (cultura) tem gatilho MAIS forte: o CONVITE — "marca quem vai contigo"
+    # transforma o post em convite pessoal (festa local = 16,9 mil views, recorde do perfil).
+    if (news["category"] or "") == "cultura":
+        marca = "Marca quem vai contigo 🎉"
+    else:
+        marca = f"Marca quem é de {city}" if city in gi.NORTE_SC else "Marca um amigo do Vale"
     # 🔁 Fino 5/ago: fecho de engajamento ROTATIVO (o mesmo CTA todo post = leitor cego pra ele;
     # variar mantém a linha viva). Rotação determinística por id — mesma matéria, mesmo fecho.
     _engaja = [

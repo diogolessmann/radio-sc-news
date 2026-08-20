@@ -628,6 +628,19 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
+    # 🏆 PLACAR — o motor mede as views sozinho (20/ago, "dos números é pra você aprender").
+    def _placar_job():
+        try:
+            import placar
+            r = placar.run(enviar=True)
+            logger.info(f"🏆 Placar: {r}")
+        except Exception as e:
+            logger.error(f"🏆 Placar falhou: {e}")
+
+    _scheduler.add_job(func=_placar_job,
+        trigger=CronTrigger(day_of_week='mon', hour=7, minute=45, timezone='America/Sao_Paulo'),
+        id='placar_semana', name='Placar da semana (seg 07h45)', replace_existing=True)
+
     # 📦 COMPILADOS — matéria NOSSA da colheita dos radares (20/ago, diretiva do dono:
     # "pesquisas na internet e material nosso"). Vagas seg 08h30 · Agenda qui 16h30.
     def _vagas_semana_job():
