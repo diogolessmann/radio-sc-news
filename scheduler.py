@@ -656,6 +656,20 @@ def start_scheduler(interval_minutes=60):
         trigger=CronTrigger(day_of_week='mon', hour=7, minute=15, timezone='America/Sao_Paulo'),
         id='aula_semana', name='Aula da semana (seg 07h15)', replace_existing=True)
 
+    # 🩹 IMUNIZAÇÃO — segunda 07h20: as pegas da semana viram regras permanentes (cicatrizes)
+    # no prompt do redator. Trava anti-censura: regra só corrige ESCRITA, nunca proíbe assunto.
+    def _cicatriz_job():
+        try:
+            import cicatriz
+            cicatriz.aprender_do_log()
+        except Exception as e:
+            logger.error(f"🩹 Imunização falhou: {e}")
+
+    _scheduler.add_job(func=_cicatriz_job,
+        trigger=CronTrigger(day_of_week='mon', hour=7, minute=20, timezone='America/Sao_Paulo'),
+        id='cicatriz_semana', name='Imunização: cicatrizes da semana (seg 07h20)',
+        replace_existing=True)
+
     # 🏆 PLACAR — o motor mede as views sozinho (20/ago, "dos números é pra você aprender").
     def _placar_job():
         try:

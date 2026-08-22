@@ -59,6 +59,17 @@ def _aula_viva():
         return ""
 
 
+def _cicatrizes():
+    """🩹 IMUNIDADE ADQUIRIDA (22/ago): erros que o jornal JÁ cometeu, destilados em regras
+    permanentes pelo cicatriz.py — o prompt carrega a memória do que já doeu."""
+    try:
+        import cicatriz
+        txt = cicatriz.ler()
+        return f"\n{txt}\n" if txt else ""
+    except Exception:
+        return ""
+
+
 def _build_prompt(bruto, cidade, fonte, titulo_hint):
     atrib = (f" Atribua a informação à fonte: {fonte}." if fonte else
              " Se for afirmação de um único lado (político/partidário), deixe claro que é "
@@ -87,7 +98,7 @@ def _build_prompt(bruto, cidade, fonte, titulo_hint):
         "- PROIBIDO título morno de assessoria ('Empresa realiza ação...', 'Prefeitura promove "
         "evento...') — esse formato fez 227 views enquanto festa fez 16.900. Sempre reescreva "
         "pro ângulo do LEITOR: o que ELE ganha, sente ou precisa fazer.\n"
-        + _aula_viva() +
+        + _aula_viva() + _cicatrizes() +
         "- A 1ª linha do CORPO é o SOCO: a informação mais importante primeiro, sem enrolar.\n"
         "- Tom de vizinho bem informado, com a emoção certa (orgulho na conquista, atenção no "
         "alerta). SEM sensacionalismo. NÃO invente NADA (principalmente números e datas).\n"
