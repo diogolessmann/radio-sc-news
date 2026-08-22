@@ -48,6 +48,17 @@ def disponiveis():
 
 
 # ----------------------------------------------------------------- prompt comum
+def _aula_viva():
+    """📚 AULA DA SEMANA (22/ago): lição escrita toda segunda pelo aula.py com o desempenho
+    REAL — o redator aprende com as views sozinho. Vazio se não há aula (prompt como sempre)."""
+    try:
+        import aula
+        txt = aula.ler()
+        return f"\n{txt}\n" if txt else ""
+    except Exception:
+        return ""
+
+
 def _build_prompt(bruto, cidade, fonte, titulo_hint):
     atrib = (f" Atribua a informação à fonte: {fonte}." if fonte else
              " Se for afirmação de um único lado (político/partidário), deixe claro que é "
@@ -76,6 +87,7 @@ def _build_prompt(bruto, cidade, fonte, titulo_hint):
         "- PROIBIDO título morno de assessoria ('Empresa realiza ação...', 'Prefeitura promove "
         "evento...') — esse formato fez 227 views enquanto festa fez 16.900. Sempre reescreva "
         "pro ângulo do LEITOR: o que ELE ganha, sente ou precisa fazer.\n"
+        + _aula_viva() +
         "- A 1ª linha do CORPO é o SOCO: a informação mais importante primeiro, sem enrolar.\n"
         "- Tom de vizinho bem informado, com a emoção certa (orgulho na conquista, atenção no "
         "alerta). SEM sensacionalismo. NÃO invente NADA (principalmente números e datas).\n"

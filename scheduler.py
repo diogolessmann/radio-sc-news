@@ -643,6 +643,19 @@ def start_scheduler(interval_minutes=60):
         id='ouvidor_comentarios', name='Ouvidor: correções nos comentários (2/2h)',
         replace_existing=True)
 
+    # 📚 AULA AUTOMÁTICA — segunda 07h15, o motor reescreve a própria lição de manchete
+    # com o desempenho real (fecha o ciclo publica->mede->aprende, 22/ago).
+    def _aula_job():
+        try:
+            import aula
+            aula.gerar()
+        except Exception as e:
+            logger.error(f"📚 Aula falhou: {e}")
+
+    _scheduler.add_job(func=_aula_job,
+        trigger=CronTrigger(day_of_week='mon', hour=7, minute=15, timezone='America/Sao_Paulo'),
+        id='aula_semana', name='Aula da semana (seg 07h15)', replace_existing=True)
+
     # 🏆 PLACAR — o motor mede as views sozinho (20/ago, "dos números é pra você aprender").
     def _placar_job():
         try:

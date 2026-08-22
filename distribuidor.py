@@ -1549,6 +1549,21 @@ def run_once(post=False, limit=1):
                 seguradas.append(aviso)
                 vistos.append(news)
                 continue
+            # 3) 👓 LEITOR CONFERIDOR (22/ago, dono: "pode gastar pra revisar"): o revisor
+            #    IA lê a matéria FINAL contra a origem — fato trocado/hoje-amanhã/fala de
+            #    robô/português quebrado -> SEGURADA pra revisão humana (não morre, espera).
+            try:
+                import checador
+                _ok_leitor, _mot = checador.leitor_final(news)
+                if not _ok_leitor:
+                    mark_hold(conn, news["id"], f"leitor: {_mot}")
+                    aviso = f"materia {news['id']} SEGURADA pelo LEITOR ('{_mot}')"
+                    print("   👓 " + aviso)
+                    seguradas.append(aviso)
+                    vistos.append(news)
+                    continue
+            except Exception:
+                pass
             if not _claim(conn, news["id"]):          # 🔐 outro processo pegou (janela de deploy)
                 vistos.append(news)
                 continue

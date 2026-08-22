@@ -106,6 +106,59 @@ def reescrita_conferida(gerar, original, titulo_hint=""):
     return None, None
 
 
+# ---------------------------------------------------------------- leitor conferidor
+_PROMPT_LEITOR = (
+    "Você é o LEITOR CONFERIDOR de um jornal local do Norte de SC — o revisor mais chato da "
+    "redação, o último portão antes da publicação. Avalie a matéria FINAL abaixo contra o "
+    "texto de origem. REPROVE somente se encontrar erro que um leitor comum apontaria nos "
+    "comentários:\n"
+    "1. FATO INVENTADO/TROCADO: cargo, nome, número, data, valor ou cidade que a origem não "
+    "sustenta (ex.: chamar alguém de 'prefeito de Guaramirim' quando foi de Jaraguá).\n"
+    "2. ÂNCORA DE TEMPO QUEBRADA: 'hoje', 'amanhã' ou 'ontem' no texto (a matéria pode ir ao "
+    "ar em outro dia).\n"
+    "3. FALA DE ROBÔ: meta-comentário de IA ('como modelo', 'segue o texto', 'Atenção:' "
+    "abrindo resposta).\n"
+    "4. PORTUGUÊS QUEBRADO: frase cortada no meio, palavra trocada, concordância grosseira.\n"
+    "5. CIDADE ERRADA: a matéria afirma cidade diferente da origem.\n"
+    "NÃO reprove por: estilo, resumo agressivo, omissão proposital de nomes (é o padrão da "
+    "casa), tom popular, emoji.\n"
+    "Responda EXATAMENTE:\n"
+    "APROVADA\n"
+    "ou\n"
+    "REPROVADA: <motivo em 1 frase>\n\n"
+    "TEXTO DE ORIGEM:\n{original}\n\nMATÉRIA FINAL:\n{final}"
+)
+
+
+def leitor_final(news):
+    """👓 O leitor conferidor (22/ago — ordem do dono: 'pode gastar pra revisar'): revisa a
+    matéria FINAL (manchete + corpo nossos) contra a origem imediatamente antes de postar.
+    Devolve (ok, motivo). Fail-open: leitor mudo/fora do ar não trava a esteira."""
+    if os.environ.get("LEITOR_ON", "1").strip() == "0":
+        return True, None
+    try:
+        titulo = (news["title_own"] or news["title"] or "").strip()
+        corpo = (news["resumo_own"] or news["summary"] or "").strip()
+        original = (news["summary"] or news["title"] or "").strip()
+        if not titulo or not original:
+            return True, None
+        import cerebro
+        out = cerebro.completar(_PROMPT_LEITOR.format(
+            original=original[:4000], final=f"{titulo}\n{corpo}"[:2200]))
+        if not out:
+            return True, None
+        out = out.strip()
+        if re.match(r"(?i)^aprovada\b", out):
+            return True, None
+        m = re.search(r"(?i)reprovada:\s*(.+)", out)
+        motivo = (m.group(1).strip() if m else out)[:200]
+        _registrar("leitor_segurou", titulo, motivo)
+        return False, motivo
+    except Exception as e:
+        logger.warning(f"👓 leitor falhou ({e}) — deixando passar (fail-open)")
+        return True, None
+
+
 def resumo_selo(dias=30):
     """Números pro SELO/placar: quantas o checador pegou, refez e descartou."""
     contagem = {"pega": 0, "refeita_ok": 0, "descartada": 0}

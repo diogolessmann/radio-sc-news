@@ -607,6 +607,17 @@ _ESPORTE_FORTE = re.compile(
     re.IGNORECASE)
 
 
+def _requentada(texto):
+    """🗓️ Matéria velha requentada (22/ago — concurso de Guaramirim 2025 publicado como atual):
+    prazo/inscrição/edital citando SÓ ano passado, sem o ano corrente = caça-clique reciclado."""
+    if not re.search(r"inscri[çc]|edital|concurso|processo seletivo|prazo|matr[íi]cula",
+                     texto or "", re.I):
+        return False
+    anos = set(re.findall(r"\b(20[12]\d)\b", texto))
+    atual = str(datetime.now().year)
+    return bool(anos) and atual not in anos and all(a < atual for a in anos)
+
+
 def detect_category(text):
     """Categoria por PALAVRA INTEIRA (\\b) — evita 'preso' casar dentro de 'Caropreso' (sobrenome)
     e marcar política/saúde como POLICIAL. Escolhe a categoria com MAIS acertos (não a 1ª que casa)."""
@@ -833,16 +844,10 @@ def fetch_feed(feed_config):
             continue
 
         # 🗓️ GUARDA DE ANO REQUENTADO (22/ago — site caça-clique republicou o concurso de
-        # Guaramirim de 2025 com data nova e o motor publicou como atual): prazo/inscrição/
-        # edital citando SÓ ano passado (sem o ano corrente) = matéria velha requentada.
-        _txt_ano = f"{title} {summary}"
-        if re.search(r"inscri[çc]|edital|concurso|processo seletivo|prazo|matr[íi]cula",
-                     _txt_ano, re.I):
-            _anos = set(re.findall(r"\b(20[12]\d)\b", _txt_ano))
-            _ano_atual = str(datetime.now().year)
-            if _anos and _ano_atual not in _anos and all(a < _ano_atual for a in _anos):
-                logger.info(f"🗓️ requentada ({'/'.join(sorted(_anos))}): {title[:70]}")
-                continue
+        # Guaramirim de 2025 com data nova). Roda de novo em save_articles com o corpo cheio.
+        if _requentada(f"{title} {summary}"):
+            logger.info(f"🗓️ requentada: {title[:70]}")
+            continue
 
         # Imagem da notícia
         image_url = None
@@ -1035,9 +1040,11 @@ def save_articles(articles):
     # base de comparação: registros recentes (id, título, foto) — p/ dedup E enriquecimento
     try:
         recent = conn.execute(
-            "SELECT id, title, image_url FROM news WHERE created_at > datetime('now','-3 days')"
+            "SELECT id, title, image_url, source, priority FROM news "
+            "WHERE created_at > datetime('now','-3 days')"
         ).fetchall()
-        vistos = [{'id': r['id'], 'title': r['title'], 'image_url': r['image_url']}
+        vistos = [{'id': r['id'], 'title': r['title'], 'image_url': r['image_url'],
+                   'source': r['source'], 'priority': r['priority']}
                   for r in recent if r['title']]
     except Exception:
         vistos = []
@@ -1058,6 +1065,14 @@ def save_articles(articles):
                         conn.execute('UPDATE news SET image_url=? WHERE id=?', (foto, gemea['id']))
                         gemea['image_url'] = foto
                         logger.info(f"📷 enriqueci gêmea #{gemea['id']} com foto de '{art['title'][:40]}'")
+                # 🔥 PAUTA QUENTE (22/ago): 2ª fonte DIFERENTE cobrindo o mesmo fato = assunto
+                # que a região está falando -> a versão salva ganha prioridade (fura a fila).
+                if (art.get('source') and gemea.get('source')
+                        and art['source'] != gemea['source'] and not gemea.get('priority')):
+                    conn.execute('UPDATE news SET priority=1 WHERE id=?', (gemea['id'],))
+                    gemea['priority'] = 1
+                    logger.info(f"🔥 PAUTA QUENTE: #{gemea['id']} confirmada por 2ª fonte "
+                                f"({art['source']}) -> prioridade")
                 logger.info(f"♻ Duplicada (mesmo fato) ignorada: {art['title'][:60]}")
                 continue
 
@@ -1073,6 +1088,12 @@ def save_articles(articles):
                 if corpo and len(corpo) > len((art.get('summary') or '').strip()):
                     art['summary'] = corpo[:2000]
                     logger.info(f"📝 texto enriquecido p/ '{art['title'][:45]}' ({len(corpo)} chars)")
+
+            # 🗓️ requentada de novo, agora com o CORPO cheio (o ano velho pode estar só no
+            # texto completo — o feed do caso FII Brasil não trazia o '2025' no resumo)
+            if _requentada(f"{art.get('title','')} {art.get('summary','')}"):
+                logger.info(f"🗓️ requentada (no corpo): {art['title'][:60]}")
+                continue
 
             # TEXTO NOSSO: reescreve no tom da Rádio (anti-strike + emoção). Site/Insta usam o nosso.
             title_own, resumo_own = _reescreve(art)
