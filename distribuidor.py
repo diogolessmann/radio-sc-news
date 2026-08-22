@@ -1452,6 +1452,26 @@ def _teto_dia():
 
 
 @_serializa_post
+def _leitor_segura(conn, news, seguradas, vistos, rotulo=""):
+    """👓 LEITOR CONFERIDOR (22/ago, dono: 'pode gastar pra revisar'): revisa a matéria FINAL
+    contra a origem — fato trocado/hoje-amanhã/fala de robô/português quebrado -> SEGURADA
+    pra revisão humana (mark_hold; não morre, espera). True se segurou. Fail-open."""
+    try:
+        import checador
+        ok, mot = checador.leitor_final(news)
+        if not ok:
+            mark_hold(conn, news["id"], f"leitor: {mot}")
+            tag = f" [{rotulo}]" if rotulo else ""
+            aviso = f"materia {news['id']} SEGURADA pelo LEITOR{tag} ('{mot}')"
+            print("   👓 " + aviso)
+            seguradas.append(aviso)
+            vistos.append(news)
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def run_urgent(post=True, limit=1):
     """Posta NA HORA noticias urgentes recem-coletadas (plantao). Mesmo filtro
     editorial + dedup. Sensiveis vao p/ revisao marcadas como URGENTE."""
@@ -1483,6 +1503,9 @@ def run_urgent(post=True, limit=1):
         if dup:
             mark_dup(conn, news["id"], dup)
             vistos.append(news)
+            continue
+        # 👓 leitor no PLANTÃO também (22/ago): urgente é onde erro dói mais — vale o segundo
+        if post and _leitor_segura(conn, news, seguradas, vistos, rotulo="URGENTE"):
             continue
         if post and not _claim(conn, news["id"]):     # 🔐 outro processo pegou (janela de deploy)
             vistos.append(news)
@@ -1549,21 +1572,9 @@ def run_once(post=False, limit=1):
                 seguradas.append(aviso)
                 vistos.append(news)
                 continue
-            # 3) 👓 LEITOR CONFERIDOR (22/ago, dono: "pode gastar pra revisar"): o revisor
-            #    IA lê a matéria FINAL contra a origem — fato trocado/hoje-amanhã/fala de
-            #    robô/português quebrado -> SEGURADA pra revisão humana (não morre, espera).
-            try:
-                import checador
-                _ok_leitor, _mot = checador.leitor_final(news)
-                if not _ok_leitor:
-                    mark_hold(conn, news["id"], f"leitor: {_mot}")
-                    aviso = f"materia {news['id']} SEGURADA pelo LEITOR ('{_mot}')"
-                    print("   👓 " + aviso)
-                    seguradas.append(aviso)
-                    vistos.append(news)
-                    continue
-            except Exception:
-                pass
+            # 3) 👓 LEITOR CONFERIDOR (22/ago, dono: "pode gastar pra revisar")
+            if _leitor_segura(conn, news, seguradas, vistos):
+                continue
             if not _claim(conn, news["id"]):          # 🔐 outro processo pegou (janela de deploy)
                 vistos.append(news)
                 continue
@@ -1674,6 +1685,9 @@ def run_clima(post=True, limit=5):
         if dup:
             mark_dup(conn, news["id"], dup)
             vistos.append(news)
+            continue
+        # 👓 leitor no passa-tudo de clima também (22/ago) — passa-tudo não é passa-errado
+        if post and _leitor_segura(conn, news, seguradas, vistos, rotulo="clima"):
             continue
         if post and not _claim(conn, news["id"]):     # 🔐 outro processo pegou (janela de deploy)
             vistos.append(news)

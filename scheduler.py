@@ -670,6 +670,34 @@ def start_scheduler(interval_minutes=60):
         id='cicatriz_semana', name='Imunização: cicatrizes da semana (seg 07h20)',
         replace_existing=True)
 
+    # 🗳️ ALARME PÓS-ELEIÇÃO (22/ago): a lista de fatos verificados do redator (prefeitos,
+    # Antídio candidato ao Senado) VENCE na eleição de outubro — o motor avisa o dono no zap
+    # pra atualizar (1º turno 04/out; lembra de novo pós-2º turno). Só agenda se ainda futuro.
+    def _alarme_eleicao(msg):
+        try:
+            import vigia
+            vigia.send_zap(msg)
+        except Exception as e:
+            logger.error(f"🗳️ alarme eleição falhou: {e}")
+
+    from datetime import datetime as _dt
+    from apscheduler.triggers.date import DateTrigger
+    for _quando, _msg, _jid in (
+        ("2026-10-05 08:30", "🗳️ *ELEIÇÃO PASSOU (1º turno)* — a lista de FATOS VERIFICADOS "
+         "do redator (prefeitos, Antídio candidato ao Senado) pode ter vencido. Pede pro "
+         "Legião atualizar os fatos no cerebro.py com o resultado.", "fatos_eleicao_t1"),
+        ("2026-10-26 08:30", "🗳️ *2º TURNO PASSOU* — conferir de novo os fatos verificados "
+         "do redator (governador/senado definidos). Pede pro Legião atualizar.", "fatos_eleicao_t2"),
+    ):
+        try:
+            if _dt.strptime(_quando, "%Y-%m-%d %H:%M") > _dt.now():
+                _scheduler.add_job(func=_alarme_eleicao, args=[_msg],
+                    trigger=DateTrigger(run_date=_quando, timezone='America/Sao_Paulo'),
+                    id=_jid, name=f'Alarme fatos pós-eleição ({_quando[:10]})',
+                    replace_existing=True)
+        except Exception as e:
+            logger.error(f"🗳️ agendamento eleição falhou: {e}")
+
     # 🏆 PLACAR — o motor mede as views sozinho (20/ago, "dos números é pra você aprender").
     def _placar_job():
         try:
