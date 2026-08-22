@@ -459,7 +459,12 @@ CATEGORY_KEYWORDS = {
     'politica': ['prefeitura', 'câmara', 'vereador', 'prefeito', 'eleição', 'governo', 'governador', 'deputado', 'política'],
     'saude': ['hospital', 'saúde', 'dengue', 'vacina', 'ubs', 'médico', 'doença', 'covid', 'pandemia'],
     'esporte': ['futebol', 'esporte', 'atleta', 'campeonato', 'jogo', 'gol', 'time', 'torneio', 'libertadores', 'brasileirão', 'brasileirao', 'escalações', 'escalacao', 'rodada', 'tabela do campeonato', 'série a', 'serie a', 'copa do brasil', 'flamengo', 'corinthians', 'palmeiras', 'são paulo', 'grêmio', 'internacional', 'cruzeiro', 'atlético'],
-    'economia': ['emprego', 'empresa', 'mercado', 'economia', 'negócio', 'indústria', 'comércio', 'renda'],
+    # vagas/concurso = ECONOMIA (fix 22/ago: 'processo seletivo da prefeitura' saía com pill
+    # POLITICA porque só 'prefeitura' pontuava — pra quem procura emprego a pauta é trabalho)
+    'economia': ['emprego', 'empresa', 'mercado', 'economia', 'negócio', 'indústria', 'comércio',
+                 'renda', 'vaga', 'vagas', 'processo seletivo', 'seletivo', 'concurso',
+                 'concurso público', 'contrata', 'contratação', 'recrutamento', 'sine',
+                 'salário'],
     'clima': ['chuva', 'temporal', 'vento', 'frio', 'calor', 'enchente', 'clima', 'previsão do tempo'],
     'cultura': ['evento', 'festa', 'show', 'cultura', 'música', 'teatro', 'exposição', 'festival'],
     # 🚧 TRÂNSITO (13/ago, ordem do dono: "o buraco que os vizinhos têm e nós não") — a novela
@@ -826,6 +831,18 @@ def fetch_feed(feed_config):
         # histórico antigo no banco. Só filtra quando a data é real (senão, ingere).
         if published_dt is not None and (datetime.now() - published_dt).days > MAX_NEWS_AGE_DIAS:
             continue
+
+        # 🗓️ GUARDA DE ANO REQUENTADO (22/ago — site caça-clique republicou o concurso de
+        # Guaramirim de 2025 com data nova e o motor publicou como atual): prazo/inscrição/
+        # edital citando SÓ ano passado (sem o ano corrente) = matéria velha requentada.
+        _txt_ano = f"{title} {summary}"
+        if re.search(r"inscri[çc]|edital|concurso|processo seletivo|prazo|matr[íi]cula",
+                     _txt_ano, re.I):
+            _anos = set(re.findall(r"\b(20[12]\d)\b", _txt_ano))
+            _ano_atual = str(datetime.now().year)
+            if _anos and _ano_atual not in _anos and all(a < _ano_atual for a in _anos):
+                logger.info(f"🗓️ requentada ({'/'.join(sorted(_anos))}): {title[:70]}")
+                continue
 
         # Imagem da notícia
         image_url = None

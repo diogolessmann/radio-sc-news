@@ -466,17 +466,10 @@ def slide_cover(news, outdir, manchete=None):
             foto_credito = news["source"] or None
         except Exception:
             foto_credito = None
-    # A) STREET VIEW de LUGAR ESPECÍFICO (prefeitura/câmara/hospital/BR-280) — foto REAL do prédio,
-    #    layout foto+faixa. Só roda quando o título cita o lugar; senão cai no arsenal. SEM mapa.
-    if not bg:
-        try:
-            import streetview
-            _gp, _tipo = streetview.buscar(news, outdir)
-            if _gp:
-                return slide_cover_foto_faixa(news, _gp, outdir, manchete=manchete,
-                                              credito="Imagem: Google Street View")
-        except Exception:
-            pass
+    # ☠️ STREET VIEW DESPLUGADO (22/ago — post do concurso de Guaramirim saiu com foto
+    # © Google no feed). Os Termos do Google Maps proíbem republicar Street View fora do
+    # produto deles; era o risco jurídico já anotado na auditoria de julho. O arsenal tem
+    # prefeitura/câmara/fórum próprios — a cascata cai direto no curador/arsenal (imagem NOSSA).
     # 🎨 CURADOR — o Editor de Fotografia IA (ideia do dono, 13/jul): LÊ a notícia + o catálogo
     # do acervo e DECIDE (usar slug / gerar sob medida / card), com a visão CONFERINDO a escolha.
     # FAIL-SAFE: qualquer falha -> o fluxo regex de sempre decide (zero regressão). Sensível nunca gera.
