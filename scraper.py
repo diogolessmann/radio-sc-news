@@ -971,10 +971,18 @@ def _reescreve(art):
         return None, None
     try:
         import cerebro
-        t, c, _ = cerebro.gerar_texto(
-            art.get('summary') or art.get('title') or '',
-            cidade=art.get('city') or '', fonte=art.get('source') or '',
-            titulo_hint=art.get('title') or '')
+        import checador
+        bruto = art.get('summary') or art.get('title') or ''
+
+        # 🔎 CHECADOR (22/ago — caso Antídio): gera -> confere contra o original -> se a IA
+        # inventou fato, refaz 1x sabendo do erro; insistiu -> descarta (site usa o original).
+        def _gera(aviso):
+            t_, c_, _ = cerebro.gerar_texto(
+                bruto + aviso,
+                cidade=art.get('city') or '', fonte=art.get('source') or '',
+                titulo_hint=art.get('title') or '')
+            return t_, c_
+        t, c = checador.reescrita_conferida(_gera, bruto)
         if t and c:
             return t.strip()[:500], c.strip()[:2000]
     except Exception as e:

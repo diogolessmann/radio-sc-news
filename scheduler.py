@@ -628,6 +628,21 @@ def start_scheduler(interval_minutes=60):
         replace_existing=True
     )
 
+    # 👂 OUVIDOR — leitor apontou erro nos comentários -> zap em minutos (22/ago, caso Antídio).
+    def _ouvidor_job():
+        try:
+            import ouvidor
+            r = ouvidor.run(enviar=True)
+            if r.get("alertas"):
+                logger.info(f"👂 Ouvidor: {r}")
+        except Exception as e:
+            logger.error(f"👂 Ouvidor falhou: {e}")
+
+    _scheduler.add_job(func=_ouvidor_job,
+        trigger=IntervalTrigger(hours=2),
+        id='ouvidor_comentarios', name='Ouvidor: correções nos comentários (2/2h)',
+        replace_existing=True)
+
     # 🏆 PLACAR — o motor mede as views sozinho (20/ago, "dos números é pra você aprender").
     def _placar_job():
         try:
