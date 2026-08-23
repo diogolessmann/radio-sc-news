@@ -1451,7 +1451,6 @@ def _teto_dia():
         return 50
 
 
-@_serializa_post
 _leitor_seguidas = 0        # 🧯 fusível (23/ago): reprovações em sequência no processo
 
 
@@ -1492,6 +1491,7 @@ def _leitor_segura(conn, news, seguradas, vistos, rotulo=""):
     return False
 
 
+@_serializa_post
 def run_urgent(post=True, limit=1):
     """Posta NA HORA noticias urgentes recem-coletadas (plantao). Mesmo filtro
     editorial + dedup. Sensiveis vao p/ revisao marcadas como URGENTE."""
