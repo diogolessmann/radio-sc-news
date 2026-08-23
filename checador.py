@@ -71,11 +71,11 @@ def conferir(original, titulo, corpo):
         if not out:
             return True, None                      # checador mudo -> não segura a esteira
         out = out.strip()
-        if re.match(r"(?i)^ok\b", out):
-            return True, None
-        m = re.search(r"(?i)erro:\s*(.+)", out)
-        motivo = (m.group(1).strip() if m else out)[:300]
-        return False, motivo
+        # fix 23/ago: rejeição SÓ com "ERRO:" explícito; formato estranho = aprova (fail-open)
+        m = re.search(r"(?i)\berro\s*:\s*(.+)", out)
+        if m:
+            return False, m.group(1).strip().splitlines()[0][:300]
+        return True, None
     except Exception as e:
         logger.warning(f"🔎 checador falhou ({e}) — deixando passar (fail-open)")
         return True, None
@@ -148,12 +148,17 @@ def leitor_final(news):
         if not out:
             return True, None
         out = out.strip()
-        if re.match(r"(?i)^aprovada\b", out):
-            return True, None
-        m = re.search(r"(?i)reprovada:\s*(.+)", out)
-        motivo = (m.group(1).strip() if m else out)[:200]
-        _registrar("leitor_segurou", titulo, motivo)
-        return False, motivo
+        # ⚠️ fix 23/ago: só reprova com "REPROVADA:" EXPLÍCITO. Resposta fora do formato
+        # (modelo tagarela, fallback Groq com preâmbulo) = APROVA e loga — o revisor em
+        # dúvida nunca pode matar a esteira (fail-open é lei em todo caminho estranho).
+        m = re.search(r"(?i)\breprovada\s*:\s*(.+)", out)
+        if m:
+            motivo = m.group(1).strip().splitlines()[0][:200]
+            _registrar("leitor_segurou", titulo, motivo)
+            return False, motivo
+        if not re.search(r"(?i)\baprovada\b", out):
+            logger.info(f"👓 leitor respondeu fora do formato — aprovando: {out[:80]}")
+        return True, None
     except Exception as e:
         logger.warning(f"👓 leitor falhou ({e}) — deixando passar (fail-open)")
         return True, None

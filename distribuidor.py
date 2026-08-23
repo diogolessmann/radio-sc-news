@@ -1452,21 +1452,41 @@ def _teto_dia():
 
 
 @_serializa_post
+_leitor_seguidas = 0        # 🧯 fusível (23/ago): reprovações em sequência no processo
+
+
 def _leitor_segura(conn, news, seguradas, vistos, rotulo=""):
     """👓 LEITOR CONFERIDOR (22/ago, dono: 'pode gastar pra revisar'): revisa a matéria FINAL
     contra a origem — fato trocado/hoje-amanhã/fala de robô/português quebrado -> SEGURADA
-    pra revisão humana (mark_hold; não morre, espera). True se segurou. Fail-open."""
+    pra revisão humana (mark_hold; não morre, espera). True se segurou. Fail-open.
+    🧯 FUSÍVEL (23/ago — feed passou o dia sem post): 3 reprovações SEGUIDAS = revisor doido
+    (régua ruim ou modelo alucinando) -> para de reprovar, avisa no zap e o feed segue."""
+    global _leitor_seguidas
+    if _leitor_seguidas >= 3:
+        return False                               # fusível queimado: leitor em observação
     try:
         import checador
         ok, mot = checador.leitor_final(news)
-        if not ok:
-            mark_hold(conn, news["id"], f"leitor: {mot}")
-            tag = f" [{rotulo}]" if rotulo else ""
-            aviso = f"materia {news['id']} SEGURADA pelo LEITOR{tag} ('{mot}')"
-            print("   👓 " + aviso)
-            seguradas.append(aviso)
-            vistos.append(news)
-            return True
+        if ok:
+            _leitor_seguidas = 0
+            return False
+        _leitor_seguidas += 1
+        if _leitor_seguidas >= 3:
+            print("   🧯 FUSÍVEL DO LEITOR: 3 reprovações seguidas — leitor em modo observação")
+            try:
+                import vigia
+                vigia.send_zap("🧯 *FUSÍVEL DO LEITOR*: o revisor reprovou 3 matérias seguidas "
+                               "e foi colocado em observação (feed continua). Confira a fila "
+                               "/revisar — pode ser régua apertada demais ou modelo alucinando.")
+            except Exception:
+                pass
+        mark_hold(conn, news["id"], f"leitor: {mot}")
+        tag = f" [{rotulo}]" if rotulo else ""
+        aviso = f"materia {news['id']} SEGURADA pelo LEITOR{tag} ('{mot}')"
+        print("   👓 " + aviso)
+        seguradas.append(aviso)
+        vistos.append(news)
+        return True
     except Exception:
         pass
     return False
