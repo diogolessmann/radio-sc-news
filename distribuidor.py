@@ -1162,8 +1162,24 @@ def social_caption(news, resumo):
         f"📤 Manda pra quem precisa saber disso  ·  🔖 Salva  ·  💬 Comenta 👇",
     ]
     linha_engaja = _engaja[(news["id"] or 0) % len(_engaja)]
+    # ❓ PERGUNTA-ISCA por categoria (23/ago — dados dos 90 dias: comentário mora onde há
+    # OPINIÃO ou CONVITE: 'Tire o casaco' 53 comentários, 'Casaco do armário' 46, Cirque
+    # Amar 525 (marcação de amigo). Clima e evento fecham com pergunta DIRETA; o resto
+    # segue como está — pergunta em tudo vira papel de parede).
+    _cat = (news["category"] or "").strip().lower()
+    _perguntas = {
+        "clima": ["❄️ Time FRIO ou time CALOR? Vota aí 👇",
+                  "🌡️ Quantos graus fez na tua rua? Conta 👇",
+                  "🧥 Já tirou o casaco do armário? SIM ou NÃO 👇"],
+        "cultura": ["🎉 Marca aqui quem vai contigo 👇",
+                    "🎟️ Tu vai? Comenta EU VOU que a gente te vê lá 👇",
+                    "📅 Vai no primeiro dia ou no último? 👇"],
+    }
+    _pq = _perguntas.get(_cat)
+    linha_pergunta = (_pq[(news["id"] or 0) % len(_pq)] + "\n") if _pq else ""
     return (
         f"{resumo}\n\n"
+        f"{linha_pergunta}"
         f"{linha_engaja}\n"
         f"➕ Segue @radiosc.news — o Norte de SC em 1 minuto\n\n"
         f"{bloco_canal}"
