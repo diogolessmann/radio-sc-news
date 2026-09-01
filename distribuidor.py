@@ -1462,7 +1462,7 @@ def _teto_dia():
     o teto sobe p/ 50 pra nao engasgar dia de temporal. Segue sendo so anti-loop-de-bug:
     a Meta limita ~100 publicacoes/24h, 50 mantem folga segura."""
     try:
-        return int(_env("POSTS_MAX_DIA", "50"))
+        return int(_env("POSTS_MAX_DIA", "10"))
     except Exception:
         return 50
 
@@ -1576,6 +1576,16 @@ def run_once(post=False, limit=1):
         return {"postadas": 0, "erros": [], "seguradas": []}
     # pega um lote maior que o limite p/ ter de onde pular as seguradas
     pool = pick_next(conn, only_id=None, limit=max(limit * 6, 12))
+    # 🚫 cinto-e-suspensorio das cidades pausadas (alem do gate do scraper):
+    _paus = [c.strip().lower() for c in
+             _env("CIDADES_PAUSADAS", "joinville").split(",") if c.strip()]
+    def _cid_pausada(n):
+        c = (_get(n, "city") or "").strip().lower()
+        for a, b in (("á","a"),("ã","a"),("â","a"),("é","e"),("ê","e"),
+                     ("í","i"),("ó","o"),("ô","o"),("ú","u"),("ç","c")):
+            c = c.replace(a, b)
+        return c in _paus
+    pool = [n for n in pool if not _cid_pausada(n)]
     if not pool:
         conn.close()
         print("[distribuidor] nada pendente.")

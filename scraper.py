@@ -1102,6 +1102,18 @@ def save_articles(articles):
             # MATÉRIA COMPLETA nossa pro site (SEO/Discover) — None se fonte curta/IA off
             materia_own = _gerar_materia(art)
 
+            # 🚫 CIDADES PAUSADAS (01/set/2026, decisao do dono): Joinville sai do
+            # jornal — o Vale fica (Jaragua, Schroeder, Guaramirim, Corupa).
+            _paus = [c.strip().lower() for c in
+                     os.environ.get('CIDADES_PAUSADAS', 'joinville').split(',') if c.strip()]
+            _cid_norm = (art.get('city') or '').strip().lower()
+            for _a, _b in (('á','a'),('ã','a'),('â','a'),('é','e'),('ê','e'),
+                           ('í','i'),('ó','o'),('ô','o'),('ú','u'),('ç','c')):
+                _cid_norm = _cid_norm.replace(_a, _b)
+            if _cid_norm in _paus:
+                logger.info(f"🚫 cidade pausada ({_cid_norm}): '{art['title'][:50]}' descartada")
+                continue
+
             cur = conn.execute('''
                 INSERT INTO news (title, summary, title_own, resumo_own, materia_own, link, source,
                                   city, category, published_at, image_url, priority, audio_file, created_at)

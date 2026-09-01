@@ -1385,400 +1385,6 @@ def admin_empresas():
     <p><a href='/admin' style='color:#9aa0ae'>← voltar ao painel</a></p></div>""")
 
 
-@app.route('/admin/despachante')
-@login_required
-def admin_despachante():
-    """🏢 Cockpit da marca Despachante Lessmann / DL Mobilidade (pedido do dono 27/jul):
-    agenda dos motores, o que sai nos próximos dias e os reels de 1 clique."""
-    import marcas
-    from datetime import date, timedelta
-    t = marcas.BRANDS['despachante']
-    banco = t['conteudo']
-    hoje = date.today()
-    proximos = ""
-    for delta in range(7):
-        d = hoje + timedelta(days=delta)
-        item = banco[d.toordinal() % len(banco)]
-        dia_lbl = "HOJE" if delta == 0 else d.strftime("%a %d/%m")
-        scooter = item['cat'] in ('SCOOTER ELÉTRICA', 'OFERTA', 'TEST-RIDE', 'GARANTIA') or 'scooter' in item['titulo'].lower()
-        icone = "🛵" if scooter else "📋"
-        proximos += (f"<tr><td style='padding:6px 14px;color:#F5C518;white-space:nowrap'>{dia_lbl}</td>"
-                     f"<td style='padding:6px 14px'>{icone} <b>[{item['cat']}]</b> {item['titulo']}</td></tr>")
-    oferta_dias = "ter · qui · sáb"
-    reels_html = "".join(
-        f"<li style='margin:10px 0'><b>{r['titulo']}</b> — "
-        f"<a href='/static/videos/{r['arquivo']}' target='_blank'>ver</a> · "
-        f"<a href='/admin/reel-dlmob?v={k}&go=1' onclick=\"return confirm('Publicar {k} AGORA no IG do despachante?')\" "
-        f"style='color:#25d366;font-weight:bold'>🚀 PUBLICAR</a></li>"
-        for k, r in marcas.REELS_DLMOB.items())
-    return (f"""<div style='font-family:sans-serif;max-width:780px;margin:36px auto;color:#eee;background:#0c0c11;padding:28px;border-radius:14px'>
-    <h2>🏢 Despachante Lessmann · DL Mobilidade</h2>
-    <p style='color:#9aa0ae'>@despachantelessmann — dois motores + reels, tudo automático.</p>
-    <div style='background:#15151d;border:1px solid #23232e;border-radius:12px;padding:16px;margin:14px 0'>
-      <b>⏰ Agenda da marca</b><br>
-      <span style='color:#9aa0ae'>📋 Dica do dia (carrossel + story): <b style='color:#eee'>todo dia 10h</b><br>
-      🛵 Oferta com foto real do galpão: <b style='color:#eee'>{oferta_dias} 16h</b><br>
-      🎬 Reels de produto: manual (botões abaixo)</span>
-    </div>
-    <div style='background:#15151d;border:1px solid #23232e;border-radius:12px;padding:16px;margin:14px 0'>
-      <b>📅 O que sai nos próximos dias (dica das 10h)</b>
-      <table style='margin-top:8px;font-size:14px'>{proximos}</table>
-    </div>
-    <div style='background:#15151d;border:1px solid #F5C518;border-radius:12px;padding:16px;margin:14px 0'>
-      <b>🎬 Reels prontos pra publicar</b><ul>{reels_html}</ul>
-      <span style='color:#888;font-size:13px'>Processamento ~1-2 min após o clique. Publica no IG do despachante (tokens DESP).</span>
-    </div>
-    <div style='background:#15151d;border:1px solid #F5C518;border-radius:12px;padding:16px;margin:14px 0'>
-      <b>🗂️ MIDIATECA DL — fotos e vídeos da marca</b><br>
-      <span style='color:#9aa0ae'>Material novo do dono (18/ago) + motor de legenda de VENDA e
-      de VITRINE. Publica no IG do Despachante ou da Rádio com 1 clique.</span><br>
-      <a href='/admin/midiateca' style='color:#F5C518;font-weight:bold'>Abrir a Midiateca →</a>
-    </div>
-    <p><a href='/admin' style='color:#F5C518'>← voltar ao painel</a></p></div>""")
-
-
-@app.route('/admin/videoteca')
-def admin_videoteca():
-    """A videoteca cresceu e virou MIDIATECA (18/ago). Redirect preservando token."""
-    tok = request.args.get('token', '')
-    return redirect('/admin/midiateca' + (('?token=' + tok) if tok else ''))
-
-
-# ============================== MIDIATECA (18/ago/2026) ==============================
-# Visao do dono: "painel que tem tudo — foto, video — e o motor cria o texto mais
-# adequado para venda; se eu quiser postar na Radio ja ta ali; ferramenta que no futuro
-# serve outros sites/instas". midiateca.py: marca e configuracao (semente do
-# motor-como-servico).
-
-def _midia_auth():
-    return request.values.get('token', '') == _admin_pw_env or session.get('admin_logged_in')
-
-
-@app.route('/midia-up/<marca>/<path:arquivo>')
-def midia_upload_file(marca, arquivo):
-    """Serve uploads do painel (ficam no VOLUME — sobrevivem a deploy)."""
-    import midiateca as mt
-    if marca not in mt.MARCAS_MIDIA or '..' in arquivo:
-        abort(404)
-    return send_from_directory(mt.upload_dir(marca), arquivo)
-
-
-_MID_IN = ("style='width:100%;background:#0c0c11;color:#dde;border:1px solid #333;"
-           "border-radius:8px;padding:7px;font-size:13px;margin:3px 0'")
-_MID_TA = ("style='width:100%;background:#0c0c11;color:#dde;border:1px solid #333;"
-           "border-radius:8px;padding:8px;font-size:13px'")
-
-
-@app.route('/admin/midiateca')
-def admin_midiateca():
-    if not _midia_auth():
-        return redirect('/login')
-    import midiateca as mt
-    marca = request.args.get('marca', 'dlmob')
-    if marca not in mt.MARCAS_MIDIA:
-        marca = 'dlmob'
-    cfg = mt.MARCAS_MIDIA[marca]
-    tok = request.args.get('token', '')
-    itens = mt.listar(marca)
-    aviso = request.args.get('ok', '')
-
-    log_html = ''.join(
-        "<div style='color:#9aa0ae;font-size:13px'>%s — %s</div>" % (e['quando'], e['msg'])
-        for e in mt.log_recente())
-
-    cards = []
-    for it in itens:
-        a, m = it['arquivo'], it['meta']
-        if it['tipo'] == 'video':
-            midia = ("<video src='%s' controls muted preload='metadata' style='width:100%%;"
-                     "border-radius:10px;background:#000;max-height:340px'></video>" % it['url'])
-        else:
-            midia = ("<img src='%s' loading='lazy' style='width:100%%;border-radius:10px;"
-                     "object-fit:cover;max-height:340px'>" % it['url'])
-        pubs = ''.join(
-            "<span style='background:#173;color:#8f8;border-radius:99px;padding:2px 10px;"
-            "font-size:12px;margin-right:6px'>OK %s %s</span>" % (p['dest'], p['quando'])
-            for p in m.get('publicados', []))
-        leg_v = (m.get('legenda_venda') or '').replace('<', '&lt;')
-        leg_r = (m.get('legenda_vitrine') or '').replace('<', '&lt;')
-        blocos_leg = ''
-        if leg_v or leg_r:
-            blocos_leg = (
-                "<form method='post' action='/admin/midiateca/publicar'>"
-                "<input type='hidden' name='marca' value='%(marca)s'>"
-                "<input type='hidden' name='token' value='%(tok)s'>"
-                "<input type='hidden' name='arquivo' value='%(a)s'>"
-                "<b style='color:#25d366;font-size:13px'>&#127963;&#65039; Legenda VENDA (IG Despachante)</b>"
-                "<textarea name='legenda' rows='7' %(ta)s>%(leg_v)s</textarea>"
-                "<button name='dest' value='desp' "
-                "onclick=\"return confirm('Publicar %(a)s no IG do DESPACHANTE?')\" "
-                "style='background:#25d366;color:#000;font-weight:bold;border:0;border-radius:99px;"
-                "padding:8px 18px;margin:6px 0;cursor:pointer'>&#127963;&#65039; Publicar no Despachante</button>"
-                "</form>"
-                "<form method='post' action='/admin/midiateca/publicar'>"
-                "<input type='hidden' name='marca' value='%(marca)s'>"
-                "<input type='hidden' name='token' value='%(tok)s'>"
-                "<input type='hidden' name='arquivo' value='%(a)s'>"
-                "<b style='color:#ff8a80;font-size:13px'>&#128251; Legenda VITRINE (IG R&aacute;dio)</b>"
-                "<textarea name='legenda' rows='5' %(ta)s>%(leg_r)s</textarea>"
-                "<button name='dest' value='radio' "
-                "onclick=\"return confirm('Publicar %(a)s no IG da RADIO?')\" "
-                "style='background:#ff8a80;color:#000;font-weight:bold;border:0;border-radius:99px;"
-                "padding:8px 18px;margin:6px 0;cursor:pointer'>&#128251; Publicar na R&aacute;dio</button>"
-                "</form>"
-            ) % {"marca": marca, "tok": tok, "a": a, "ta": _MID_TA,
-                 "leg_v": leg_v, "leg_r": leg_r}
-        cards.append(
-            "<div style='background:#15151d;border:1px solid #2a2a35;border-radius:14px;padding:14px'>"
-            + midia +
-            "<div style='margin:8px 0 4px;font-weight:bold'>%s %s "
-            "<span style='color:#667;font-size:11px'>(%s)</span></div>"
-            % ('&#127916;' if it['tipo'] == 'video' else '&#128247;', a, it['origem'])
-            + "<div>%s</div>" % pubs +
-            "<form method='post' action='/admin/midiateca/legenda' style='margin-top:8px'>"
-            "<input type='hidden' name='marca' value='%s'><input type='hidden' name='token' value='%s'>"
-            "<input type='hidden' name='arquivo' value='%s'>" % (marca, tok, a) +
-            "<input name='titulo' placeholder='titulo (ex.: Akasha 1000W)' value=\"%s\" %s>"
-            % ((m.get('titulo') or '').replace('"', '&quot;'), _MID_IN) +
-            "<input name='preco' placeholder='preco (ex.: R$ 7.990) — opcional' value=\"%s\" %s>"
-            % ((m.get('preco') or '').replace('"', '&quot;'), _MID_IN) +
-            "<input name='contexto' placeholder='contexto pro motor (ex.: pronta entrega, preta)' value=\"%s\" %s>"
-            % ((m.get('contexto') or '').replace('"', '&quot;'), _MID_IN) +
-            "<button style='background:#F5C518;color:#000;font-weight:bold;border:0;border-radius:99px;"
-            "padding:8px 18px;cursor:pointer'>&#9997;&#65039; Gerar/atualizar legendas</button>"
-            "</form>" +
-            "<form method='post' action='/admin/midiateca/excluir' style='margin-top:4px'>"
-            "<input type='hidden' name='marca' value='%s'><input type='hidden' name='token' value='%s'>"
-            "<input type='hidden' name='arquivo' value='%s'>" % (marca, tok, a) +
-            "<a href='/admin/midiateca/baixar?marca=%s&arquivo=%s&token=%s' "
-            "style='display:inline-block;background:none;border:1px solid #F5C518;color:#F5C518;"
-            "border-radius:99px;padding:5px 14px;font-size:12px;text-decoration:none;"
-            "margin:3px 8px 0 0'>&#11015;&#65039; Baixar</a>" % (marca, a, tok) +
-            "<button onclick=\"return confirm('Excluir %s do grid?')\" "
-            "style='background:#40222a;color:#ff8a80;border:1px solid #663;border-radius:99px;"
-            "padding:5px 14px;font-size:12px;cursor:pointer'>&#128465;&#65039; Excluir</button></form>" % a
-            + blocos_leg + "</div>")
-
-    pills = ''.join(
-        "<a href='/admin/midiateca?marca=%s&token=%s' style='display:inline-block;"
-        "padding:8px 18px;border-radius:999px;margin:0 8px 8px 0;font-weight:700;"
-        "text-decoration:none;%s'>%s</a>" % (
-            k, tok,
-            ('background:rgba(255,122,0,.15);border:1px solid rgba(255,122,0,.5);color:#FF7A00'
-             if k == marca else 'background:#15151d;border:1px solid #333;color:#9aa0ae'),
-            c['label'])
-        for k, c in mt.MARCAS_MIDIA.items())
-    aviso_html = ("<div style='background:#132;border:1px solid #2a5;color:#8f8;border-radius:10px;"
-                  "padding:10px'>%s</div>" % aviso) if aviso else ''
-    return ("<!doctype html><meta charset='utf-8'>"
-            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-            "<title>Midiateca — %(label)s</title>"
-            "<body style='font-family:system-ui,sans-serif;background:#0c0c11;color:#eee;margin:0;padding:20px'>"
-            "<div style='max-width:1100px;margin:0 auto'>"
-            "<h2>&#128450;&#65039; MIDIATECA</h2><div style='margin:4px 0 10px'>%(pills)s</div>"
-            "<p style='color:#9aa0ae'>Foto e v&iacute;deo da marca num lugar s&oacute;. O motor escreve a "
-            "legenda de VENDA (IG da marca) e a de VITRINE (IG da R&aacute;dio); tu revisa e publica com 1 clique.<br><b style='color:#F5C518'>&#128248; Foto com CLIENTE (entregas): publica s&oacute; com o 'pode postar?' confirmado no zap.</b></p>"
-            "%(aviso)s"
-            "<div style='background:#15151d;border:1px solid #2a2a35;border-radius:14px;padding:14px;margin:12px 0'>"
-            "<b>&#11014;&#65039; Enviar nova m&iacute;dia</b> "
-            "<span style='color:#667;font-size:12px'>(cai no volume, sobrevive a deploy)</span>"
-            "<form method='post' action='/admin/midiateca/upload' enctype='multipart/form-data' style='margin-top:8px'>"
-            "<input type='hidden' name='marca' value='%(marca)s'><input type='hidden' name='token' value='%(tok)s'>"
-            "<input type='file' name='arquivo' accept='image/jpeg,image/png,image/webp,video/mp4' required style='color:#dde'> "
-            "<button style='background:#F5C518;color:#000;font-weight:bold;border:0;border-radius:99px;"
-            "padding:8px 18px;cursor:pointer'>Enviar</button></form></div>"
-            "<div style='background:#15151d;border:1px solid #2a2a35;border-radius:14px;padding:12px;margin:12px 0'>"
-            "<b>&#128220; &Uacute;ltimas publica&ccedil;&otilde;es</b>%(log)s</div>"
-            "<div style='display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px'>%(cards)s</div>"
-            "<p style='margin-top:16px'><a href='/admin/despachante' style='color:#F5C518'>&larr; aba DL</a> &middot; "
-            "<a href='/admin' style='color:#F5C518'>painel</a></p></div></body>"
-            ) % {"label": cfg['label'], "pills": pills, "marca": marca, "tok": tok, "aviso": aviso_html,
-                 "log": log_html or "<div style='color:#667;font-size:13px'>nenhuma ainda</div>",
-                 "cards": ''.join(cards)}
-
-
-@app.route('/admin/midiateca/upload', methods=['POST'])
-def admin_midiateca_upload():
-    if not _midia_auth():
-        return redirect('/login')
-    import midiateca as mt
-    marca = request.form.get('marca', 'dlmob')
-    f = request.files.get('arquivo')
-    tok = request.form.get('token', '')
-    if not f or marca not in mt.MARCAS_MIDIA:
-        return redirect('/admin/midiateca?token=' + tok)
-    nome = re.sub(r'[^A-Za-z0-9._-]+', '-', f.filename or 'arquivo')
-    if not nome.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.mp4')):
-        return redirect('/admin/midiateca?token=%s&ok=formato nao aceito' % tok)
-    f.save(os.path.join(mt.upload_dir(marca), nome))
-    return redirect('/admin/midiateca?token=%s&ok=recebido: %s' % (tok, nome))
-
-
-@app.route('/admin/midiateca/legenda', methods=['POST'])
-def admin_midiateca_legenda():
-    if not _midia_auth():
-        return redirect('/login')
-    import midiateca as mt
-    marca = request.form.get('marca', 'dlmob')
-    arquivo = request.form.get('arquivo', '')
-    tok = request.form.get('token', '')
-    mt.meta_set(marca, arquivo,
-                titulo=request.form.get('titulo', '').strip(),
-                preco=request.form.get('preco', '').strip(),
-                contexto=request.form.get('contexto', '').strip())
-    mt.gerar_legendas(marca, arquivo)
-    return redirect('/admin/midiateca?token=%s&ok=legendas prontas pra %s — revisa e publica'
-                    % (tok, arquivo))
-
-
-@app.route('/admin/midiateca/baixar')
-def admin_midiateca_baixar():
-    """⬇️ Download forçado (19/ago, dono: 'abri no celular e não consigo baixar pro
-    status do zap'). Serve o arquivo com attachment — funciona em qualquer celular."""
-    if not _midia_auth():
-        return redirect('/login')
-    import midiateca as mt
-    marca = request.args.get('marca', 'dlmob')
-    arquivo = request.args.get('arquivo', '')
-    if marca not in mt.MARCAS_MIDIA or '..' in arquivo:
-        abort(404)
-    try:
-        caminho, _url, _tipo = mt._acha(marca, arquivo)
-    except FileNotFoundError:
-        abort(404)
-    return send_from_directory(os.path.dirname(os.path.abspath(caminho)),
-                               os.path.basename(caminho), as_attachment=True)
-
-
-@app.route('/admin/midiateca/excluir', methods=['POST'])
-def admin_midiateca_excluir():
-    if not _midia_auth():
-        return redirect('/login')
-    import midiateca as mt
-    marca = request.form.get('marca', 'dlmob')
-    arquivo = request.form.get('arquivo', '')
-    tok = request.form.get('token', '')
-    mt.excluir(marca, arquivo)
-    return redirect('/admin/midiateca?token=%s&ok=excluido: %s' % (tok, arquivo))
-
-
-@app.route('/admin/legiao')
-def admin_legiao():
-    """💬 FALAR COM LEGIÃO (18/ago, pedido "ousado" do dono): posto avançado da Legião
-    no painel — sabe o estado da operação, orienta os botões, e deixa recado pro
-    Legião-mestre quando o pedido passa da alçada. NÃO tem mãos (não publica/apaga/
-    edita) — regra de ferro de segurança."""
-    if not _midia_auth():
-        return redirect('/login')
-    import legiao
-    tok = request.args.get('token', '')
-    aviso = request.args.get('ok', '')
-    hist = legiao.historico()[-16:]
-
-    bolhas = []
-    for h in hist:
-        if h['quem'] == 'pessoa':
-            bolhas.append(
-                "<div style='display:flex;justify-content:flex-end;margin:7px 0'>"
-                "<div style='background:#26313f;border-radius:14px 14px 3px 14px;padding:9px 13px;"
-                "max-width:78%%;font-size:14px'>%s"
-                "<div style='color:#667;font-size:10.5px;margin-top:3px'>%s · %s</div></div></div>"
-                % (h['txt'].replace('<', '&lt;'), h.get('autor', ''), h.get('quando', '')))
-        else:
-            bolhas.append(
-                "<div style='display:flex;margin:7px 0'>"
-                "<div style='background:#1d1610;border:1px solid rgba(255,122,0,.35);"
-                "border-radius:14px 14px 14px 3px;padding:9px 13px;max-width:78%%;font-size:14px'>"
-                "<b style='color:#FF7A00;font-size:11px;letter-spacing:.6px'>LEGIÃO</b><br>%s"
-                "<div style='color:#667;font-size:10.5px;margin-top:3px'>%s</div></div></div>"
-                % (h['txt'].replace('<', '&lt;'), h.get('quando', '')))
-
-    pend = legiao.recados()
-    recs = ''.join(
-        "<div style='border-top:1px solid #262d38;padding:8px 0;font-size:13px'>"
-        "<span style='color:#FFC24B'>📩 %s</span> <span style='color:#667'>(%s, %s)</span></div>"
-        % (r['texto'].replace('<', '&lt;')[:160], r.get('autor', ''), r.get('quando', ''))
-        for r in pend[:5])
-
-    aviso_html = ("<div style='background:#132;border:1px solid #2a5;color:#8f8;border-radius:10px;"
-                  "padding:10px;margin-bottom:10px'>%s</div>" % aviso) if aviso else ''
-    return ("<!doctype html><meta charset='utf-8'>"
-            "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-            "<title>Falar com Legião</title>"
-            "<body style='font-family:system-ui,sans-serif;background:#0c0c11;color:#eee;margin:0;padding:20px'>"
-            "<div style='max-width:720px;margin:0 auto'>"
-            "<h2>💬 Falar com Legião</h2>"
-            "<p style='color:#9aa0ae;font-size:13.5px'>O posto avançado: sabe o estado do motor agora e te "
-            "orienta. Ele <b>não publica nem apaga nada</b> — quem age é você nos botões, ou o "
-            "Legião-mestre via recado.</p>"
-            "%s"
-            "<div style='background:#12161d;border:1px solid #262d38;border-radius:14px;padding:14px;"
-            "min-height:220px'>%s</div>"
-            "<form method='post' action='/admin/legiao/msg' style='display:flex;gap:8px;margin-top:10px'>"
-            "<input type='hidden' name='token' value='%s'>"
-            "<input name='autor' placeholder='quem fala? (ex.: Thais)' style='width:130px;background:#0c0c11;"
-            "color:#dde;border:1px solid #333;border-radius:10px;padding:10px;font-size:13px'>"
-            "<input name='msg' placeholder='fala com a Legião…' required autofocus style='flex:1;"
-            "background:#0c0c11;color:#dde;border:1px solid #333;border-radius:10px;padding:10px;font-size:14px'>"
-            "<button style='background:#FF7A00;color:#14100A;font-weight:800;border:0;border-radius:10px;"
-            "padding:10px 20px;cursor:pointer'>Enviar</button></form>"
-            "<form method='post' action='/admin/legiao/recado' style='display:flex;gap:8px;margin-top:8px'>"
-            "<input type='hidden' name='token' value='%s'>"
-            "<input name='autor' placeholder='quem?' style='width:130px;background:#0c0c11;color:#dde;"
-            "border:1px solid #333;border-radius:10px;padding:9px;font-size:12.5px'>"
-            "<input name='msg' placeholder='📩 deixar recado pro Legião-mestre (ele executa na próxima ronda)' "
-            "required style='flex:1;background:#0c0c11;color:#dde;border:1px solid #333;border-radius:10px;"
-            "padding:9px;font-size:12.5px'>"
-            "<button style='background:none;border:1px solid #FFC24B;color:#FFC24B;font-weight:700;"
-            "border-radius:10px;padding:9px 14px;cursor:pointer;font-size:12.5px'>Deixar recado</button></form>"
-            "<h3 style='color:#FFC24B;font-size:13px;margin:18px 0 4px'>Recados pendentes (%d)</h3>%s"
-            "<p style='margin-top:16px'><a href='/admin' style='color:#F5C518'>← painel</a> · "
-            "<a href='/admin/midiateca' style='color:#F5C518'>🗂️ Midiateca</a> · "
-            "<a href='/admin/arsenal' style='color:#F5C518'>🎨 Arsenal</a></p>"
-            "</div></body>"
-            ) % (aviso_html, ''.join(bolhas) or "<p style='color:#5c6675;font-size:13px'>Conversa nova — "
-                 "pergunta qualquer coisa da operação. 🧡</p>", tok, tok, len(pend), recs or
-                 "<p style='color:#5c6675;font-size:12.5px'>nenhum</p>")
-
-
-@app.route('/admin/legiao/msg', methods=['POST'])
-def admin_legiao_msg():
-    if not _midia_auth():
-        return redirect('/login')
-    import legiao
-    tok = request.form.get('token', '')
-    msg = request.form.get('msg', '').strip()
-    autor = request.form.get('autor', '').strip() or 'painel'
-    if msg:
-        legiao.responder(msg, autor=autor)
-    return redirect('/admin/legiao?token=' + tok)
-
-
-@app.route('/admin/legiao/recado', methods=['POST'])
-def admin_legiao_recado():
-    if not _midia_auth():
-        return redirect('/login')
-    import legiao
-    tok = request.form.get('token', '')
-    msg = request.form.get('msg', '').strip()
-    autor = request.form.get('autor', '').strip() or 'painel'
-    if msg:
-        legiao.deixar_recado(msg, autor=autor)
-    return redirect('/admin/legiao?token=%s&ok=📩 recado guardado — o Legião-mestre lê na próxima ronda' % tok)
-
-
-@app.route('/api/legiao/recados')
-def api_legiao_recados():
-    """O Legião-mestre (Claude Code / ronda cloud) lê e baixa recados por aqui (token)."""
-    if request.args.get('token', '') != _admin_pw_env:
-        abort(403)
-    import legiao
-    if request.args.get('feito'):
-        legiao.marcar_recado_feito(int(request.args.get('feito')))
-        return jsonify({"ok": True})
-    return jsonify({"pendentes": legiao.recados(), "todos": len(legiao.recados(pendentes=False))})
-
-
 @app.route('/bg-acervo/<path:arquivo>')
 def bg_acervo_file(arquivo):
     """Serve o acervo IA do arsenal (volume)."""
@@ -1888,52 +1494,100 @@ def admin_arsenal_upload():
     return redirect('/admin/arsenal?token=%s&ok=⬆️ %s no acervo (entra no sorteio já)' % (tok, nome))
 
 
-@app.route('/admin/midiateca/publicar', methods=['POST'])
-def admin_midiateca_publicar():
-    if not _midia_auth():
-        return redirect('/login')
-    import midiateca as mt
-    marca = request.form.get('marca', 'dlmob')
-    arquivo = request.form.get('arquivo', '')
-    dest = request.form.get('dest', '')
-    legenda = request.form.get('legenda', '').strip()
-    tok = request.form.get('token', '')
-    if dest not in ('radio', 'desp') or not legenda:
-        return redirect('/admin/midiateca?token=%s&ok=falta destino ou legenda' % tok)
-    campo = 'legenda_vitrine' if dest == 'radio' else 'legenda_venda'
-    mt.meta_set(marca, arquivo, **{campo: legenda})
-    mt.publicar(marca, arquivo, dest, legenda)
-    return redirect('/admin/midiateca?token=%s&ok=publicando %s no %s — acompanha no log '
-                    '(recarrega em ~1 min)' % (tok, arquivo, dest))
-
-
-@app.route('/admin/reel-dlmob')
+@app.route('/admin/postar-site', methods=['GET', 'POST'])
 @login_required
-def admin_reel_dlmob():
-    """🛵 Publica os reels da DL Mobilidade no IG do despachante (1 clique, 27/jul).
-    Sem ?go: mostra os vídeos disponíveis. Com ?v=zilla&go=1: publica de verdade."""
-    import marcas
-    v = request.args.get('v', '')
-    go = request.args.get('go', '') == '1'
-    if v and go:
+def admin_postar_site():
+    """📝 Postagem MANUAL no site (01/set/2026): materia propria com foto comprimida
+    (alvo ~100 KB) e/ou video mp4. Nao passa pelo motor — vai direto pro site."""
+    CIDADES = ['Jaragua do Sul', 'Schroeder', 'Guaramirim', 'Corupa']
+    CATS = ['geral', 'policial', 'economia', 'cultura', 'esporte', 'politica', 'clima']
+    if request.method == 'POST':
+        titulo = (request.form.get('titulo') or '').strip()
+        texto = (request.form.get('texto') or '').strip()
+        cidade = request.form.get('cidade') or 'Schroeder'
+        categoria = request.form.get('categoria') or 'geral'
+        if not titulo or not texto:
+            return redirect('/admin/postar-site?ok=titulo e texto sao obrigatorios')
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        ts = datetime.now().strftime('%Y%m%d%H%M%S')
+        img_nome = vid_nome = None
+        f = request.files.get('imagem')
+        if f and f.filename:
+            try:
+                from PIL import Image
+                import io as _io
+                im = Image.open(_io.BytesIO(f.read()))
+                if im.mode not in ('RGB', 'L'):
+                    im = im.convert('RGB')
+                im.thumbnail((1280, 1280), Image.LANCZOS)
+                img_nome = f'post_{ts}.jpg'
+                q = 82
+                while q >= 40:
+                    buf = _io.BytesIO()
+                    im.save(buf, 'JPEG', quality=q, optimize=True, progressive=True)
+                    if buf.tell() <= 120 * 1024 or q == 40:
+                        with open(os.path.join(UPLOAD_DIR, img_nome), 'wb') as fh:
+                            fh.write(buf.getvalue())
+                        break
+                    q -= 10
+            except Exception as e:
+                logger.error(f'postar-site: imagem falhou: {e}')
+                img_nome = None
+        v = request.files.get('video')
+        if v and v.filename and v.filename.lower().endswith('.mp4'):
+            vid_nome = f'post_{ts}.mp4'
+            v.save(os.path.join(UPLOAD_DIR, vid_nome))
+        conn = get_db()
         try:
-            reel = marcas.REELS_DLMOB[v]
-            res = marcas.publish_reel_marca('dl_mobilidade', reel['arquivo'], reel['caption'])
-            return (f"<h2>✅ REEL '{v}' PUBLICADO no IG do despachante!</h2>"
-                    f"<p>{reel['titulo']}</p><pre>{res}</pre>"
-                    f"<p><a href='/admin/reel-dlmob'>voltar</a></p>")
-        except Exception as e:
-            return f"<h2>❌ Falhou: {e}</h2><p><a href='/admin/reel-dlmob'>voltar</a></p>", 500
-    linhas = "".join(
-        f"<li style='margin:14px 0'><b>{r['titulo']}</b><br>"
-        f"<a href='/static/videos/{r['arquivo']}' target='_blank'>ver vídeo</a> · "
-        f"<a href='/admin/reel-dlmob?v={k}&go=1' "
-        f"onclick=\"return confirm('Publicar {k} AGORA no IG do despachante?')\" "
-        f"style='color:#25d366;font-weight:bold'>🚀 PUBLICAR AGORA</a></li>"
-        for k, r in marcas.REELS_DLMOB.items())
-    return (f"<div style='font-family:sans-serif;max-width:640px;margin:40px auto'>"
-            f"<h2>🛵 Reels DL Mobilidade → IG do despachante</h2><ul>{linhas}</ul>"
-            f"<p style='color:#888'>O processamento do vídeo leva ~1-2 min após o clique.</p></div>")
+            conn.execute('ALTER TABLE news ADD COLUMN video_file TEXT')
+            conn.commit()
+        except Exception:
+            pass
+        cur = conn.execute(
+            'INSERT INTO news (title, summary, title_own, resumo_own, link, source, city, '
+            'category, published_at, image_url, admin_image, video_file, priority, active, '
+            'created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
+            (titulo[:500], texto[:4000], titulo[:500], texto[:4000],
+             f'proprio://postar/{ts}', 'Rádio SC News', cidade, categoria,
+             datetime.now().isoformat(), None, img_nome, vid_nome, 0, 1,
+             datetime.now().isoformat()))
+        conn.commit()
+        nid = cur.lastrowid
+        conn.close()
+        return redirect(f'/admin/postar-site?ok=materia {nid} publicada no site — '
+                        f'<a href="/noticia/{nid}" target="_blank" style="color:%2325d366">ver</a>')
+    aviso = request.args.get('ok', '')
+    op_cid = ''.join(f'<option>{c}</option>' for c in CIDADES)
+    op_cat = ''.join(f'<option>{c}</option>' for c in CATS)
+    est = ('width:100%;background:#0a0a15;color:#eee;border:1px solid #334;'
+           'border-radius:8px;padding:10px;font-size:14px;margin:4px 0 12px')
+    return (
+        '<!doctype html><html><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>Postar no Site</title></head>'
+        '<body style="background:#0a0a12;color:#eee;font-family:system-ui,sans-serif;'
+        'margin:0;padding:20px"><div style="max-width:680px;margin:0 auto">'
+        '<div style="display:flex;justify-content:space-between;align-items:center">'
+        '<h2 style="margin:0">📝 Postar no Site</h2>'
+        '<a href="/admin" style="color:#88f">← Admin</a></div>'
+        '<p style="color:#889;font-size:13px">Matéria própria, direto no site. '
+        'A foto é comprimida sozinha (5 MB viram ~100 KB). Vídeo: MP4.</p>'
+        + (f'<div style="background:#132;color:#7f7;border-radius:10px;padding:10px 14px;'
+           f'margin:10px 0;font-size:13px">{aviso}</div>' if aviso else '') +
+        '<form method="post" enctype="multipart/form-data">'
+        f'<b>Título</b><input name="titulo" maxlength="200" required style="{est}">'
+        '<div style="display:flex;gap:10px">'
+        f'<div style="flex:1"><b>Cidade</b><select name="cidade" style="{est}">{op_cid}</select></div>'
+        f'<div style="flex:1"><b>Categoria</b><select name="categoria" style="{est}">{op_cat}</select></div>'
+        '</div>'
+        f'<b>Texto da matéria</b><textarea name="texto" rows="10" required style="{est}"></textarea>'
+        f'<b>📷 Foto</b> <span style="color:#889;font-size:12px">(opcional)</span>'
+        f'<input type="file" name="imagem" accept="image/*" style="{est}">'
+        f'<b>🎬 Vídeo MP4</b> <span style="color:#889;font-size:12px">(opcional)</span>'
+        f'<input type="file" name="video" accept="video/mp4" style="{est}">'
+        '<button style="background:#25d366;color:#000;font-weight:800;border:0;'
+        'border-radius:99px;padding:12px 26px;font-size:15px;cursor:pointer">'
+        '🚀 Publicar no site</button></form></div></body></html>')
 
 
 @app.route('/build')
@@ -1941,7 +1595,7 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-08-23-fix-deadlock-leitor", "ok": True}
+    return {"build": "2026-09-01-passagem-rsn-fase0", "ok": True}
 
 
 @app.route('/admin/acervo')

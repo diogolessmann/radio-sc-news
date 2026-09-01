@@ -49,6 +49,9 @@ def reels_job():
     if not _autopost_on():
         logger.info("📭 Autopost OFF — Reels pulado (modo seguro).")
         return
+    if os.environ.get('REELS_ON', '0') != '1':
+        logger.info("🎬 Reels PAUSADOS (REELS_ON!=1) — decisao do dono, 01/set/2026.")
+        return
     try:
         import reels
         r = reels.run_reel(post=True, limit=1)
