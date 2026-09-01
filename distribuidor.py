@@ -501,6 +501,17 @@ def pick_next(conn, only_id=None, limit=1):
                 if (r["city"] or "").strip() != "Brasil"
                 or _NACIONAL_UTIL.search(f"{r['title'] or ''} {r['summary'] or ''}")]
     ordered = _ranqueia_aprendido(local) + _ranqueia_aprendido(rest)
+    # 🔥 HYPE FIRST (01/set/2026, decisao do dono): com o teto em 10 posts/dia, cada vaga
+    # vai pro que BOMBA (dados reais do Placar: festa/evento 16.9k · clima/ciclone 6.8k ·
+    # vagas/empresas 5k · policial-teaser retem). Sort ESTAVEL: dentro de cada categoria
+    # a ordem aprendida continua valendo. Reversivel: HYPE_CATS="" desliga.
+    _hype = [c.strip().lower() for c in
+             _env("HYPE_CATS", "clima,cultura,economia,policial").split(",") if c.strip()]
+    if _hype:
+        def _hype_rank(n):
+            c = (_get(n, "category") or "").strip().lower()
+            return _hype.index(c) if c in _hype else len(_hype)
+        ordered.sort(key=_hype_rank)
     return ordered[:limit]
 
 
