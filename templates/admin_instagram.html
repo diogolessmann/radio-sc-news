@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📸 Postar no Instagram — Rádio SC</title>
+<style>
+  :root{
+    --bg:#0f0f13; --surface:#1a1a24; --surface2:#22222f;
+    --accent:#e94560; --accent2:#f5a623; --green:#27ae60; --blue:#3498db;
+    --text:#e8e8f0; --text2:#9090a8; --border:rgba(255,255,255,.08); --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+  header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;
+         display:flex;align-items:center;height:60px;gap:20px}
+  .logo{font-weight:700;font-size:1.05rem}
+  .voltar{margin-left:auto;color:var(--text2);text-decoration:none;font-size:.9rem;
+          border:1px solid var(--border);padding:8px 16px;border-radius:999px}
+  .voltar:hover{color:var(--text);border-color:var(--accent)}
+  .wrap{max-width:920px;margin:0 auto;padding:28px 24px 60px}
+  h1{font-size:1.5rem;margin-bottom:6px}
+  .sub{color:var(--text2);font-size:.92rem;margin-bottom:24px}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+        padding:22px;margin-bottom:18px}
+  label{display:block;font-weight:600;font-size:.92rem;margin-bottom:8px}
+  .dica{color:var(--text2);font-size:.83rem;font-weight:400;margin-top:5px}
+  input[type=file],textarea,select{width:100%;background:var(--surface2);color:var(--text);
+        border:1px solid var(--border);border-radius:10px;padding:13px;font-size:.95rem;
+        font-family:inherit}
+  textarea{min-height:190px;resize:vertical;line-height:1.55}
+  input[type=file]{padding:11px}
+  .destino{display:flex;gap:12px;flex-wrap:wrap}
+  .destino label{flex:1;min-width:190px;background:var(--surface2);border:2px solid var(--border);
+        border-radius:12px;padding:14px 16px;cursor:pointer;font-weight:600;margin:0;
+        display:flex;align-items:center;gap:10px;transition:.15s}
+  .destino input{accent-color:var(--accent)}
+  .destino label:has(input:checked){border-color:var(--accent);background:rgba(233,69,96,.09)}
+  .destino small{display:block;color:var(--text2);font-weight:400;font-size:.8rem;margin-top:3px}
+  .botao{width:100%;background:var(--accent);color:#fff;border:0;border-radius:12px;
+         padding:17px;font-size:1.02rem;font-weight:700;cursor:pointer;font-family:inherit}
+  .botao:hover{filter:brightness(1.08)}
+  .botao:disabled{opacity:.55;cursor:wait}
+  .alerta{border-radius:12px;padding:15px 18px;margin-bottom:18px;font-size:.94rem;line-height:1.5}
+  .ok{background:rgba(39,174,96,.13);border:1px solid rgba(39,174,96,.4);color:#7fe0a8}
+  .ruim{background:rgba(233,69,96,.13);border:1px solid rgba(233,69,96,.4);color:#ff9db0}
+  .previa{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  .previa figure{position:relative;width:104px}
+  .previa img{width:104px;height:130px;object-fit:cover;border-radius:8px;
+              border:1px solid var(--border);display:block}
+  .previa figcaption{position:absolute;top:5px;left:5px;background:rgba(0,0,0,.72);
+        color:#fff;font-size:.7rem;padding:2px 7px;border-radius:20px}
+  .contador{color:var(--text2);font-size:.83rem;margin-top:7px}
+  .nota{background:var(--surface2);border-left:3px solid var(--accent2);padding:13px 16px;
+        border-radius:0 10px 10px 0;color:var(--text2);font-size:.87rem;line-height:1.55;
+        margin-top:16px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📸 Postar no Instagram</div>
+  <a href="/admin" class="voltar">← Voltar ao painel</a>
+</header>
+
+<div class="wrap">
+  <h1>Publicar na conta da Rádio</h1>
+  <p class="sub">Cola as imagens (ou um PDF) e a legenda. O resto é com a máquina.</p>
+
+  {% if msg %}<div class="alerta ok">✅ {{ msg }}</div>{% endif %}
+  {% if erro %}<div class="alerta ruim">⚠️ {{ erro }}</div>{% endif %}
+
+  <form method="POST" action="/admin/instagram/publicar" enctype="multipart/form-data"
+        id="f" onsubmit="enviando()">
+
+    <div class="card">
+      <label for="arq">1 · As imagens</label>
+      <input type="file" name="arquivos" id="arq" multiple
+             accept="image/jpeg,image/png,image/webp,application/pdf" required>
+      <div class="dica">
+        Até {{ max_cards }} imagens para o carrossel — ou <strong>um PDF</strong>, que vira
+        um card por página. JPG, PNG, WEBP.
+      </div>
+      <div class="previa" id="previa"></div>
+      <div class="contador" id="contador"></div>
+    </div>
+
+    <div class="card">
+      <label for="legenda">2 · A legenda</label>
+      <textarea name="legenda" id="legenda"
+                placeholder="Cola aqui o texto do post…"></textarea>
+      <div class="contador"><span id="chars">0</span> caracteres · o Instagram corta em 2.200</div>
+    </div>
+
+    <div class="card">
+      <label>3 · Onde publicar</label>
+      <div class="destino">
+        <label>
+          <input type="radio" name="destino" value="feed" checked>
+          <span>Feed<small>foto única ou carrossel</small></span>
+        </label>
+        <label>
+          <input type="radio" name="destino" value="story">
+          <span>Story<small>só a primeira imagem · some em 24h</small></span>
+        </label>
+      </div>
+    </div>
+
+    <button class="botao" id="btn" type="submit">Publicar no Instagram</button>
+
+    <div class="nota">
+      <strong>Como funciona por baixo:</strong> o Instagram não aceita receber arquivo — ele
+      vai <em>buscar</em> a imagem numa URL pública. Por isso cada card é gravado em
+      <code>static/social/</code> antes de publicar. Se o post falhar dizendo que não
+      conseguiu baixar a mídia, é sinal de que o site ainda não serviu o arquivo: espera
+      alguns segundos e tenta de novo.
+    </div>
+  </form>
+</div>
+
+<script>
+const arq = document.getElementById('arq');
+const previa = document.getElementById('previa');
+const contador = document.getElementById('contador');
+const MAX = {{ max_cards }};
+
+arq.addEventListener('change', () => {
+  previa.innerHTML = '';
+  const fs = [...arq.files];
+  if (!fs.length) { contador.textContent = ''; return; }
+
+  const pdf = fs[0].name.toLowerCase().endsWith('.pdf');
+  if (pdf) {
+    contador.textContent = 'PDF selecionado — cada página vira um card (máx. ' + MAX + ').';
+    return;
+  }
+  fs.slice(0, MAX).forEach((f, i) => {
+    const fig = document.createElement('figure');
+    const img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    const cap = document.createElement('figcaption');
+    cap.textContent = i + 1;
+    fig.append(img, cap);
+    previa.append(fig);
+  });
+  contador.textContent = fs.length + (fs.length === 1 ? ' imagem' : ' imagens')
+    + (fs.length > MAX ? ' — só as ' + MAX + ' primeiras serão publicadas' : '');
+});
+
+const leg = document.getElementById('legenda');
+const chars = document.getElementById('chars');
+leg.addEventListener('input', () => { chars.textContent = leg.value.length; });
+
+function enviando(){
+  const b = document.getElementById('btn');
+  b.disabled = true;
+  b.textContent = 'Publicando… não feche a página';
+}
+</script>
+</body>
+</html>

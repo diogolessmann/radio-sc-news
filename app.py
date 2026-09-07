@@ -42,6 +42,16 @@ if not _sk:
     import hashlib as _hl
     _sk = _hl.sha256(('rsc-secret-' + os.environ.get('ADMIN_PASSWORD', '')).encode()).hexdigest()
 app.secret_key = _sk
+
+# 📸 Painel de postagem manual no Instagram (07/set/2026) — nasceu da venda de
+# 5 dias de anúncio pro comércio: o cliente manda a foto no zap e alguém precisa
+# publicar. Fica em módulo separado porque este arquivo já tem 3,7 mil linhas.
+try:
+    from painel_instagram import bp_ig
+    app.register_blueprint(bp_ig)
+except Exception as _e:
+    logging.getLogger(__name__).warning("painel_instagram fora do ar: %s", _e)
+
 # 🚀 Auditoria 4/ago: estáticos saíam com Cache-Control: no-cache — cada visitante
 # re-baixava ~350KB de foto TODA visita. 7 dias de cache: fotos do arsenal são imutáveis,
 # cards sociais têm nome único por matéria (n<id>_sN.jpg) e banners versionam com ?v=.
