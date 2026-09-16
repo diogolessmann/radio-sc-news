@@ -130,7 +130,7 @@ def _caso_manchete(t):
                     "Blumenau", "Florianópolis", "Brasil", "Malwee", "Lunelli", "Marisol", "Duas Rodas", "Vale do Itapocu",
                     "Norte de SC", "Copa do Brasil", "Bombeiros", "Polícia Militar", "Polícia Civil", "Defesa Civil"):
             t = re.sub(r"(?i)\b" + re.escape(np_) + r"\b", np_, t)
-    t = re.sub(r"(\d)\s?°c", r"°C", t)          # 16/set: 11°c -> 11°C
+    t = re.sub(r"(\d)\s?°c\b", r"\1°C", t)          # 16/set: 11°c -> 11°C
     return t
 
 
