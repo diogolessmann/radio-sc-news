@@ -300,3 +300,65 @@ def atualizar_recentes(dias=3):
 if __name__ == "__main__":
     print(f"Insights atualizados: {atualizar_recentes()} posts.")
     print("Conta:", coletar_conta())
+
+
+# ═══════════════════════ MARCAS (despachante) — placar por SÉRIE (15/set/2026) ═══════════════════════
+# O motor do despachante grava cada post em DATA_DIR/marcas_posts.jsonl (marcas._log_post).
+# Aqui a gente puxa reach/saved/shares/likes/comments de cada ig_media_id com os tokens DESP_*
+# e guarda em marca_insights → /admin mostra qual série o Vale realmente salva e compartilha.
+import json as _json
+
+def _marca_tokens(brand_key):
+    import marcas
+    t = marcas.BRANDS[brand_key]
+    return marcas._brand_tokens(t)[:2]
+
+
+def _ensure_marca(conn):
+    conn.execute("""CREATE TABLE IF NOT EXISTS marca_insights (
+        ig_media_id TEXT PRIMARY KEY, brand TEXT, slot TEXT, serie TEXT, passo INTEGER,
+        titulo TEXT, link TEXT, postado_em TEXT,
+        reach INTEGER, saved INTEGER, shares INTEGER, likes INTEGER, comments INTEGER,
+        coletado_em TEXT)""")
+    conn.commit()
+
+
+def coletar_marca(brand_key="despachante", dias=7):
+    token, ig_user_id = _marca_tokens(brand_key)
+    if not token:
+        return 0
+    log = os.path.join(os.environ.get("DATA_DIR", "."), "marcas_posts.jsonl")
+    if not os.path.exists(log):
+        return 0
+    corte = (datetime.now() - __import__("datetime").timedelta(days=dias)).isoformat()
+    n = 0
+    conn = sqlite3.connect(DB_PATH); _ensure_marca(conn)
+    for line in open(log, encoding="utf-8"):
+        try:
+            r = _json.loads(line)
+        except Exception:
+            continue
+        if r.get("brand") != brand_key or not r.get("ig_media_id") or r.get("ts", "") < corte:
+            continue
+        m = _fetch(r["ig_media_id"], "reach,saved,shares,likes,comments", token) or {}
+        if not m:
+            continue
+        conn.execute("""INSERT OR REPLACE INTO marca_insights VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                     (r["ig_media_id"], brand_key, r.get("slot"), r.get("serie"), r.get("passo"),
+                      r.get("titulo"), r.get("link"), r.get("ts"),
+                      m.get("reach"), m.get("saved"), m.get("shares"), m.get("likes"), m.get("comments"),
+                      datetime.now().isoformat(timespec="minutes")))
+        n += 1
+    conn.commit(); conn.close()
+    return n
+
+
+def resumo_marca(brand_key="despachante", dias=30):
+    """[(serie, posts, reach_medio, saved_medio, shares_medio)] ordenado por alcance médio."""
+    conn = sqlite3.connect(DB_PATH); _ensure_marca(conn)
+    corte = (datetime.now() - __import__("datetime").timedelta(days=dias)).isoformat()
+    rows = conn.execute("""SELECT COALESCE(serie,'(sem série)'), COUNT(*), AVG(reach), AVG(saved), AVG(shares)
+                           FROM marca_insights WHERE brand=? AND postado_em>=?
+                           GROUP BY serie ORDER BY AVG(reach) DESC""", (brand_key, corte)).fetchall()
+    conn.close()
+    return rows

@@ -111,7 +111,26 @@ CAT_LABEL = {
     "esporte": "ESPORTE", "economia": "ECONOMIA", "clima": "CLIMA",
     "cultura": "CULTURA", "local": "LOCAL", "geral": "GERAL",
     "transito": "TRÂNSITO",   # 🚧 13/ago — a novela diária da BR-280
+    "bichos": "BICHOS",       # 15/set — bicho/pet rende 6-8 mil views; ganhou etiqueta própria
 }
+
+
+def _caso_manchete(t):
+    """15/set: manchete em caixa alta cansava (5 linhas gritando, urgente = rotina). Agora
+    sai como escrita; fonte que manda TUDO EM MAIÚSCULA vira frase normal (1ª letra maiúscula)."""
+    t = (t or "").strip()
+    letras = [c for c in t if c.isalpha()]
+    if letras and sum(c.isupper() for c in letras) / len(letras) > 0.8:
+        t = t.lower()
+        t = t[:1].upper() + t[1:]
+        # siglas comuns voltam pra maiúscula
+        for sg in ("br-280", "sc-108", "sc-416", "weg", "cnh", "ipva", "detran", "ubs", "upa", "pm", "pf", "prf", "sc", "rs", "pr"):
+            t = re.sub(r"\b" + re.escape(sg) + r"\b", sg.upper(), t)
+        for np_ in ("Jaraguá do Sul", "Schroeder", "Guaramirim", "Corupá", "Joinville", "Massaranduba", "Santa Catarina",
+                    "Blumenau", "Florianópolis", "Brasil", "Malwee", "Lunelli", "Marisol", "Duas Rodas", "Vale do Itapocu",
+                    "Norte de SC", "Copa do Brasil", "Bombeiros", "Polícia Militar", "Polícia Civil", "Defesa Civil"):
+            t = re.sub(r"(?i)\b" + re.escape(np_) + r"\b", np_, t)
+    return t
 
 
 # ---------------------------------------------------------------- helpers
@@ -332,13 +351,14 @@ def slide_cover_foto_faixa(news, img_path, outdir, manchete=None, credito=None):
 
     # manchete (TikTok mode) — fonte adaptativa p/ caber na faixa
     title = re.sub(r"\s+", " ", (manchete or news["title"])).strip().rstrip(".")
-    fh = font(56, impact=True)
-    lines = wrap(d, title.upper(), fh, W - 112)
-    for _sz in (50, 46, 42):
+    title = _caso_manchete(title)
+    fh = font(60, impact=True)
+    lines = wrap(d, title, fh, W - 112)
+    for _sz in (54, 50, 46):
         if len(lines) <= 4:
             break
         fh = font(_sz, impact=True)
-        lines = wrap(d, title.upper(), fh, W - 112)
+        lines = wrap(d, title, fh, W - 112)
     line_h = int(fh.size * 1.06)
     draw_lines(d, lines[:4], fh, 56, py + 78, WHITE, line_h)
 
@@ -642,13 +662,15 @@ def slide_cover(news, outdir, manchete=None):
     # manchete — TIKTOK MODE: a notícia em 2 linhas que se basta (nosso texto), não o título cru
     title = re.sub(r"\s+", " ", (manchete or news["title"])).strip().rstrip(".")
     fh = font(70, impact=True)
-    lines = wrap(d, title.upper(), fh, W - 112)
+    title = _caso_manchete(title)
+    lines = wrap(d, title, fh, W - 112)
     # adaptativo: a notícia-flash pode ser longa — diminui a fonte pra caber bonito (máx ~4 linhas)
     for _sz in (62, 56, 50):
         if len(lines) <= 4:
             break
         fh = font(_sz, impact=True)
-        lines = wrap(d, title.upper(), fh, W - 112)
+        title = _caso_manchete(title)
+    lines = wrap(d, title, fh, W - 112)
     line_h = int(fh.size * 1.05)
     block_h = len(lines) * line_h
     y0 = H - 230 - block_h

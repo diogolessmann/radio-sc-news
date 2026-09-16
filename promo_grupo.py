@@ -68,11 +68,59 @@ def _marker(stamp):
     return os.path.join(OUT_DIR, f".promo_grupo_{stamp}.done")
 
 
+def _serie_da_semana():
+    """15/set — item da série do despachante pra TERÇA: gira por semana ISO entre as séries que
+    são trânsito/documento (multa, licenciamento, ipva, trocar_carro). Nunca CNH aqui (forma branca:
+    o post na Rádio é utilidade, não oferta)."""
+    import series_despachante as sd
+    ordem = ["multa", "licenciamento", "ipva", "trocar_carro"]
+    semana = date.today().isocalendar()[1]
+    banco = sd._flat(ordem)
+    return banco[semana % len(banco)]
+
+
+def _legenda_serie(item):
+    return (f"🚗 {item['titulo']}\n\n" + "\n".join(f"✅ {b}" for b in item["bullets"]) +
+            "\n\nQuem explica é o Despachante Lessmann, de Schroeder (credencial DETRAN/SC 2095), "
+            "parceiro da Rádio SC News.\n"
+            f"🌐 Acesse e veja mais informações: dldespachante.com.br{item['link']}\n"
+            "📲 WhatsApp (47) 99716-2967\n\n"
+            "#transito #detran #JaraguaDoSul #Schroeder #Guaramirim #Corupa #ValeDoItapocu")
+
+
+def run_serie_despachante(post=True):
+    """TERÇA 12h15: carrossel de série do despachante (capa com foto + pontos + 'veja mais no site'
+    + CTA), gerado pelo motor das marcas, publicado no IG da RÁDIO com os tokens META_*."""
+    stamp = date.today().strftime("%Y%m%d")
+    if os.path.exists(_marker(stamp)):
+        return {"ok": False, "motivo": "ja postou hoje"}
+    import marcas
+    item = _serie_da_semana()
+    paths, _cap, _ = marcas.generate("despachante", item=item)
+    legenda = _legenda_serie(item)
+    if not post or os.environ.get("SOCIAL_AUTOPOST", "0") != "1":
+        print(f"[promo] (dry) serie do despachante: {item['titulo']} | {len(paths)} slides")
+        return {"ok": True, "dry": True, "titulo": item["titulo"], "slides": paths}
+    t = dict(marcas.BRANDS["despachante"])
+    t["env"] = {"token": "META_PAGE_TOKEN", "ig": "META_IG_USER_ID", "page": "META_PAGE_ID"}
+    r = marcas.publish_brand(t, f"radio_desp_{stamp}", paths, legenda)
+    os.makedirs(OUT_DIR, exist_ok=True)
+    with open(_marker(stamp), "w") as f:
+        f.write(datetime.now().isoformat())
+    print(f"[promo] 📣 serie do despachante postada na Radio: {item['titulo']}")
+    return {"ok": True, "titulo": item["titulo"], "ig": r}
+
+
 def run(post=True, force_dow=None):
-    """Posta o card do dia (sex/dom/seg). Fora desses dias: no-op."""
+    """15/set: só TERÇA, e como carrossel de série do despachante (os cards fixos azuis e os
+    institucionais saíram do feed: 79-327 views). PROMO_CARDS_ANTIGOS=1 volta ao comportamento antigo."""
     if os.environ.get("PROMO_GRUPO_ON", "1").strip() == "0":
         return {"ok": False, "motivo": "PROMO_GRUPO_ON=0"}
     dow = force_dow if force_dow is not None else date.today().weekday()
+    if os.environ.get("PROMO_CARDS_ANTIGOS", "0") != "1":
+        if dow != 1:
+            return {"ok": False, "motivo": f"hoje (dow={dow}) nao e terca"}
+        return run_serie_despachante(post=post)
     if dow not in _VARIANTES:
         return {"ok": False, "motivo": f"hoje (dow={dow}) nao e dia de promo"}
     stamp = date.today().strftime("%Y%m%d")

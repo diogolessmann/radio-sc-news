@@ -17,6 +17,7 @@ USO:
 Sem OPENWEATHER_API_KEY: o bloco de tempo e omitido com elegancia (resto sai normal).
 """
 import argparse
+import re
 import os
 import sqlite3
 import sys
@@ -103,29 +104,71 @@ def _canvas():
     return img, ImageDraw.Draw(img)
 
 
-def slide_capa(outdir, n=1):
-    img, d = _canvas()
+def _fundo_previsao(weather):
+    """Foto de fundo pela condição do dia (arsenal static/bg + acervo IA), com degradê escuro.
+    Sem foto -> card liso, como antes."""
+    try:
+        import genericbg
+        desc = " ".join((w.get("description") or "") for w in (weather or []))
+        chave = "chuva temporal" if re.search(r"chuva|temporal|tempest|garoa", desc, re.I) else \
+                "frio geada" if re.search(r"frio|geada|neve", desc, re.I) else "sol"
+        slug = genericbg.slug_alvo(chave, "clima")
+        seed = datetime.now().timetuple().tm_yday
+        fp = (genericbg._file(slug, seed=seed) if slug else None) or genericbg._file("sol", seed=seed)
+        if not fp:
+            return None
+        bg = Image.open(fp).convert("RGB")
+        r = max(W / bg.width, H / bg.height)
+        bg = bg.resize((round(bg.width * r), round(bg.height * r)), Image.LANCZOS)
+        x, y = (bg.width - W) // 2, (bg.height - H) // 2
+        bg = bg.crop((x, y, x + W, y + H))
+        return gi.gradient_overlay(bg, top=0.55, bottom=0.92)
+    except Exception:
+        return None
+
+
+def slide_capa(outdir, n=1, weather=None, manchete=None):
+    """15/set — "Bom dia, Vale" (card de texto, 116-440 views e caindo) vira PREVISÃO DO VALE:
+    foto do dia + mínima/máxima por cidade + a manchete principal. O hábito das 7h fica; o card
+    liso morre. Clima é o motor nº 1 do perfil (base 1-3,8 mil; picos de 69 e 76 mil)."""
+    bg = _fundo_previsao(weather)
+    if bg is not None:
+        img = bg
+        d = ImageDraw.Draw(img)
+    else:
+        img, d = _canvas()
     gi.brand_header(d)
-    # sol
-    d.ellipse([W // 2 - 70, 300, W // 2 + 70, 440], fill=GOLD)
-    big = ["BOM DIA,", "VALE!"]
-    fbig = gi.font(150, impact=True)
-    y = 520
-    for ln in big:
-        w = d.textlength(ln, font=fbig)
-        d.text(((W - w) // 2, y), ln, font=fbig, fill=WHITE, stroke_width=3, stroke_fill=BLACK)
-        y += int(fbig.size * 1.0)
-    # data
-    fd = gi.font(44)
-    data = data_extenso()
-    w = d.textlength(data, font=fd)
-    gi.pill(d, (W - w) // 2 - 30, y + 30, data, fd, RED, WHITE)
-    # tagline
-    ft = gi.font(40, bold=False)
-    tag = "O resumo da manha no Norte de SC"
-    w = d.textlength(tag, font=ft)
-    d.text(((W - w) // 2, y + 150), tag, font=ft, fill=MUTED)
-    d.text((56, H - 110), "ARRASTA PARA O LADO  ->", font=gi.font(34), fill=GOLD)
+    fd = gi.font(36)
+    gi.pill(d, 56, 150, "BOM DIA, VALE  ·  " + data_extenso().upper(), fd, RED, WHITE)
+    fbig = gi.font(110, impact=True)
+    y = 250
+    for ln in ("PREVISÃO", "DO VALE"):
+        d.text((56, y), ln, font=fbig, fill=WHITE, stroke_width=3, stroke_fill=BLACK)
+        y += int(fbig.size * 0.98)
+    y += 30
+    if weather:
+        fc = gi.font(50); ft = gi.font(62, impact=True); fs = gi.font(34, bold=False)
+        for w in weather[:3]:
+            d.text((56, y), (w.get("city") or "").upper(), font=fc, fill=WHITE, stroke_width=2, stroke_fill=BLACK)
+            tmin, tmax = w.get("temp_min"), w.get("temp_max")
+            temp = f"{tmin}° / {tmax}°" if tmin is not None and tmax is not None else f"{w.get('temp')}°C"
+            tw = d.textlength(temp, font=ft)
+            d.text((W - 56 - tw, y - 8), temp, font=ft, fill=GOLD, stroke_width=2, stroke_fill=BLACK)
+            desc = (w.get("description") or "").capitalize()
+            d.text((56, y + 58), desc, font=fs, fill=WHITE)
+            y += 130
+    else:
+        d.text((56, y), "Confira o tempo atualizado no site", font=gi.font(44), fill=WHITE)
+        y += 90
+    if manchete:
+        y = max(y + 10, H - 420)
+        gi.pill(d, 56, y, "A MANCHETE DE HOJE", gi.font(30), GOLD, BLACK)
+        fm = gi.font(46, impact=True)
+        yy = y + 78
+        for ln in gi.wrap(d, " ".join(str(manchete).split()), fm, W - 112)[:3]:
+            d.text((56, yy), ln, font=fm, fill=WHITE, stroke_width=2, stroke_fill=BLACK)
+            yy += int(fm.size * 1.05)
+    d.text((56, H - 110), "ARRASTA PARA O LADO  ->", font=gi.font(34), fill=GOLD, stroke_width=2, stroke_fill=BLACK)
     p = os.path.join(outdir, f"slide_{n}.png")
     img.save(p, quality=92)
     return p
@@ -329,7 +372,8 @@ def generate(outdir=None):
     os.makedirs(outdir, exist_ok=True)
 
     paths = [
-        slide_capa(outdir, 1),
+        slide_capa(outdir, 1, weather=weather,
+                   manchete=(headlines[0]["title"] if headlines else None)),
         slide_tempo(weather, outdir, 2),
         slide_manchetes(headlines, outdir, 3),
         slide_curiosidade(curiosidade, outdir, 4),

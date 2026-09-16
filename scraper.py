@@ -455,16 +455,33 @@ CITY_KEYWORDS = {
 NORTE_SC_CITIES = {'Schroeder', 'Joinville', 'Jaraguá do Sul', 'Guaramirim', 'Corupá', 'Norte de SC'}
 
 CATEGORY_KEYWORDS = {
+    # 15/set: LOCAL (obra de lazer/bairro) antes de TRÂNSITO — "parque de 17 mil m²" saía como TRÂNSITO
+    # por causa de asfalto/ponte/pista no corpo.
+    'local': ['parque', 'praça', 'lazer', 'playground', 'revitalização', 'iluminação pública', 'quadra',
+              'ginásio', 'creche', 'cei', 'pracinha', 'ciclovia', 'orla', 'trapiche'],
     'policial': ['crime', 'assalto', 'homicídio', 'acidente', 'preso', 'policial', 'pm', 'delegacia', 'roubo', 'furto', 'morte', 'óbito', 'batida', 'colisão'],
-    'politica': ['prefeitura', 'câmara', 'vereador', 'prefeito', 'eleição', 'governo', 'governador', 'deputado', 'política'],
-    'saude': ['hospital', 'saúde', 'dengue', 'vacina', 'ubs', 'médico', 'doença', 'covid', 'pandemia'],
+    # 15/set: POLÍTICA só com ATOR político. 'prefeitura' saiu (é quem anuncia obra, vacina, feira de
+    # adoção — o leitor viu "adoção de cães" com pill POLÍTICA). 'governo' idem.
+    'politica': ['câmara', 'vereador', 'vereadora', 'prefeito', 'prefeita', 'eleição', 'eleições', 'governador',
+                 'deputado', 'deputada', 'senador', 'política', 'partido', 'candidato', 'candidata', 'sessão da câmara'],
+    'saude': ['hospital', 'saúde', 'dengue', 'vacina', 'ubs', 'médico', 'doença', 'covid', 'pandemia',
+              'vigilância sanitária', 'sanitária', 'samu', 'upa', 'posto de saúde', 'mutirão', 'cirurgia', 'exame'],
     'esporte': ['futebol', 'esporte', 'atleta', 'campeonato', 'jogo', 'gol', 'time', 'torneio', 'libertadores', 'brasileirão', 'brasileirao', 'escalações', 'escalacao', 'rodada', 'tabela do campeonato', 'série a', 'serie a', 'copa do brasil', 'flamengo', 'corinthians', 'palmeiras', 'são paulo', 'grêmio', 'internacional', 'cruzeiro', 'atlético'],
     # vagas/concurso = ECONOMIA (fix 22/ago: 'processo seletivo da prefeitura' saía com pill
     # POLITICA porque só 'prefeitura' pontuava — pra quem procura emprego a pauta é trabalho)
     'economia': ['emprego', 'empresa', 'mercado', 'economia', 'negócio', 'indústria', 'comércio',
                  'renda', 'vaga', 'vagas', 'processo seletivo', 'seletivo', 'concurso',
                  'concurso público', 'contrata', 'contratação', 'recrutamento', 'sine',
-                 'salário'],
+                 'salário',
+                 # 15/set: "hotel de R$ 40 milhões" saía como ESPORTE; investimento é ECONOMIA
+                 'investimento', 'investe', 'milhões', 'bilhões', 'hotel', 'inaugura', 'inauguração',
+                 'empreendimento', 'fábrica', 'loja', 'shopping', 'faturamento', 'exporta', 'exportação',
+                 'weg', 'malwee', 'duas rodas', 'lunelli', 'marisol', 'tigre', 'tupy', 'embraco'],
+    # 15/set: BICHOS — bicho e pet rendem 6-8 mil views e caíam em GERAL/POLÍTICA
+    'bichos': ['cachorro', 'cachorra', 'cão', 'cães', 'gato', 'gata', 'gatos', 'pet', 'pets', 'adoção',
+               'castração', 'antirrábica', 'animal', 'animais', 'cobra', 'serpente', 'jacaré', 'coruja',
+               'capivara', 'tamanduá', 'bugio', 'macaco', 'tartaruga', 'abelhas', 'gambá', 'jiboia',
+               'cavalo', 'vaca', 'boi', 'resgate de animal', 'zoonoses'],
     'clima': ['chuva', 'temporal', 'vento', 'frio', 'calor', 'enchente', 'clima', 'previsão do tempo'],
     'cultura': ['evento', 'festa', 'show', 'cultura', 'música', 'teatro', 'exposição', 'festival'],
     # 🚧 TRÂNSITO (13/ago, ordem do dono: "o buraco que os vizinhos têm e nós não") — a novela
@@ -618,14 +635,90 @@ def _requentada(texto):
     return bool(anos) and atual not in anos and all(a < atual for a in anos)
 
 
-def detect_category(text):
+# ── 15/set/26 — "cada vírgula" (auditoria dos prints do IG): 4 furos que o leitor viu ──
+_LANG_ESTRANHA = re.compile(
+    r"\b(der|die|das|und|ist|zum|zur|auf|dem|den|mit|für|nicht|sich|immer|viel|"
+    r"the|and|with|from|this|that|will|has|have|his|her|their|about)\b", re.I)
+
+
+def _idioma_estranho(texto):
+    """Manchete em alemão/inglês entrou por conter 'WEG' ('Auf dem Weg zum Auswärtsspiel').
+    2+ palavras-função estrangeiras no título+resumo = não é nossa língua = fora."""
+    return len(_LANG_ESTRANHA.findall(texto or "")) >= 2
+
+
+_FONTES_CONHECIDAS = (r"Money Times|NSC Total|Gazeta do Povo|JDV(?: - Jornal do Vale)?|Jornal do Vale|"
+                      r"OneFootball|sportlife\.com\.br|ND Mais|G1(?: [A-Za-zÀ-ú ]+)?|OCP News|"
+                      r"Di[áa]rio da Jaragu[áa]|Portal de Schroeder|CNN Brasil|UOL|Terra|Folha|Estad[ãa]o|"
+                      r"Metr[óo]poles|Poder360|InfoMoney|Valor|Exame|Lance!?|GE|ge\.globo|Agência Brasil")
+_SUFIXO_FONTE = re.compile(r"\s+[-–—|]\s+(?:" + _FONTES_CONHECIDAS + r")\s*$", re.I)
+
+
+def _tira_fonte_titulo(title, gnews=False):
+    """Google News manda 'Título - Fonte' (sempre); outros feeds às vezes ('- Money Times').
+    O nome da fonte no card parece cópia. Corta só o SUFIXO, nunca o meio do título."""
+    t = " ".join((title or "").split())
+    if gnews:
+        m = re.search(r"\s+-\s+[^-]{2,60}$", t)
+        if m and len(t[:m.start()].split()) >= 4:
+            t = t[:m.start()].rstrip()
+    m = _SUFIXO_FONTE.search(t)
+    if m:
+        t = t[:m.start()].rstrip()
+    return t
+
+
+def _ano_velho_no_titulo(title):
+    """'Startup Summit 2024' publicado em 2026: ano passado no título, sem o ano atual, e sem
+    marca de retrospectiva ('desde', 'anos', 'história', 'edição') = velha. Fora."""
+    anos = re.findall(r"\b(20[12]\d)\b", title or "")
+    if not anos:
+        return False
+    atual = datetime.now().year
+    if any(int(a) >= atual for a in anos):
+        return False
+    return not re.search(r"\b(anos?|desde|anivers[áa]rio|edi[çc][ãa]o|hist[óo]ria|relembr|retrospectiva)\b",
+                         title or "", re.I)
+
+
+def _termo_radar(feed_config):
+    """Termo entre aspas da query do Google News (…q=%22WEG%22… -> 'WEG')."""
+    try:
+        from urllib.parse import unquote, urlparse, parse_qs
+        q = parse_qs(urlparse(feed_config.get('url', '')).query).get('q', [''])[0]
+        m = re.search(r'"([^"]+)"', unquote(q))
+        return m.group(1) if m else None
+    except Exception:
+        return None
+
+
+def _radar_confere(feed_config, texto):
+    """Radar de EMPRESA (bypass_master) só passa se o termo aparecer como PALAVRA INTEIRA e com a
+    MESMA CAIXA: 'WEG' ≠ 'Weg' (alemão) ≠ 'web'. Sem termo na query, deixa passar como antes."""
+    if not feed_config.get('bypass_master'):
+        return True
+    termo = _termo_radar(feed_config)
+    if not termo:
+        return True
+    return re.search(r"(?<!\w)" + re.escape(termo) + r"(?!\w)", texto or "") is not None
+
+
+def detect_category(text, title=None):
     """Categoria por PALAVRA INTEIRA (\\b) — evita 'preso' casar dentro de 'Caropreso' (sobrenome)
-    e marcar política/saúde como POLICIAL. Escolhe a categoria com MAIS acertos (não a 1ª que casa)."""
-    text_lower = text.lower()
+    e marcar política/saúde como POLICIAL. Escolhe a categoria com MAIS acertos (não a 1ª que casa).
+    15/set: o TÍTULO pesa 3x (o corpo cita prefeitura/polícia de passagem e roubava a etiqueta);
+    'title' = só o título, quando o chamador tiver (senão usa as 120 primeiras letras do texto)."""
+    text_lower = (text or "").lower()
+    head = (title or text_lower[:120]).lower()
     best, best_score = 'geral', 0
     for category, keywords in CATEGORY_KEYWORDS.items():
-        score = sum(1 for kw in keywords
-                    if re.search(r'\b' + re.escape(kw) + r'\b', text_lower))
+        score = 0
+        for kw in keywords:
+            rx = r'\b' + re.escape(kw) + r'\b'
+            if re.search(rx, head):
+                score += 3
+            elif re.search(rx, text_lower):
+                score += 1
         if score > best_score:
             best, best_score = category, score
     return best
@@ -826,6 +919,18 @@ def fetch_feed(feed_config):
         summary = clean_html(getattr(entry, 'summary', '') or getattr(entry, 'description', ''))
         link = getattr(entry, 'link', '')
         
+        # ── 15/set: filtros "cada vírgula" (antes de qualquer outra coisa) ──
+        title = _tira_fonte_titulo(title, gnews=('news.google.com' in url))
+        if _idioma_estranho(f"{title} {summary[:240]}"):
+            logger.info(f"🌐 idioma estranho, fora: {title[:70]}")
+            continue
+        if _ano_velho_no_titulo(title):
+            logger.info(f"🗓️ ano velho no título, fora: {title[:70]}")
+            continue
+        if not _radar_confere(feed_config, f"{title} {summary}"):
+            logger.info(f"🎯 radar sem o termo exato ({_termo_radar(feed_config)}), fora: {title[:70]}")
+            continue
+
         # Data de publicação
         published = None
         published_dt = None
@@ -883,7 +988,7 @@ def fetch_feed(feed_config):
         # feed — "presa pela PM/lavagem de dinheiro" saiu como 'local' (feed SchPost) e FUROU as
         # travas policiais de imagem (câmara de Schroeder ilustrou notícia de crime). Crime é crime.
         feed_cat = feed_config.get('category', 'geral')
-        detected = detect_category(full_text)
+        detected = detect_category(full_text, title=title)
         # 🏐 VETO DO ESPORTE (fix 19/jul — Inspetor: "Brasil perde da Polônia" saiu com pill
         # POLICIAL): quando o texto tem marca CLARA de esporte, nada mais o classifica como
         # crime — nem o detect, nem a categoria do feed. Derrota não é ocorrência policial.

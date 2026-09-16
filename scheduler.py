@@ -164,13 +164,30 @@ def clima_news_job():
         logger.error(f"❌ Clima falhou: {e}")
 
 
-def marca_job(brand_key):
+def marca_insights_job():
+    """Puxa alcance/salvamento/compartilhamento dos posts do despachante (últimos 7 dias)."""
+    try:
+        import insights
+        n = insights.coletar_marca("despachante", dias=7)
+        logger.info("📊 Insights do despachante: %s posts atualizados.", n)
+    except Exception as e:
+        logger.error(f"❌ Insights da marca falharam: {e}")
+
+
+def marca_job(brand_key, slot=None):
     """Posta 1 carrossel (IG) + foto (FB) + Story da MARCA por dia.
+    15/set: o despachante tem SLOTS (manha 10h jornada · meio 13h mito/consequência ·
+    tarde 16h scooter/negócio/multa · noite 19h story 'veja mais no site').
     Só age se autopost ligado E se os tokens Meta daquela marca existirem.
     Se faltar token (ex: IG ainda não criado), PULA sem erro — assim DL/4kitem
     ativam sozinhos quando os tokens forem adicionados, sem mexer no código."""
     if not _autopost_on():
         logger.info("📭 Autopost OFF — marca '%s' pulada (modo seguro).", brand_key)
+        return
+    if slot == "meio" and os.environ.get("DESP_MEIO_ON", "0") != "1":
+        # 15/set: 3º post de feed/dia fica DESLIGADO por padrão (Buffer/Socialinsider 2025: pra perfil
+        # pequeno, 2 feed/dia + stories rende mais que 3-4). Ligar: DESP_MEIO_ON=1 no Railway.
+        logger.info("⏭️ Despachante 13h desligado (DESP_MEIO_ON!=1).")
         return
     try:
         import marcas
@@ -185,8 +202,8 @@ def marca_job(brand_key):
             logger.info("⏭️ Marca '%s' sem tokens Meta ainda — pulada "
                         "(crie o IG + tokens p/ ativar automaticamente).", brand_key)
             return
-        marcas.run(brand_key, post=True)
-        logger.info("🏷️ Marca '%s' POSTADA (IG carrossel + FB + Story).", brand_key)
+        marcas.run(brand_key, post=True, slot=slot)
+        logger.info("🏷️ Marca '%s'%s POSTADA.", brand_key, f" [{slot}]" if slot else "")
     except Exception as e:
         logger.error(f"❌ Marca '{brand_key}' falhou: {e}")
 
@@ -496,7 +513,9 @@ def start_scheduler(interval_minutes=60):
     # PULA (dedup + trava + fila) — volume escala com a notícia real, igual redação de verdade.
     # Horários via env NOTICIA_HORAS (default 8h-22h a cada 2h). O Placar mede o alcance/post
     # em 2 semanas: segurou = escala mais; despencou = tira slot. Dado decide.
-    _not_horas = [int(h) for h in os.environ.get('NOTICIA_HORAS', '8,10,12,14,16,18,20,22').split(',')
+    # 15/set: 12 posts/dia diluía a média (30% do feed abaixo de 500 views). Default cai pra 5
+    # slots de notícia + 3 reels + Previsão do Vale = 6-8 posts/dia. NOTICIA_HORAS no env sobrepõe.
+    _not_horas = [int(h) for h in os.environ.get('NOTICIA_HORAS', '9,12,15,18,21').split(',')
                   if h.strip().isdigit()] or [12, 18]
     for _h in _not_horas:
         _scheduler.add_job(
@@ -510,7 +529,7 @@ def start_scheduler(interval_minutes=60):
     # 🎬 Reels (vídeo vertical narrado) — motor de ALCANCE (o formato que mais cresce). Configurável
     # via env REELS_HORAS (horas separadas por vírgula). Default 4x/dia (9,13,16,19), bem espaçado.
     # ⚠️ o render roda no worker web; pra escalar MUITO (6x+), mover o render p/ fora (risco aberto).
-    _reels_horas = [int(h) for h in os.environ.get('REELS_HORAS', '9,13,16,19').split(',')
+    _reels_horas = [int(h) for h in os.environ.get('REELS_HORAS', '10,14,19').split(',')
                     if h.strip().isdigit()] or [13, 19]
     for _h in _reels_horas:
         _scheduler.add_job(
@@ -542,12 +561,14 @@ def start_scheduler(interval_minutes=60):
 
     # 📣 Bloco de marca 12h15 — sex/dom/seg = Grupo DL · ter/qui/sáb = institucional da
     # Rádio ("somos daqui": as 5 cidades) · quarta = folga (nunca o mesmo card 2 dias seguidos)
+    # 15/set: os cards azuis do despachante faziam 79-286 views (pior conteúdo do perfil) e os
+    # institucionais 144-327. Sai tudo do feed. Fica 1x/semana (TERÇA) um carrossel de série do
+    # despachante (foto + "veja mais no site"), postado como conteúdo útil de trânsito.
     _scheduler.add_job(
         func=promo_grupo_job,
-        trigger=CronTrigger(day_of_week='mon,tue,thu,fri,sat,sun', hour=12, minute=15,
-                            timezone='America/Sao_Paulo'),
+        trigger=CronTrigger(day_of_week='tue', hour=12, minute=15, timezone='America/Sao_Paulo'),
         id='promo_grupo_dl',
-        name='Bloco de marca 12h15 (DL sex/dom/seg · Rádio ter/qui/sáb)',
+        name='Despachante na Rádio · terça 12h15 (carrossel de série, 1x/semana)',
         replace_existing=True
     )
 
@@ -779,13 +800,14 @@ def start_scheduler(interval_minutes=60):
     )
 
     # ➕ SEGUE a Rádio — conversão view->seguidor, 2x/semana (segunda e quinta 20h).
-    _scheduler.add_job(
-        func=segue_job,
-        trigger=CronTrigger(day_of_week='mon,thu', hour=20, minute=0, timezone='America/Sao_Paulo'),
-        id='segue_radio',
-        name='SEGUE a Rádio (conversão, seg/qui 20h)',
-        replace_existing=True
-    )
+    if os.environ.get('SEGUE_ON', '0') == '1':   # 15/set: fora do feed por padrão (146-327 views)
+        _scheduler.add_job(
+            func=segue_job,
+            trigger=CronTrigger(day_of_week='mon,thu', hour=20, minute=0, timezone='America/Sao_Paulo'),
+            id='segue_radio',
+            name='SEGUE a Rádio (conversão, seg/qui 20h)',
+            replace_existing=True
+        )
 
     # 🗳️ ENQUETE DO VALE — Story diário de engajamento, pronto às 8h (dono posta + cola o sticker).
     _scheduler.add_job(
@@ -809,11 +831,44 @@ def start_scheduler(interval_minutes=60):
     # 🏷️ MARCAS (motores próprios) — 1 carrossel+story por dia cada, horários diferentes.
     # Despachante já tem tokens (LIVE) → posta hoje. DL Mobilidade e 4kitem PULAM sozinhos
     # até criar o IG + tokens; aí ativam automaticamente sem mexer no código.
+    # 15/set — 3 posts/dia + story (pedido do dono: "subir de 1-2 pra 3-4 por dia, por temas").
+    # manha = jornada (Vou trocar de carro → licenciamento → IPVA → multa → CNH), um passo por dia.
     _scheduler.add_job(
-        func=marca_job, args=['despachante'],
+        func=marca_job, args=['despachante', 'manha'],
         trigger=CronTrigger(hour=10, minute=0, timezone='America/Sao_Paulo'),
         id='marca_despachante',
-        name='Despachante Lessmann (carrossel diário 10h)',
+        name='Despachante · 10h jornada da série (carrossel)',
+        replace_existing=True
+    )
+    _scheduler.add_job(
+        func=marca_job, args=['despachante', 'meio'],
+        trigger=CronTrigger(hour=13, minute=0, timezone='America/Sao_Paulo'),
+        id='marca_despachante_meio',
+        name='Despachante · 13h mito ou verdade / consequência',
+        replace_existing=True
+    )
+    # tarde: seg/qua/sex/dom (ter/qui/sáb 16h é a oferta de scooter com foto — DL Mobilidade)
+    _scheduler.add_job(
+        func=marca_job, args=['despachante', 'tarde'],
+        trigger=CronTrigger(day_of_week='mon,wed,fri,sun', hour=16, minute=0,
+                            timezone='America/Sao_Paulo'),
+        id='marca_despachante_tarde',
+        name='Despachante · 16h scooter (seg/qua/sex) · negócio (dom)',
+        replace_existing=True
+    )
+    _scheduler.add_job(
+        func=marca_job, args=['despachante', 'noite'],
+        trigger=CronTrigger(hour=19, minute=0, timezone='America/Sao_Paulo'),
+        id='marca_despachante_noite',
+        name='Despachante · 19h story "veja mais no site"',
+        replace_existing=True
+    )
+    # placar por série: alcance/salvamentos dos posts da marca (insights.py) 1x/dia
+    _scheduler.add_job(
+        func=marca_insights_job,
+        trigger=CronTrigger(hour=23, minute=30, timezone='America/Sao_Paulo'),
+        id='marca_insights',
+        name='Despachante · 23h30 insights por série',
         replace_existing=True
     )
     _scheduler.add_job(

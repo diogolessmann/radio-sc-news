@@ -289,6 +289,10 @@ def _mesmo_fato(a, b):
              _overlap(_best_title(a), _best_title(b)))
     if ov >= 0.45:
         return True
+    # SINAL 1b (15/set — "moto roubada" saiu 2x no mesmo dia com títulos diferentes): mesma cidade
+    # regional + mesmo dia + overlap médio já basta.
+    if ca and cb and ca == cb and _dia(a) and _dia(a) == _dia(b) and ov >= 0.30:
+        return True
     # SINAL 2: fingerprint evento:cidade:dia + piso baixo
     ea, eb = _eventos_de(_blob(a)), _eventos_de(_blob(b))
     if ea and eb and (ea & eb) and _cidade_fp(a) == _cidade_fp(b) and _dia(a) and _dia(a) == _dia(b) and ov >= 0.15:
@@ -512,6 +516,22 @@ def pick_next(conn, only_id=None, limit=1):
             c = (_get(n, "category") or "").strip().lower()
             return _hype.index(c) if c in _hype else len(_hype)
         ordered.sort(key=_hype_rank)
+    # 🚔 TETO DE POLICIAL POR DIA (15/set — auditoria: policial genérico 300-700 views e 6 iguais
+    # no grid). Máx POLICIAL_MAX_DIA (default 2) já postados hoje -> o resto espera/cai.
+    try:
+        _teto = int(_env("POLICIAL_MAX_DIA", "2"))
+    except Exception:
+        _teto = 2
+    if _teto >= 0:
+        try:
+            _hoje = conn.execute(
+                "SELECT COUNT(*) FROM news WHERE lower(category)='policial' "
+                "AND social_posted_at IS NOT NULL AND social_posted_at!='' "
+                "AND date(social_posted_at)=date('now','localtime')").fetchone()[0]
+        except Exception:
+            _hoje = 0
+        if _hoje >= _teto:
+            ordered = [n for n in ordered if (_get(n, "category") or "").strip().lower() != "policial"]
     return ordered[:limit]
 
 
@@ -1054,10 +1074,12 @@ def flash_manchete(news):
             "uma OCORRENCIA (policial, acidente, resgate/bombeiros ou caso que da falatorio). "
             "Escreva a CHAMADA DE CAPA em modo TEASER — o estilo do vizinho "
             "que conta O QUE rolou mas segura os detalhes: no maximo 2 linhas (~12 palavras) "
-            "que digam o TIPO do acontecimento (tragedia em familia, acidente grave na rodovia, "
-            "caso que chocou o bairro) + cidade + 'detalhes no site'. Ex.: 'Tragedia em familia "
-            "mobiliza a policia em Schroeder — detalhes no site'. A pessoa entende que foi serio "
-            "e fica curiosa; quem entrega o resto e o site. PROIBIDO: verbo grafico (mata/esfaqueia), "
+            "que digam O QUE aconteceu e ONDE (tipo do fato + lugar: bairro, rodovia, tipo de "
+            "estabelecimento) + cidade. Ex.: 'Perseguicao apos roubo de moto termina em prisao no "
+            "bairro Vila Nova, em Jaraguá do Sul'. Dado real de 15/set: chamada generica "
+            "('ocorrencia registrada — detalhes no site') faz 300-700 views; chamada que conta o "
+            "fato (igreja, serpente) faz 4-8 mil. NUNCA escreva 'detalhes no site' na chamada — isso "
+            "vai na legenda. PROIBIDO: verbo grafico (mata/esfaqueia), "
             "arma, metodo, nome, idade, sensacionalismo, emoji. PROIBIDO inventar ligacao com a "
             "regiao que nao esteja no texto. Sua resposta vai DIRETO pro ar: se o texto NAO "
             "parecer uma ocorrencia, NAO comente nem avise — escreva a chamada normal do fato. "
@@ -1093,7 +1115,9 @@ def flash_manchete(news):
     # fallback (IA fora do ar): sensível em modo teaser NUNCA mostra o título cru —
     # sai o teaser genérico construído na mão (a fresta que vazaria 'filho mata a mãe')
     if teaser:
-        return f"Ocorrência policial registrada em {cidade} — detalhes no site"
+        # 15/set: fallback sem "detalhes no site" e sem a frase-clichê que virou 6x no feed
+        _tipo = "Acidente" if re.search(r"acident|colis|capot|tomb", f"{title}", re.I) else "Ocorrência"
+        return f"{_tipo} mobiliza equipes de socorro e polícia em {cidade}; veja o que aconteceu"
     title = neutralizar_juridico(title) if sensivel else title   # fallback: título cru neutralizado se sensível
     return neutralizar_opiniao(title) if divisivo else title
 

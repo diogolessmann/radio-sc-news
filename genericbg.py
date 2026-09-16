@@ -152,6 +152,7 @@ _CATEGORIA = {
     "policial": "policial", "politica": "prefeitura", "saude": "saude",
     "esporte": "esporte", "economia": "economia",
     "cultura": "evento",
+    "bichos": "animais",     # 15/set
 }
 
 

@@ -67,10 +67,10 @@ DESPACHANTE_CONTEUDO = [
                  "Assistência 24 horas quando você mais precisa.",
                  "DL Proteção Veicular — tranquilidade pra rodar."]},
     {"cat": "SERVIÇO",
-     "titulo": "Renovação de CNH e cursos sem fila",
-     "bullets": ["Renovação de todas as categorias (A a E).",
-                 "Cursos obrigatórios e especializações (MOPP, mototáxi, escolar).",
-                 "A DL CNH resolve do começo ao fim."]},
+     "titulo": "Precisa renovar a CNH? A gente te orienta",
+     "bullets": ["Renovação A a E pelo gov.br — a gente orienta cada etapa.",
+                 "MOPP, mototáxi, escolar: curso homologado que representamos.",
+                 "DL CNH — quem faz é você, a gente acompanha."]},
     {"cat": "DICA DE LEI",
      "titulo": "Você é PCD? Pode ter isenção de impostos no carro",
      "bullets": ["Pessoas com deficiência têm direito a isenções na compra do veículo.",
@@ -216,7 +216,8 @@ BRANDS = {
         "accent2": (46, 134, 222), "white": (245, 247, 250), "muted": (160, 175, 190),
         # tokens (env)
         "env": {"token": "DESP_PAGE_TOKEN", "ig": "DESP_IG_USER_ID", "page": "DESP_PAGE_ID"},
-        "conteudo": DESPACHANTE_CONTEUDO,
+        "conteudo": DESPACHANTE_CONTEUDO,   # fallback (rotação antiga)
+        "series": True,                     # 15/set: jornadas por slot (series_despachante.py)
         "hashtags": ["#despachante", "#schroeder", "#jaraguadosul", "#guaramirim",
                      "#transito", "#detran", "#cnh", "#multas", "#veiculos", "#dllessmann"],
         "voz": ("Você é o social media do Despachante Lessmann (Schroeder/SC). Fale como "
@@ -418,7 +419,7 @@ def _dl_caption(t, angle):
     ig = f"Siga {t['instagram']}\n" if t.get("instagram") else ""
     rodape = (f"\n📍 Schroeder/SC · a partir de R$ 4.990\n"
               f"📲 Simule no WhatsApp: {t['whats']}\n"
-              f"🌐 {t['site']}\n{ig}"
+              f"🌐 Acesse e veja mais informações: {t['site']}/mobilidade\n{ig}"
               "*Financiamento sujeito a análise de crédito (com juros).\n\n"
               + _hashtags_do_dia(t))
     try:
@@ -491,23 +492,78 @@ def _footer(d, t):
     d.text(((W - w) // 2, H - 90), txt, font=f, fill=t["muted"])
 
 
+SERIES_IMG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "series")
+
+
+def _foto_fundo(img, t, item, y0):
+    """15/set — foto da SÉRIE (assets/series/<serie>.webp, gerada 1x) cobrindo do y0 até o pé do
+    card, com degradê do navy por cima (texto fica no navy, foto fica embaixo). Sem foto → card
+    liso, como antes. É o que mata o 'card escuro genérico' sem custo por post."""
+    from PIL import Image
+    key = item.get("serie") if isinstance(item, dict) else None
+    if not key:
+        return None
+    # 15/set: POOL por série (assets/series/<serie>/*.jpg — fotos reais da loja/site) girando por
+    # dia + passo; sem pool, cai na foto única <serie>.webp. Sem nada, card liso.
+    pool = sorted(glob.glob(os.path.join(SERIES_IMG_DIR, key, "*.jp*g")) +
+                  glob.glob(os.path.join(SERIES_IMG_DIR, key, "*.webp")))
+    if pool:
+        idx = (datetime.now().timetuple().tm_yday * 7 + int(item.get("passo") or 0)) % len(pool)
+        fp = pool[idx]
+    else:
+        fp = os.path.join(SERIES_IMG_DIR, f"{key}.webp")
+    if not os.path.exists(fp):
+        return None
+    try:
+        foto = Image.open(fp).convert("RGB")
+    except Exception:
+        return None
+    hh = H - y0
+    r = max(W / foto.width, hh / foto.height)
+    foto = foto.resize((round(foto.width * r), round(foto.height * r)), Image.LANCZOS)
+    x = (foto.width - W) // 2
+    y = max(0, (foto.height - hh) // 3)
+    foto = foto.crop((x, y, x + W, y + hh))
+    img.paste(foto, (0, y0))
+    band = 260
+    grad = Image.new("L", (1, band))
+    for i in range(band):
+        grad.putpixel((0, i), int(255 * (1 - i / (band - 1)) ** 1.6))
+    grad = grad.resize((W, band))
+    img.paste(Image.new("RGB", (W, band), t["bg"]), (0, y0), grad)
+    # rodapé legível sobre a foto
+    foot = Image.new("L", (1, 140))
+    for i in range(140):
+        foot.putpixel((0, i), int(230 * (i / 139) ** 1.2))
+    img.paste(Image.new("RGB", (W, 140), t["bg"]), (0, H - 140), foot.resize((W, 140)))
+    return True
+
+
 def slide_capa(t, item, outdir, n=1):
     img, d = _canvas(t)
+    _foto_fundo(img, t, item, 640)
     _brand_header(d, t)
     # badge categoria
     fb = _font(34)
     badge = item["cat"]
-    bw = d.textlength(badge, font=fb)
-    gi.pill(d, 56, 200, badge, fb, t["accent"], (10, 10, 10))
+    y = 320
+    if item.get("serie_nome"):
+        # 15/set: nome da SÉRIE (jornada) em cima, categoria/passo embaixo
+        x = gi.pill(d, 56, 200, item["serie_nome"], fb, t["accent"], (10, 10, 10))
+        if item.get("total", 1) > 1:
+            gi.pill(d, x + 14, 200, f"{item['passo']}/{item['total']}", fb, t["card"], t["white"])
+        gi.pill(d, 56, 272, badge, _font(28), t["accent2"], t["white"])
+        y = 380
+    else:
+        gi.pill(d, 56, 200, badge, fb, t["accent"], (10, 10, 10))
     # titulo grande
     ft = _font(82, impact=True)
     lines = gi.wrap(d, item["titulo"], ft, W - 120)[:5]
-    y = 320
     for ln in lines:
         d.text((56, y), ln, font=ft, fill=t["white"], stroke_width=2, stroke_fill=(0, 0, 0))
         y += int(ft.size * 1.02)
     # faixa inferior
-    d.text((56, H - 150), "ARRASTA PARA O LADO  ->", font=_font(34), fill=t["accent"])
+    gi.pill(d, 56, H - 170, "ARRASTA PARA O LADO  ->", _font(34), t["accent"], (10, 10, 10))
     p = os.path.join(outdir, f"slide_{n}.png")
     img.save(p, quality=92)
     return p
@@ -532,16 +588,62 @@ def slide_conteudo(t, item, outdir, n=2):
     return p
 
 
-def slide_cta(t, outdir, n=3):
+def slide_site(t, item, outdir, n=3):
+    """15/set — 'VEJA MAIS NO SITE': o post mostra o problema, o site dá o próximo passo."""
+    img, d = _canvas(t)
+    _foto_fundo(img, t, item, 900)
+    _brand_header(d, t)
+    fs = _font(44)
+    gi.pill(d, 56, 200, "VEJA MAIS NO SITE", fs, t["accent"], (10, 10, 10))
+    ft = _font(72, impact=True)
+    y = 330
+    for ln in gi.wrap(d, item.get("pagina", t["site"]), ft, W - 112)[:4]:
+        d.text((56, y), ln, font=ft, fill=t["white"]); y += int(ft.size * 1.05)
+    y += 30
+    fb = _font(40, bold=False)
+    sub = "Consulta, prazos e o que fazer — explicado sem juridiquês. E o botão do WhatsApp lá dentro."
+    for ln in gi.wrap(d, sub, fb, W - 112):
+        d.text((56, y), ln, font=fb, fill=t["muted"]); y += 52
+    # caixa com a URL curta (15/set: digitável — dldespachante.com.br/multa — o Instagram não linka)
+    try:
+        import series_despachante as _sd
+        url = _sd.curta(item) if item.get("serie") else t["site"] + item.get("link", "")
+    except Exception:
+        url = t["site"] + item.get("link", "")
+    size = 46
+    fu = _font(size)
+    while d.textlength(url, font=fu) > W - 112 - 80 and size > 26:
+        size -= 2; fu = _font(size)
+    w = d.textlength(url, font=fu)
+    y += 40
+    d.rounded_rectangle([56, y, 56 + w + 80, y + 104], radius=22, fill=t["accent2"])
+    d.text((56 + 40, y + 26), url, font=fu, fill=t["white"])
+    d.text((56, y + 150), "digita no navegador ou toca no link da bio", font=_font(30, bold=False), fill=t["accent"])
+    if item.get("serie") == "multa":
+        try:
+            import series_despachante as _sd
+            fr = _font(24, bold=False)
+            for i_, ln in enumerate(gi.wrap(d, _sd.RODAPE_DEFESA, fr, W - 112)[:2]):
+                d.text((56, y + 200 + i_ * 30), ln, font=fr, fill=t["muted"])
+        except Exception:
+            pass
+    _footer(d, t)
+    p = os.path.join(outdir, f"slide_{n}.png")
+    img.save(p, quality=92)
+    return p
+
+
+def slide_cta(t, outdir, n=3, item=None):
     img, d = _canvas(t)
     _brand_header(d, t)
     cy = H // 2 - 180
     fs = _font(44)
-    seal = t.get("cta_seal", "FALA COM A GENTE")
+    item = item or {}
+    seal = item.get("cta_seal") or t.get("cta_seal", "FALA COM A GENTE")
     sw = d.textlength(seal, font=fs)
     gi.pill(d, (W - sw) // 2 - 30, cy, seal, fs, t["accent"], (10, 10, 10))
-    big = t.get("cta_big", ["RESOLVEMOS", "PRA VOCÊ"])
-    fbig = _font(92, impact=True)
+    big = item.get("cta_big") or t.get("cta_big", ["RESOLVEMOS", "PRA VOCÊ"])
+    fbig = _font(84 if max(len(x) for x in big) > 14 else 92, impact=True)
     y = cy + 110
     for ln in big:
         w = d.textlength(ln, font=fbig)
@@ -563,11 +665,26 @@ def slide_cta(t, outdir, n=3):
 
 
 # ----------------------------------------------------------------- legenda
+def _rodape_serie(t, item):
+    """Fecho fixo da legenda: página do site da série + zap (15/set)."""
+    # 15/set — regra do dono: TODA legenda manda acessar o site e ver mais informações.
+    if item.get("link"):
+        try:
+            import series_despachante as _sd
+            _u = _sd.curta(item) if item.get("serie") else t["site"] + item["link"]
+        except Exception:
+            _u = t["site"] + item["link"]
+        _rod = ("\n" + _sd.RODAPE_DEFESA) if item.get("serie") == "multa" else ""
+        return (f"\n\n🌐 Acesse e veja mais informações: {_u}"
+                f"\n📲 Manda a placa no WhatsApp: {t['whats']}{_rod}\n\n")
+    return (f"\n\n🌐 Acesse e veja mais informações: {t['site']}"
+            f"\n📲 Fala com a gente no WhatsApp: {t['whats']}\n\n")
+
+
 def build_caption(t, item):
     base = f"{item['titulo']}\n\n"
     base += "\n".join(f"✅ {b}" for b in item["bullets"])
-    base += (f"\n\n📲 Fala com a gente no WhatsApp: {t['whats']}"
-             f"\n🌐 {t['site']}\n\n")
+    base += _rodape_serie(t, item)
     if t.get("instagram"):
         base += f"Siga {t['instagram']}\n\n"
     base += _hashtags_do_dia(t)
@@ -577,17 +694,32 @@ def build_caption(t, item):
 def groq_caption(t, item):
     """Reescreve a legenda na voz da marca (Groq, se houver chave). Fallback: base."""
     bullets = " | ".join(item["bullets"])
+    travas = ""
+    if item.get("serie"):
+        import series_despachante as _sd
+        travas = _sd.TRAVAS + " "
+        serie_ctx = (f"SÉRIE: {item.get('serie_nome')} (passo {item.get('passo')}/{item.get('total')}). "
+                     f"Termine dizendo que tem mais no site {t['site']}{item['link']} e pra mandar a placa no WhatsApp. ")
+    else:
+        serie_ctx = (f"Termine convidando a acessar o site {t['site']} pra ver mais informações "
+                     "e a falar no WhatsApp. ")
     prompt = (
         f"{t['voz']}\n\n"
         "Escreva uma legenda de Instagram (português BR) sobre o tema abaixo. "
         "Regras: 1ª linha é um gancho curto (no máx 1 emoji). Depois 3-4 linhas curtas. "
-        "Termine convidando a falar no WhatsApp. NÃO invente serviços além dos listados. "
+        + serie_ctx + travas +
+        "NÃO invente serviços além dos listados. "
+        "Despachante NÃO renova CNH, NÃO emite habilitação e NÃO dá curso: ele ORIENTA o cidadão "
+        "no gov.br/DETRAN e REPRESENTA cursos homologados (reciclagem, MOPP). Nunca escreva 'renovamos', "
+        "'fazemos sua CNH' ou 'nosso curso'. "
         "NÃO use hashtags (eu adiciono depois).\n\n"
         f"TEMA: {item['titulo']}\nPONTOS: {bullets}"
     )
     try:
         import cerebro
         txt = cerebro.completar(prompt)          # Gemini -> Groq
+        if txt and item.get("serie") and _legenda_viola(txt):
+            txt = ""                             # trava: legenda com claim proibido → fallback fixo
         if txt:
             txt = txt.strip().strip('"')
             return f"{txt}\n\n📲 WhatsApp: {t['whats']}  ·  🌐 {t['site']}\n\n" + _hashtags_do_dia(t)
@@ -665,31 +797,93 @@ def publish_brand(t, prefix, image_paths, caption):
 
 
 # ----------------------------------------------------------------- run
-def generate(brand_key, outdir=None, item=None):
+_PROIBIDO = ("renovamos", "fazemos sua cnh", "fazemos a sua cnh", "nosso curso", "garantimos",
+             "sem pôr o pé no detran", "sem por o pe no detran", "emitimos sua cnh", "nossa autoescola")
+
+
+def _legenda_viola(txt):
+    low = (txt or "").lower()
+    return any(p in low for p in _PROIBIDO)
+
+
+def generate(brand_key, outdir=None, item=None, slot=None):
     t = BRANDS[brand_key]
     if t.get("photo_based"):
         return generate_dl(brand_key, outdir)
+    if item is None and t.get("series"):
+        import series_despachante as _sd
+        now = datetime.now()
+        item = _sd.escolher(slot or "manha", now.timetuple().tm_yday, now.weekday())
     item = item or topic_of_the_day(t)
     if outdir is None:
         day = datetime.now().strftime("%Y-%m-%d")
-        outdir = os.path.join(OUT_BASE, f"{day}_{brand_key}")
+        outdir = os.path.join(OUT_BASE, f"{day}_{brand_key}" + (f"_{slot}" if slot else ""))
     os.makedirs(outdir, exist_ok=True)
-    paths = [slide_capa(t, item, outdir, 1),
-             slide_conteudo(t, item, outdir, 2),
-             slide_cta(t, outdir, 3)]
+    if item.get("serie"):
+        paths = [slide_capa(t, item, outdir, 1),
+                 slide_conteudo(t, item, outdir, 2),
+                 slide_site(t, item, outdir, 3),
+                 slide_cta(t, outdir, 4, item=item)]
+    else:
+        paths = [slide_capa(t, item, outdir, 1),
+                 slide_conteudo(t, item, outdir, 2),
+                 slide_cta(t, outdir, 3)]
     caption = groq_caption(t, item)
     with open(os.path.join(outdir, "legenda.txt"), "w", encoding="utf-8") as f:
         f.write(caption)
     return paths, caption, item
 
 
-def run(brand_key, post=False):
+def _log_post(brand_key, slot, item, r):
+    """Registro do que foi ao ar (DATA_DIR/marcas_posts.jsonl) — o insights.py lê daqui
+    pra medir alcance/salvamento POR SÉRIE (15/set)."""
+    try:
+        import json
+        d = os.environ.get("DATA_DIR", ".")
+        ig = (r or {}).get("instagram") or {}
+        with open(os.path.join(d, "marcas_posts.jsonl"), "a", encoding="utf-8") as f:
+            f.write(json.dumps({"ts": datetime.now().isoformat(timespec="minutes"),
+                                "brand": brand_key, "slot": slot,
+                                "serie": item.get("serie"), "passo": item.get("passo"),
+                                "titulo": item.get("titulo"), "link": item.get("link"),
+                                "ig_media_id": ig.get("id"),
+                                "story_id": ((r or {}).get("story") or {}).get("id")},
+                               ensure_ascii=False) + "\n")
+    except Exception as e:
+        print(f"   ! log do post falhou (segue): {e}")
+
+
+def publish_story_brand(t, prefix, image_path):
+    """Só o STORY (9:16 da capa) — slot da noite 'veja mais no site' (15/set)."""
+    token, ig_id, _ = _brand_tokens(t)
+    if not (token and ig_id):
+        raise RuntimeError(f"Tokens Meta da marca ausentes ({t['env']}).")
+    import time
+    os.makedirs(PUBLIC_IMG_DIR, exist_ok=True)
+    story_jpg = os.path.join(PUBLIC_IMG_DIR, f"{prefix}_story.jpg")
+    dist._story_image(image_path, story_jpg)
+    story_url = f"{dist.PUBLIC_BASE_URL}/static/social/{prefix}_story.jpg"
+    sc = dist._graph_post(f"{dist.GRAPH}/{ig_id}/media",
+                          {"media_type": "STORIES", "image_url": story_url,
+                           "access_token": token})["id"]
+    time.sleep(2)
+    return {"story": dist._graph_post(f"{dist.GRAPH}/{ig_id}/media_publish",
+                                      {"creation_id": sc, "access_token": token})}
+
+
+def run(brand_key, post=False, slot=None):
     t = BRANDS[brand_key]
-    paths, caption, item = generate(brand_key)
-    print(f"[{brand_key}] tópico: {item['titulo']} | {len(paths)} slides")
+    paths, caption, item = generate(brand_key, slot=slot)
+    print(f"[{brand_key}{'/' + slot if slot else ''}] tópico: {item['titulo']} | {len(paths)} slides")
     if post:
         day = datetime.now().strftime("%Y%m%d")
-        r = publish_brand(t, f"{brand_key}_{day}", paths, caption)
+        prefix = f"{brand_key}_{day}" + (f"_{slot}" if slot else "")
+        if slot == "noite":
+            # story só com o slide "veja mais no site" (3º) — sem repetir o carrossel da manhã
+            r = publish_story_brand(t, prefix, paths[2] if len(paths) > 2 else paths[0])
+        else:
+            r = publish_brand(t, prefix, paths, caption)
+        _log_post(brand_key, slot, item, r)
         print(f"[{brand_key}] publicado: {r}")
     return paths, caption
 
@@ -698,11 +892,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("brand", help="chave da marca (ex: despachante)")
     ap.add_argument("--post", action="store_true")
+    ap.add_argument("--slot", default=None, help="manha|meio|tarde|noite (despachante)")
     args = ap.parse_args()
     if args.brand not in BRANDS:
         print(f"Marca '{args.brand}' nao existe. Disponiveis: {list(BRANDS)}")
         return
-    run(args.brand, post=args.post)
+    run(args.brand, post=args.post, slot=args.slot)
 
 
 if __name__ == "__main__":
