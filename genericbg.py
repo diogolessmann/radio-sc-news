@@ -206,7 +206,41 @@ def _file(slug, seed=0):
     cands = [c for c in cands if os.path.basename(c) not in fora]
     if not cands:
         return None
-    return cands[seed % len(cands)]
+    # 16/set — a mesma arte saiu 2x no mesmo dia (2 posts da WEG com o gráfico verde): as artes
+    # usadas nas últimas 24 h ficam de fora do sorteio enquanto houver outra opção.
+    recentes = _usadas_recentes()
+    frescas = [c for c in cands if os.path.basename(c) not in recentes] or cands
+    esc = frescas[seed % len(frescas)]
+    _marca_usada(os.path.basename(esc))
+    return esc
+
+
+_USADAS_PATH = os.path.join(_VOL or os.path.dirname(os.path.abspath(__file__)), "bg_usadas.json")
+
+
+def _usadas_recentes(horas=24):
+    import json, time
+    try:
+        d = json.load(open(_USADAS_PATH, encoding="utf-8"))
+    except Exception:
+        return set()
+    corte = time.time() - horas * 3600
+    return {k for k, t in d.items() if t >= corte}
+
+
+def _marca_usada(nome):
+    import json, time
+    try:
+        try:
+            d = json.load(open(_USADAS_PATH, encoding="utf-8"))
+        except Exception:
+            d = {}
+        corte = time.time() - 72 * 3600
+        d = {k: t for k, t in d.items() if t >= corte}
+        d[nome] = time.time()
+        json.dump(d, open(_USADAS_PATH, "w", encoding="utf-8"))
+    except Exception:
+        pass
 
 
 def listar_arsenal():
