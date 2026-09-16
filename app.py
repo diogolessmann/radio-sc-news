@@ -1605,7 +1605,11 @@ def build_info():
     """Marcador de versão do deploy (público, sem dado sensível): permite verificar DE FORA
     se o auto-deploy do Railway está entregando os pushes (criado 18/jul após suspeita de
     deploy preso — cards pretos que o código atual não produziria)."""
-    return {"build": "2026-09-01-hype-first", "ok": True}
+    # 16/set: mostra o commit real (RAILWAY_GIT_COMMIT_SHA) — antes era um texto fixo e não dava
+    # pra saber de fora se o deploy tinha entregado o push.
+    import os as _os
+    sha = (_os.environ.get("RAILWAY_GIT_COMMIT_SHA") or "")[:7]
+    return {"build": "2026-09-16-um-post-uma-pagina", "commit": sha or "local", "ok": True}
 
 
 @app.route('/admin/acervo')
