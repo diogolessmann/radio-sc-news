@@ -253,6 +253,13 @@ def login_required(f):
     return decorated
 
 
+def _midia_auth():
+    """Sessão de admin OU ?token=ADMIN_PASSWORD (links diretos). 20/set: a função sumiu com a
+    limpeza da Midiateca (3ea4934) e o /admin/arsenal caiu em 500 — restaurada aqui."""
+    return bool(session.get('admin_logged_in')) or (
+        bool(_admin_pw_env) and request.args.get('token', '') == _admin_pw_env)
+
+
 def allowed_file(filename):
     return ('.' in filename and
             filename.rsplit('.', 1)[1].lower() in ALLOWED_IMAGE)
