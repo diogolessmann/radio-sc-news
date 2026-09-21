@@ -3000,8 +3000,8 @@
   <div class="tv-channel-badge">
     <div class="tv-channel-logo" id="tvChLogo">📡</div>
     <div class="tv-channel-info">
-      <div class="tv-channel-name" id="tvChName">SCC SBT Santa Catarina</div>
-      <div class="tv-channel-sub" id="tvChSub">Programação regional · Norte de SC</div>
+      <div class="tv-channel-name" id="tvChName">Jovem Pan News</div>
+      <div class="tv-channel-sub" id="tvChSub">Notícias 24h · Nacional</div>
     </div>
     <div class="tv-live-pill">
       <div class="tv-live-dot"></div>
@@ -3013,14 +3013,14 @@
   <div class="tv-section-title">Outros canais</div>
   <div class="tv-channels-grid">
 
-    <div class="tv-channel-card active" id="tvch-scc" onclick="switchTvChannel('scc')">
-      <span class="tv-ch-badge ao-vivo">Ao vivo</span>
+    <div class="tv-channel-card" id="tvch-scc" onclick="switchTvChannel('scc')" title="Abre no YouTube">
+      <span class="tv-ch-badge canal">↗ YouTube</span>
       <span class="tv-ch-icon">📡</span>
       <div class="tv-ch-name">SCC SBT SC</div>
       <div class="tv-ch-desc">Programação regional · Norte de SC</div>
     </div>
 
-    <div class="tv-channel-card" id="tvch-jpnews" onclick="switchTvChannel('jpnews')">
+    <div class="tv-channel-card active" id="tvch-jpnews" onclick="switchTvChannel('jpnews')">
       <span class="tv-ch-badge ao-vivo">Ao vivo</span>
       <span class="tv-ch-icon">📰</span>
       <div class="tv-ch-name">Jovem Pan News</div>
@@ -3522,8 +3522,9 @@ function stopRadio() {
 // ── TV AO VIVO ──
 // IDs são atualizados automaticamente via /api/live-channels (cache 10min, sem API key)
 const TV_CHANNELS = {
-  scc:        { name:'SCC SBT Santa Catarina', sub:'Programação regional · Norte de SC',  logo:'📡', vid:'{{ tv_stream_id }}' },
-  jpnews:     { name:'Jovem Pan News',          sub:'Notícias 24h · Nacional',             logo:'📰', vid:'D9dBBE4dKeY' },
+  // 20/set: a SCC não transmite o sinal no YouTube (o embed dava 'Vídeo indisponível'); vira link pro canal
+  scc:        { name:'SCC SBT Santa Catarina', sub:'Programação regional · Norte de SC',  logo:'📡', vid:null, ytUrl:'https://www.youtube.com/@sccsbt' },
+  jpnews:     { name:'Jovem Pan News',          sub:'Notícias 24h · Nacional',             logo:'📰', vid:'{{ tv_stream_id }}' },
   cnn:        { name:'CNN Brasil',              sub:'Notícias e economia · 24h',           logo:'📺', vid:null, ytUrl:'https://www.youtube.com/@CNNBrasil/live' },
   record:     { name:'Record News',             sub:'Notícias 24h · Nacional',             logo:'🔴', vid:null, ytUrl:'https://www.youtube.com/@recordnews/live' },
 
@@ -3542,7 +3543,7 @@ async function fetchLiveChannels() {
     console.debug && console.debug('Live IDs atualizados', data);
   } catch(e) { /* mantém fallback */ }
 }
-let currentTvChannel = 'scc';
+let currentTvChannel = 'jpnews';   // 20/set: SCC virou link
 let tvActive = false;
 
 function switchTvChannel(id) {

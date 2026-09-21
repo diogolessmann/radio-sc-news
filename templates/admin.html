@@ -526,12 +526,12 @@
       <h3>▶️ Adicionar Canal YouTube</h3>
       <div class="form-row">
         <div class="form-group">
-          <label>Nome do Canal</label>
-          <input type="text" id="yt-name" placeholder="Ex: Ancapsu">
+          <label>Nome do Canal (opcional — pego do YouTube)</label>
+          <input type="text" id="yt-name" placeholder="Ex: Primo Rico">
         </div>
         <div class="form-group">
-          <label>Channel ID (UCxxxxxxxx)</label>
-          <input type="text" id="yt-channel-id" placeholder="Ex: UCLTWPE7XrHEe8m_xAmNbQ-Q">
+          <label>Link ou @ do canal</label>
+          <input type="text" id="yt-channel-id" placeholder="Ex: youtube.com/@primorico ou @primorico">
         </div>
         <div class="form-group">
           <label>Categoria</label>
@@ -572,7 +572,7 @@
     </div>
     <p style="margin-top:12px;color:var(--text2);font-size:13px">
       💡 O RSS do YouTube atualiza automaticamente. Cache de vídeos válido por 15 minutos.
-      Para encontrar o Channel ID de um canal: acesse o canal no YouTube, clique em "Sobre" → compartilhar → copiar o link. O ID começa com <code>UC</code>.
+      Pra adicionar: abre o canal no YouTube, copia o link da barra (ex.: youtube.com/@primorico) e cola aqui. O Channel ID (UC…) também funciona.
     </p>
 
   </div>
@@ -1218,8 +1218,7 @@ async function addYtChannel() {
   const channelId = document.getElementById('yt-channel-id').value.trim();
   const category  = document.getElementById('yt-category').value;
 
-  if (!name || !channelId) { toast('⚠️ Nome e Channel ID obrigatórios.', 'error'); return; }
-  if (!channelId.startsWith('UC')) { toast('⚠️ Channel ID deve começar com UC...', 'error'); return; }
+  if (!channelId) { toast('⚠️ Cole o link ou o @ do canal.', 'error'); return; }
 
   const fd = new FormData();
   fd.append('name', name);

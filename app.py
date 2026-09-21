@@ -269,7 +269,7 @@ def allowed_file(filename):
 # Rotas Públicas
 # ──────────────────────────────────────────────
 WA_CHANNEL_URL = os.environ.get('WA_CHANNEL_URL', '')
-TV_STREAM_ID   = os.environ.get('TV_STREAM_ID', 'EKqjDNytTkw')   # SCC SBT 24h — fallback estático
+TV_STREAM_ID   = os.environ.get('TV_STREAM_ID', 'D9dBBE4dKeY')   # 20/set: Jovem Pan News 24h (a SCC SBT não transmite mais no YouTube — EKqjDNytTkw morreu)
 PORTAL_URL     = os.environ.get('PORTAL_URL', 'https://www.radioscnews.com.br')  # URL canônica do portal
 
 # ── Canais monitorados para detecção automática de live ──
@@ -3108,7 +3108,16 @@ def seed_youtube_channels():
         conn.commit()
         logger.info(f"YouTube: {len(CURATED_YT_CHANNELS)} canais pré-configurados inseridos.")
     else:
-        # ── Migrações cumulativas ──────────────────────────────────────────
+        # ── Migrações cumulativas — rodam UMA vez (20/set): antes, todo restart recolocava os
+        #    canais curados que o admin tinha apagado. Marcador no volume (DATA_DIR).
+        _mig_flag = os.path.join(os.environ.get('DATA_DIR', '.'), 'youtube_migracoes_v1.done')
+        if os.path.exists(_mig_flag):
+            conn.close()
+            return
+        try:
+            open(_mig_flag, 'w').write(datetime.now().isoformat())
+        except Exception:
+            pass
         changes = 0
 
         # 1. Remove canais problemáticos/substituídos
@@ -3165,6 +3174,35 @@ def seed_youtube_channels():
             conn.commit()
             logger.info(f"YouTube: {changes} mudança(s) aplicada(s) na migração.")
     conn.close()
+
+
+def _yt_resolve(entrada):
+    """20/set (pra quem vai operar o painel sem ser dev): aceita Channel ID (UC…), link do canal
+    (youtube.com/@fulano, /channel/UC…, /c/nome, /user/nome) ou só @fulano, e devolve
+    (channel_id, nome_do_canal ou None). None se não achar."""
+    import re as _re, requests as _req
+    e = (entrada or "").strip()
+    if _re.fullmatch(r"UC[\w-]{20,}", e):
+        return e, None
+    m = _re.search(r"/channel/(UC[\w-]{20,})", e)
+    if m:
+        return m.group(1), None
+    if e.startswith("http"):
+        url = e
+    else:
+        url = "https://www.youtube.com/" + (e if e.startswith("@") else "@" + e.lstrip("/"))
+    try:
+        r = _req.get(url, timeout=12, headers={"User-Agent": "Mozilla/5.0", "Accept-Language": "pt-BR,pt;q=0.9"})
+        html = r.text
+        m = (_re.search(r'"channelId":"(UC[\w-]{20,})"', html)
+             or _re.search(r'<meta itemprop="identifier" content="(UC[\w-]{20,})"', html)
+             or _re.search(r'youtube\.com/channel/(UC[\w-]{20,})', html))
+        if not m:
+            return None, None
+        t = _re.search(r'<meta property="og:title" content="([^"]{1,80})"', html)
+        return m.group(1), (t.group(1).strip() if t else None)
+    except Exception:
+        return None, None
 
 
 def fetch_yt_rss(channel_id, max_videos=5):
@@ -3649,10 +3687,17 @@ def admin_youtube_channels():
     if request.method == 'POST':
         data = request.form
         name       = data.get('name', '').strip()
-        channel_id = data.get('channel_id', '').strip()
+        entrada    = data.get('channel_id', '').strip()
         category   = data.get('category', 'geral').strip()
-        if not name or not channel_id:
-            return jsonify({'success': False, 'message': 'Nome e Channel ID obrigatórios.'}), 400
+        if not entrada:
+            return jsonify({'success': False, 'message': 'Cole o link ou o @ do canal.'}), 400
+        channel_id, nome_auto = _yt_resolve(entrada)
+        if not channel_id:
+            return jsonify({'success': False, 'message': 'Não achei esse canal. Cole o link completo '
+                                                          '(youtube.com/@nome) ou o Channel ID (UC…).'}), 400
+        name = name or nome_auto or channel_id
+        if not name:
+            return jsonify({'success': False, 'message': 'Nome do canal obrigatório.'}), 400
         conn = get_db()
         try:
             cur = conn.execute('''
