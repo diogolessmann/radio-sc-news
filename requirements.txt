@@ -12,3 +12,5 @@ edge-tts>=7.2.8
 aiohttp>=3.9.0,<4
 moviepy==1.0.3
 imageio-ffmpeg>=0.4.9
+
+tzdata>=2024.1   # zoneinfo America/Sao_Paulo no container (20/set)

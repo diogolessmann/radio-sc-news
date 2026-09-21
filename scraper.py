@@ -7,8 +7,13 @@ import json
 import requests
 from urllib.parse import quote
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timezone
 import sqlite3
+try:
+    from zoneinfo import ZoneInfo
+    _TZ_LOCAL = ZoneInfo('America/Sao_Paulo')
+except Exception:  # pragma: no cover
+    _TZ_LOCAL = None
 import logging
 import re
 import os
@@ -763,6 +768,8 @@ _BROWSER_HEADERS = {
 _IMG_BLOCK = [d.strip().lower() for d in
               os.environ.get("IMG_BLOCK_DOMAINS",
                              "ocp.news,schpost.com.br,metsul.com,defesacivil.sc.gov.br").split(",")
+              if d.strip()] + ["news.google.com", "gstatic.com", "googleusercontent.com"]
+_IMG_BLOCK = [d for d in _IMG_BLOCK
               if d.strip()]
 
 
@@ -778,6 +785,9 @@ def fetch_og_image(link):
     É a foto do PRÓPRIO portal da notícia que estamos reportando (uso jornalístico)."""
     if not link or not link.startswith(('http://', 'https://')):
         return None
+    # 20/set: link do Google News que não foi destravado -> a og:image é o logo do Google. Sem foto.
+    if 'news.google.com' in link:
+        return None
     try:
         r = requests.get(link, headers=_BROWSER_HEADERS, timeout=8, verify=True)
         r.raise_for_status()
@@ -786,7 +796,10 @@ def fetch_og_image(link):
                       {'name': 'twitter:image'}, {'name': 'twitter:image:src'}):
             tag = soup.find('meta', attrs=attrs)
             if tag and tag.get('content', '').strip().startswith(('http://', 'https://')):
-                return tag['content'].strip()
+                u = tag['content'].strip()
+                if any(d in u.lower() for d in ('gstatic.com', 'googleusercontent.com', 'google.com/')):
+                    return None
+                return u
     except Exception as e:
         logger.info(f"og:image falhou ({link[:50]}): {e}")
     return None
@@ -937,6 +950,8 @@ def fetch_feed(feed_config):
         if hasattr(entry, 'published_parsed') and entry.published_parsed:
             try:
                 published_dt = datetime(*entry.published_parsed[:6])
+                if _TZ_LOCAL is not None:   # feedparser entrega UTC; o site mostra hora do Vale
+                    published_dt = published_dt.replace(tzinfo=timezone.utc).astimezone(_TZ_LOCAL).replace(tzinfo=None)
                 published = published_dt.isoformat()
             except Exception:
                 pass

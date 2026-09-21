@@ -6,6 +6,15 @@ import os
 import re
 import sqlite3
 import logging
+# 20/set: o container do Railway roda em UTC -> datetime.now() ficava 3 h na frente do Vale
+# ('há -84min' no site, tudo URGENTE). Fixa o fuso do processo antes de qualquer import.
+if os.name != 'nt':   # no Windows o CRT lê TZ errado e vira UTC; lá o relógio já é local
+    os.environ.setdefault('TZ', 'America/Sao_Paulo')
+    try:
+        import time as _tz_time
+        _tz_time.tzset()
+    except Exception:
+        pass
 from datetime import datetime, timedelta
 from functools import wraps
 
@@ -236,6 +245,9 @@ def init_db():
         );
 
     ''')
+    # 20/set: cards com o logo do Google como foto (og:image de news.google.com) -> sem foto
+    conn.execute("UPDATE news SET image_url=NULL WHERE image_url LIKE '%gstatic.com%' "
+                 "OR image_url LIKE '%googleusercontent.com%' OR image_url LIKE '%news.google.com%'")
     conn.commit()
     conn.close()
     logger.info("Banco de dados inicializado.")
