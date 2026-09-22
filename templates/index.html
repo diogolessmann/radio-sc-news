@@ -5,6 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>📻 Rádio SC News — Norte de Santa Catarina</title>
 <meta name="description" content="Notícias em áudio do Norte de Santa Catarina — Schroeder, Jaraguá do Sul, Guaramirim e Joinville">
+<link rel="canonical" href="https://www.radioscnews.com.br/">
+<!-- 22/set: a home nao tinha canonical nem og:image. Todo compartilhamento no WhatsApp
+     saia sem foto, e sem max-image-preview o Google usa miniatura pequena. -->
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rádio SC News">
+<meta property="og:title" content="Rádio SC News — a notícia do Norte de Santa Catarina">
+<meta property="og:description" content="Notícias de Schroeder, Jaraguá do Sul, Guaramirim, Corupá e Joinville, atualizadas o dia todo e narradas em áudio.">
+<meta property="og:url" content="https://www.radioscnews.com.br/">
+<meta property="og:image" content="https://www.radioscnews.com.br/static/icon-512.png">
+<meta property="og:locale" content="pt_BR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Rádio SC News — a notícia do Norte de Santa Catarina">
+<meta name="twitter:image" content="https://www.radioscnews.com.br/static/icon-512.png">
 <!-- Google Analytics -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-WTJHFXDNF8"></script>
 <script>
@@ -21,6 +35,11 @@
 <meta name="apple-mobile-web-app-title" content="Rádio SC News">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"NewsMediaOrganization","@id":"https://www.radioscnews.com.br/#org","name":"Rádio SC News","url":"https://www.radioscnews.com.br/","logo":"https://www.radioscnews.com.br/static/icon-512.png","sameAs":["https://www.instagram.com/radiosc.news"],"areaServed":["Schroeder","Jaraguá do Sul","Guaramirim","Corupá","Joinville","Norte de Santa Catarina"]},{"@type":"WebSite","@id":"https://www.radioscnews.com.br/#site","url":"https://www.radioscnews.com.br/","name":"Rádio SC News","publisher":{"@id":"https://www.radioscnews.com.br/#org"},"inLanguage":"pt-BR"}]}</script>
+{% if home_noticias %}<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"ItemList","name":"Últimas notícias do Norte de Santa Catarina","numberOfItems":{{ home_noticias|length }},"itemListElement":[
+{% for n in home_noticias %}{"@type":"ListItem","position":{{ loop.index }},"url":"https://www.radioscnews.com.br/noticia/{{ n.id }}","name":{{ n.title|tojson }}}{{ "," if not loop.last }}
+{% endfor %}]}
+</script>{% endif %}
 <!-- Service Worker (PWA) -->
 <script>
   if ('serviceWorker' in navigator) {
@@ -2197,7 +2216,7 @@
 <header>
   <div class="header-top">
     <div class="logo-wrap">
-      <div class="logo-text">📻 Rádio SC News</div>
+      <h1 class="logo-text" style="margin:0;font:inherit;color:inherit;letter-spacing:inherit">📻 Rádio SC News</h1>
       <div class="logo-sub">Norte de Santa Catarina</div>
     </div>
     <div class="live-badge">
@@ -2669,7 +2688,25 @@
 </div>
 
 <div class="feed" id="feed">
+{#- 22/set: estas noticias sao escritas pelo SERVIDOR. Sem elas o Google recebia a home
+    com zero link de artigo — o feed inteiro vinha por JavaScript. O script do feed limpa
+    este bloco no primeiro load, entao quem tem JS ve exatamente o que via antes. -#}
+{% if home_noticias %}{% for n in home_noticias %}
+  <article class="pre-card" style="background:var(--card,#17171d);border-radius:14px;overflow:hidden;margin-bottom:14px">
+    {% if n.foto %}<img src="{{ n.foto }}" alt="{{ n.title }}" width="680" height="380"
+         loading="{{ 'eager' if loop.first else 'lazy' }}" decoding="async"
+         style="width:100%;height:auto;aspect-ratio:16/9;object-fit:cover;display:block">{% endif %}
+    <div style="padding:14px 16px 16px">
+      <span style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.65">{{ n.city or 'Norte de SC' }}{% if n.category %} · {{ n.category }}{% endif %}</span>
+      <h2 style="font-size:17px;line-height:1.3;margin:6px 0 8px">
+        <a href="/noticia/{{ n.id }}" style="color:inherit;text-decoration:none">{{ n.title }}</a>
+      </h2>
+      {% if n.summary %}<p style="font-size:14px;line-height:1.55;margin:0;opacity:.8">{{ n.summary }}</p>{% endif %}
+    </div>
+  </article>
+{% endfor %}{% else %}
   <div class="spinner">Carregando notícias...</div>
+{% endif %}
 </div>
 
 <button class="load-more-btn" id="loadMoreBtn" style="max-width:680px;margin:0 auto 16px;display:none" onclick="loadMore()">
@@ -3078,6 +3115,12 @@
     <div class="footer-anuncio">
       <h4>📢 Anuncie no Rádio SC News</h4>
       <p>Alcance milhares de pessoas da região. Entre em contato e faça sua marca ser ouvida!</p>
+      {#- 22/set: o rodape falava de anunciar e NAO linkava a pagina que fecha patrocinador.
+          Os outros links do rodape sao href="#" com JS, entao a home inteira tinha 1 link
+          rastreavel. Estes dois sao de verdade. -#}
+      <p style="margin-top:10px">
+        <a href="/anuncie" style="display:inline-block;background:#e74c3c;color:#fff;padding:9px 18px;border-radius:20px;font-weight:700;text-decoration:none;font-size:14px">Ver planos de patrocínio</a>
+      </p>
     </div>
     <div class="footer-grid">
       <div class="footer-col">
@@ -3086,6 +3129,12 @@
         <a href="#" onclick="setCity('Guaramirim');scrollToFeed();return false">🌿 Guaramirim</a>
         <a href="#" onclick="setCity('Jaraguá do Sul');scrollToFeed();return false">🏭 Jaraguá do Sul</a>
         <a href="#" onclick="setCity('Joinville');scrollToFeed();return false">🏙️ Joinville</a>
+      </div>
+      <div class="footer-col">
+        <h4>A Rádio</h4>
+        <a href="/">📻 Últimas notícias</a>
+        <a href="/anuncie">📢 Anuncie aqui</a>
+        <a href="/rss">📡 RSS do portal</a>
       </div>
       <div class="footer-col">
         <h4>Categorias</h4>
@@ -3622,7 +3671,9 @@ window.addEventListener('DOMContentLoaded', async () => {
   loadDeals();
   loadCounts();
   // Transmissões carregam só quando usuário clica no ícone
-  await loadNews(1);
+  // reset=true: o #feed agora nasce com as 12 notícias escritas pelo servidor (SEO).
+  // Sem o reset, o feed vivo seria APENDADO embaixo delas e a home mostraria repetido.
+  await loadNews(1, true);
   checkTutorial();
   initWhatsApp();
 

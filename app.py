@@ -390,11 +390,48 @@ def admin_check_live():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+def _home_noticias(limite=12):
+    """As noticias que o SERVIDOR escreve na home.
+
+    Ate 22/set a home saia com o feed vazio e o JavaScript preenchia depois, entao o Google
+    recebia uma pagina sem uma linha de noticia e sem um link pra artigo nenhum. Estas 12
+    entram no HTML; o JS substitui pelo feed vivo no primeiro load.
+    Mesma regra do /api/news: so ativa, com link, e esporte fora da home.
+    """
+    # SELECT * de proposito: title_own/resumo_own entraram depois e nem todo banco tem.
+    # Listar coluna a coluna faria a home cair pra zero noticia num banco antigo — foi
+    # exatamente o que aconteceu no teste. O /api/news usa a mesma tolerancia.
+    try:
+        conn = get_db()
+        rows = conn.execute("""
+            SELECT * FROM news
+            WHERE active = 1 AND link IS NOT NULL AND link != '' AND link LIKE 'http%'
+              AND category != 'esporte'
+            ORDER BY priority DESC, published_at DESC
+            LIMIT ?
+        """, (limite,)).fetchall()
+        conn.close()
+    except Exception as e:
+        # nunca silencioso: home sem noticia no HTML e defeito de SEO, nao detalhe
+        logger.warning('[home] nao consegui montar as noticias do servidor: %s', e)
+        return []
+    saida = []
+    for r in rows:
+        n = dict(r)
+        n['title'] = n.get('title_own') or n.get('title') or ''
+        n['summary'] = (n.get('resumo_own') or n.get('summary') or '')[:220]
+        n['foto'] = n.get('admin_image') or n.get('image_url') or ''
+        if n['title']:
+            saida.append(n)
+    return saida
+
+
 @app.route('/')
 def index():
     return render_template('index.html',
                            wa_channel=WA_CHANNEL_URL,
-                           tv_stream_id=TV_STREAM_ID)
+                           tv_stream_id=TV_STREAM_ID,
+                           home_noticias=_home_noticias())
 
 
 @app.route('/noticia/<int:news_id>')
@@ -452,7 +489,9 @@ def sitemap_xml():
         "SELECT id, published_at, created_at FROM news WHERE active=1 "
         "ORDER BY datetime(published_at) DESC LIMIT 1000").fetchall()
     conn.close()
-    urls = [f"<url><loc>{PORTAL_URL}/</loc><changefreq>hourly</changefreq></url>"]
+    # 22/set: a pagina que fecha patrocinador nao estava no sitemap.
+    urls = [f"<url><loc>{PORTAL_URL}/</loc><changefreq>hourly</changefreq></url>",
+            f"<url><loc>{PORTAL_URL}/anuncie</loc><changefreq>monthly</changefreq></url>"]
     for r in rows:
         lastmod = ((r['published_at'] or r['created_at'] or '')[:10])
         lm = f"<lastmod>{lastmod}</lastmod>" if lastmod else ""
@@ -1907,6 +1946,29 @@ def anuncie():
 _ANUNCIE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
 <title>Anuncie no Rádio SC News — o Norte de SC em 1 minuto</title>
+<meta name=description content="Anuncie para o Norte de Santa Catarina: Schroeder, Jaraguá do Sul, Guaramirim, Corupá e Joinville. Pacotes de patrocínio no portal, no áudio e no Instagram da Rádio SC News.">
+<link rel=canonical href="https://www.radioscnews.com.br/anuncie">
+<meta name=robots content="index, follow, max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Rádio SC News">
+<meta property="og:title" content="Anuncie no Rádio SC News">
+<meta property="og:description" content="Seu anúncio onde o Norte de SC se informa todo dia. Pacotes de patrocínio no portal, no áudio e no Instagram.">
+<meta property="og:url" content="https://www.radioscnews.com.br/anuncie">
+<meta property="og:image" content="https://www.radioscnews.com.br/static/anuncie.webp">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Anuncie no Rádio SC News",
+ "url":"https://www.radioscnews.com.br/anuncie",
+ "description":"Pacotes de patrocínio no portal, no áudio e no Instagram da Rádio SC News.",
+ "isPartOf":{"@type":"WebSite","name":"Rádio SC News","url":"https://www.radioscnews.com.br/"},
+ "about":{"@type":"Service","name":"Publicidade local no Norte de Santa Catarina",
+  "areaServed":["Schroeder","Jaraguá do Sul","Guaramirim","Corupá","Joinville"],
+  "provider":{"@type":"NewsMediaOrganization","name":"Rádio SC News",
+   "url":"https://www.radioscnews.com.br/"}},
+ "breadcrumb":{"@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"Rádio SC News","item":"https://www.radioscnews.com.br/"},
+  {"@type":"ListItem","position":2,"name":"Anuncie"}]}}
+</script>
 <style>
  body{background:#0f0f13;color:#eee;font-family:system-ui,Segoe UI,Arial;margin:0;line-height:1.55}
  .wrap{max-width:840px;margin:0 auto;padding:28px 22px}
@@ -1959,6 +2021,13 @@ _ANUNCIE_HTML = """<!doctype html><html lang=pt-br><head><meta charset=utf-8>
 
 <a class=cta href="{{wa}}">📲 Quero anunciar — falar agora</a>
 <div class=obs>Valores de lançamento — sobem conforme a audiência cresce. Pacotes personalizados sob consulta. Conteúdo pago identificado (#publi).</div>
+<!-- 22/set: a pagina era um beco: nenhum link levava de volta ao portal, nem pro leitor
+     nem pro rastreador. Agora fecha o circuito. -->
+<nav class=volta style="margin:34px 0 8px;padding-top:18px;border-top:1px solid #23232c;font-size:14px;color:#9a9cab">
+ <a href="/" style="color:#e74c3c;font-weight:700;text-decoration:none">← Rádio SC News</a>
+ <span style="opacity:.5"> · </span><a href="/" style="color:#9a9cab;text-decoration:none">Notícias do Norte de Santa Catarina</a>
+ <span style="opacity:.5"> · </span><a href="/rss" style="color:#9a9cab;text-decoration:none">RSS</a>
+</nav>
 </div></body></html>"""
 
 
