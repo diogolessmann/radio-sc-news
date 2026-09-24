@@ -2296,142 +2296,207 @@ def api_marca_testar():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/canal/done')
-def canal_done():
-    """Marca uma noticia como 'ja postada no Canal do WhatsApp'."""
-    if request.args.get('token', '') != _admin_pw_env:
-        return jsonify({'error': 'unauthorized'}), 403
-    try:
-        import distribuidor, sqlite3
-        from datetime import datetime as _dt
-        conn = distribuidor.get_db()
-        distribuidor.ensure_column(conn)
-        conn.execute("UPDATE news SET channel_posted_at=? WHERE id=?",
-                     (_dt.now().isoformat(timespec='seconds'), request.args.get('id')))
-        conn.commit()
-        conn.close()
-        return redirect(f"/canal?token={request.args.get('token')}")
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+# ============================================================================
+# 📲 CANAL DO WHATSAPP — central de postagem (24/set/2026)
+# O WhatsApp não tem API oficial para publicar em Canal. A central deixa tudo pronto e a
+# pessoa copia, cola e envia: uns 20 segundos por notícia e zero risco de bloqueio do número.
+# Refeita porque a de agosto (/canal?token=SENHA) punha a senha do admin na barra de endereço,
+# dependia do Instagram para ter conteúdo e usava o título cru da fonte.
+# ============================================================================
+
+def _canal_url():
+    """Link do Canal. O Railway usa WA_CHANNEL_URL; o distribuidor lia WHATSAPP_CHANNEL_URL
+    (que não existe) e por isso o botão antigo abria um link vazio."""
+    return (os.environ.get('WA_CHANNEL_URL') or os.environ.get('WHATSAPP_CHANNEL_URL') or '').strip()
 
 
-@app.route('/canal')
-def canal_central():
-    """Central do Canal: mensagens prontas (texto + midia) p/ colar no Canal do WhatsApp.
-       Acesso: /canal?token=SENHA"""
-    import html as _html
-    if request.args.get('token', '') != _admin_pw_env:
-        return "<h3>Acesso negado</h3>", 403
-    token = request.args.get('token')
+def _canal_itens(limite=30):
+    """As notícias mais novas ainda não enviadas ao Canal — com ou sem Instagram."""
     import distribuidor
     conn = distribuidor.get_db()
     distribuidor.ensure_column(conn)
-    pend = conn.execute(
-        "SELECT id, title, city, zap_text, social_media FROM news "
-        "WHERE zap_text IS NOT NULL AND zap_text!='' "
+    rows = conn.execute(
+        "SELECT * FROM news WHERE active=1 AND COALESCE(category,'')!='esporte' "
         "AND (channel_posted_at IS NULL OR channel_posted_at='') "
-        "ORDER BY social_posted_at DESC LIMIT 25"
-    ).fetchall()
+        "ORDER BY id DESC LIMIT ?", (limite,)).fetchall()
     feitos = conn.execute(
         "SELECT COUNT(*) FROM news WHERE channel_posted_at IS NOT NULL AND channel_posted_at!=''"
     ).fetchone()[0]
     conn.close()
+    itens = []
+    for r in rows:
+        n = dict(r)
+        titulo = (n.get('title_own') or n.get('title') or '').strip()
+        resumo = (n.get('resumo_own') or n.get('summary') or '').strip()
+        texto = (n.get('zap_text') or '').strip()
+        if not texto:
+            try:
+                # título NOSSO (o whatsapp_message lê news["title"], que é o cru da fonte)
+                texto = distribuidor.whatsapp_message(dict(n, title=titulo), resumo)
+            except Exception as e:
+                logger.warning('[canal] não montei o texto da notícia #%s: %s', n.get('id'), e)
+                continue
+        midia = (n.get('social_media') or '').strip()
+        itens.append({'id': n['id'], 'titulo': titulo, 'cidade': n.get('city') or '',
+                      'texto': texto, 'midia': midia})
+    return itens, feitos
 
-    canal_url = distribuidor.WHATSAPP_CHANNEL
+
+@app.route('/canal')
+@app.route('/canal/done')
+def canal_antigo():
+    """Endereços de agosto, que levavam a senha na URL. Agora a central fica no painel."""
+    return redirect('/admin/canal')
+
+
+@app.route('/admin/canal/postei', methods=['POST'])
+@login_required
+def admin_canal_postei():
+    """Marca a notícia como enviada ao Canal (sai da lista)."""
+    try:
+        import distribuidor
+        from datetime import datetime as _dt
+        nid = int(request.form.get('id', '0'))
+        conn = distribuidor.get_db()
+        distribuidor.ensure_column(conn)
+        conn.execute("UPDATE news SET channel_posted_at=? WHERE id=?",
+                     (_dt.now().isoformat(timespec='seconds'), nid))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        logger.error('[canal] não marquei como enviada: %s', e)
+    return redirect('/admin/canal#topo')
+
+
+@app.route('/admin/canal')
+@login_required
+def admin_canal():
+    """Central do Canal do WhatsApp: copia o texto, abre o Canal, cola, envia, marca."""
+    import html as _h
+    import json as _json
+    itens, feitos = _canal_itens()
+    canal = _canal_url()
     cards = []
 
-    # card fixo do Bom dia, Vale (se gerado hoje)
+    # card do Bom dia, Vale, quando existir
     try:
-        import json, os as _os
-        bj = _os.path.join("static", "social", "bomdia_latest.json")
-        if _os.path.exists(bj):
-            with open(bj, encoding="utf-8") as f:
-                bd = json.load(f)
-            bzap = _html.escape(bd.get("zap", ""))
-            bmedia = bd.get("media", "")
-            cards.append(f"""
-            <div class="card" style="border-color:#f5c518">
-              <div class="cidade">☀️ BOM DIA, VALE — {_html.escape(bd.get('data',''))}</div>
-              <div class="media"><img src="{bmedia}" style="max-width:100%;border-radius:10px" onerror="this.style.display='none'"></div>
-              <textarea id="tbd" readonly>{bzap}</textarea>
-              <div class="row">
-                <button class="btn" onclick="copiar('bd')">📋 Copiar texto</button>
-                <a class="btn ghost" href="{bmedia}" download target="_blank">⬇️ Baixar mídia</a>
-              </div>
-            </div>""")
-    except Exception:
-        pass
+        bj = os.path.join('static', 'social', 'bomdia_latest.json')
+        if os.path.exists(bj):
+            with open(bj, encoding='utf-8') as f:
+                bd = _json.load(f)
+            if bd.get('zap'):
+                bmid = bd.get('media', '')
+                cards.append(
+                    '<article class="card bomdia"><div class="cid">☀️ Bom dia, Vale · %s</div>'
+                    '%s<textarea id="tbd" readonly>%s</textarea>'
+                    '<div class="row"><button class="btn" onclick="copiar(\'bd\')">📋 Copiar texto</button>'
+                    '<button class="btn gh share" onclick="compartilhar(\'bd\')">📤 Compartilhar</button>'
+                    '%s</div></article>' % (
+                        _h.escape(bd.get('data', '')),
+                        ('<img class="mid" src="%s" alt="" loading="lazy">' % _h.escape(bmid)) if bmid else '',
+                        _h.escape(bd.get('zap', '')),
+                        ('<a class="btn gh" href="%s" download rel="noopener noreferrer">⬇️ Baixar arte</a>'
+                         % _h.escape(bmid)) if bmid else ''))
+    except Exception as e:
+        logger.warning('[canal] bom dia indisponível: %s', e)
 
-    for r in pend:
-        zap = _html.escape(r["zap_text"] or "")
-        media = r["social_media"] or ""
-        is_video = media.lower().endswith(".mp4")
-        thumb = (f'<video src="{media}" controls style="max-width:100%;border-radius:10px"></video>'
-                 if is_video else
-                 f'<img src="{media}" style="max-width:100%;border-radius:10px" '
-                 f'onerror="this.style.display=\'none\'">')
-        if is_video:
-            thumb += ('<div style="color:#a8aab4;font-size:13px;margin-top:6px">'
-                      '🎵 Este vídeo serve pro <b>Canal do WhatsApp</b> E pro <b>TikTok</b> '
-                      '— baixe e poste nos dois.</div>')
-        baixar = (f'<a class="btn ghost" href="{media}" download target="_blank">⬇️ Baixar '
-                  f'{"(Canal + TikTok)" if is_video else "mídia"}</a>') if media else ""
-        cards.append(f"""
-        <div class="card">
-          <div class="cidade">📍 {_html.escape(r['city'] or '')}</div>
-          <h3>{_html.escape(r['title'] or '')}</h3>
-          <div class="media">{thumb}</div>
-          <textarea id="t{r['id']}" readonly>{zap}</textarea>
-          <div class="row">
-            <button class="btn" onclick="copiar({r['id']})">📋 Copiar texto</button>
-            {baixar}
-            <a class="btn done" href="/canal/done?token={token}&id={r['id']}">✅ Já postei</a>
-          </div>
-        </div>""")
+    for it in itens:
+        mid = it['midia']
+        video = mid.lower().endswith('.mp4')
+        if mid:
+            vis = ('<video class="mid" src="%s" controls preload="none"></video>' if video
+                   else '<img class="mid" src="%s" alt="" loading="lazy">') % _h.escape(mid)
+            baixar = ('<a class="btn gh" href="%s" download rel="noopener noreferrer">⬇️ Baixar %s</a>'
+                      % (_h.escape(mid), 'vídeo' if video else 'arte'))
+        else:
+            vis = ('<div class="dica">🖼️ Sem arte? Tudo bem: o link no fim do texto gera a prévia '
+                   'com foto sozinho quando você cola no WhatsApp.</div>')
+            baixar = ''
+        cards.append(
+            '<article class="card"><div class="cid">📍 %s</div><h3>%s</h3>%s'
+            '<textarea id="t%d" readonly>%s</textarea>'
+            '<div class="row">'
+            '<button class="btn" onclick="copiar(%d)">📋 Copiar texto</button>'
+            '<button class="btn gh share" onclick="compartilhar(%d)">📤 Compartilhar</button>'
+            '%s'
+            '<form method="post" action="/admin/canal/postei" style="display:inline">'
+            '<input type="hidden" name="id" value="%d">'
+            '<button class="btn ok">✅ Já postei</button></form>'
+            '</div></article>' % (
+                _h.escape(it['cidade']), _h.escape(it['titulo']), vis, it['id'],
+                _h.escape(it['texto']), it['id'], it['id'], baixar, it['id']))
 
-    body = "".join(cards) or '<p class="vazio">🎉 Tudo postado no Canal! Nada pendente.</p>'
-    pagina = f"""<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Central do Canal — Rádio SC News</title>
-    <style>
-      :root{{--red:#e74c3c;--gold:#f5c518;--bg:#111218;--card:#1b1d26;--muted:#a8aab4}}
-      *{{box-sizing:border-box}} body{{margin:0;background:var(--bg);color:#eee;
-        font-family:-apple-system,Segoe UI,Roboto,sans-serif;padding:16px;max-width:680px;margin:auto}}
-      header{{position:sticky;top:0;background:var(--bg);padding:10px 0 14px;border-bottom:1px solid #2a2d3a}}
-      h1{{font-size:20px;margin:0}} .sub{{color:var(--muted);font-size:13px;margin-top:4px}}
-      .abrir{{display:inline-block;margin-top:10px;background:#25D366;color:#053;
-        padding:10px 14px;border-radius:10px;text-decoration:none;font-weight:700}}
-      .card{{background:var(--card);border-radius:14px;padding:14px;margin:14px 0;border:1px solid #2a2d3a}}
-      .cidade{{color:var(--gold);font-size:13px;font-weight:700}}
-      h3{{font-size:16px;margin:6px 0 10px}}
-      textarea{{width:100%;min-height:130px;background:#0d0e13;color:#eee;border:1px solid #2a2d3a;
-        border-radius:10px;padding:10px;font-size:14px;resize:vertical}}
-      .media{{margin:6px 0 10px}} .row{{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}}
-      .btn{{background:var(--red);color:#fff;border:0;padding:11px 14px;border-radius:10px;
-        font-weight:700;cursor:pointer;text-decoration:none;font-size:14px;display:inline-block}}
-      .btn.ghost{{background:#2a2d3a}} .btn.done{{background:#2e7d32}}
-      .vazio{{text-align:center;color:var(--muted);padding:40px}}
-      .ok{{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2e7d32;
-        color:#fff;padding:12px 18px;border-radius:10px;opacity:0;transition:.3s;pointer-events:none}}
-      .ok.show{{opacity:1}}
-    </style></head><body>
-    <header>
-      <h1>📲 Central do Canal</h1>
-      <div class="sub">Copie o texto → abra o Canal → cole + anexe a mídia. ({len(pend)} pendente(s) · {feitos} já enviados)</div>
-      <a class="abrir" href="{canal_url}" target="_blank">➡️ Abrir o Canal do WhatsApp</a>
-    </header>
-    {body}
-    <div class="ok" id="ok">✅ Texto copiado!</div>
-    <script>
-      function copiar(id){{
-        var t=document.getElementById('t'+id);
-        navigator.clipboard.writeText(t.value).then(function(){{
-          var o=document.getElementById('ok'); o.classList.add('show');
-          setTimeout(function(){{o.classList.remove('show')}},1500);
-        }});
-      }}
-    </script></body></html>"""
-    return pagina
+    corpo = ''.join(cards) or ('<p class="vazio">🎉 Nada pendente. As notícias novas aparecem '
+                               'aqui sozinhas, conforme o site recebe.</p>')
+    abrir = ('<a class="abrir" href="%s" target="_blank" rel="noopener noreferrer">➡️ Abrir o Canal</a>'
+             % _h.escape(canal)) if canal else (
+             '<div class="aviso">⚠️ Falta o link do Canal: cadastre <b>WA_CHANNEL_URL</b> no Railway.</div>')
+
+    return f"""<!doctype html><html lang="pt-br"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Canal do WhatsApp · Rádio SC News</title>
+<style>
+:root{{--bg:#111218;--card:#1b1d26;--line:#2a2d3a;--mut:#a8aab4;--zap:#25D366;--red:#e74c3c;--gold:#f5c518}}
+*{{box-sizing:border-box}}
+body{{margin:0 auto;max-width:680px;padding:0 16px 40px;background:var(--bg);color:#eee;
+  font-family:-apple-system,Segoe UI,Roboto,sans-serif}}
+header{{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 0;border-bottom:1px solid var(--line)}}
+h1{{font-size:20px;margin:0}} .sub{{color:var(--mut);font-size:13px;margin:4px 0 10px}}
+.volta{{color:var(--mut);font-size:13px;text-decoration:none}}
+.passos{{color:#ddd;font-size:14px;line-height:1.5;margin:8px 0 12px}}
+.abrir{{display:inline-block;background:var(--zap);color:#053;padding:12px 16px;border-radius:12px;
+  text-decoration:none;font-weight:800;min-height:44px}}
+.aviso{{background:#3a1a1a;border:1px solid #f43;color:#faa;border-radius:10px;padding:10px 12px;font-size:13px}}
+.card{{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin:14px 0}}
+.card.bomdia{{border-color:var(--gold)}}
+.cid{{color:var(--gold);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}}
+h3{{font-size:16px;line-height:1.35;margin:6px 0 10px}}
+.mid{{width:100%;border-radius:10px;margin:0 0 10px;display:block}}
+.dica{{color:var(--mut);font-size:13px;margin:0 0 10px}}
+textarea{{width:100%;min-height:140px;background:#0d0e13;color:#eee;border:1px solid var(--line);
+  border-radius:10px;padding:10px;font-size:14px;line-height:1.45;resize:vertical}}
+.row{{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}}
+.btn{{background:var(--red);color:#fff;border:0;padding:12px 14px;border-radius:10px;font-weight:700;
+  font-size:14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;min-height:44px}}
+.btn.gh{{background:#2a2d3a}} .btn.ok{{background:#2e7d32}}
+.btn:focus-visible,.abrir:focus-visible{{outline:3px solid var(--gold);outline-offset:2px}}
+.share{{display:none}}
+.vazio{{text-align:center;color:var(--mut);padding:40px 0}}
+.toast{{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#2e7d32;color:#fff;
+  padding:12px 18px;border-radius:10px;opacity:0;transition:.25s;pointer-events:none}}
+.toast.on{{opacity:1}}
+</style></head><body>
+<header id="topo">
+  <a class="volta" href="/admin">← Painel</a>
+  <h1>📲 Canal do WhatsApp</h1>
+  <div class="sub">{len(itens)} notícia(s) pronta(s) · {feitos} já enviada(s) ao Canal</div>
+  <div class="passos">1. Toque em <b>Copiar texto</b> · 2. <b>Abrir o Canal</b> · 3. cole e envie ·
+    4. volte e toque em <b>Já postei</b>.</div>
+  {abrir}
+</header>
+{corpo}
+<div class="toast" id="toast">✅ Texto copiado</div>
+<script>
+function aviso(m){{var t=document.getElementById('toast');t.textContent=m;t.classList.add('on');
+  setTimeout(function(){{t.classList.remove('on')}},1600)}}
+function copiar(id){{
+  var t=document.getElementById('t'+id);
+  if(navigator.clipboard&&window.isSecureContext){{
+    navigator.clipboard.writeText(t.value).then(function(){{aviso('✅ Texto copiado')}},function(){{velho(t)}});
+  }}else{{velho(t)}}
+}}
+function velho(t){{t.removeAttribute('readonly');t.select();t.setSelectionRange(0,99999);
+  try{{document.execCommand('copy');aviso('✅ Texto copiado')}}catch(e){{aviso('Selecione e copie')}}
+  t.setAttribute('readonly','')}}
+function compartilhar(id){{
+  var t=document.getElementById('t'+id);
+  navigator.share({{text:t.value}}).catch(function(){{}});
+}}
+if(navigator.share){{document.querySelectorAll('.share').forEach(function(b){{b.style.display='inline-flex'}})}}
+</script>
+</body></html>"""
 
 
 @app.route('/revisar/aprovar')
