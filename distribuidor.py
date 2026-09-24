@@ -1296,7 +1296,15 @@ def _meta_ready():
 
 
 def _graph_post(url, data, tries=2):
-    """POST na Graph API mostrando o ERRO DETALHADO da Meta (nao so o status)."""
+    """POST na Graph API mostrando o ERRO DETALHADO da Meta (nao so o status).
+
+    24/set — TRAVA DURA NA PORTA DE SAIDA. Toda publicacao do motor (noticia, reels, clima,
+    urgente, bom dia, enquete, versiculo, marcas) termina aqui. Antes, cada job checava
+    SOCIAL_AUTOPOST por conta propria: 35 caminhos, e bastava um esquecer pra continuar
+    postando depois de "desligado". Agora a trava e uma so e vale por construcao.
+    Para publicar de novo: SOCIAL_AUTOPOST=1 no ambiente."""
+    if os.environ.get("SOCIAL_AUTOPOST", "0") != "1":
+        raise RuntimeError("SOCIAL_AUTOPOST desligado — publicacao bloqueada na porta de saida")
     last = ""
     for _ in range(tries):
         r = requests.post(url, data=data, timeout=60)
