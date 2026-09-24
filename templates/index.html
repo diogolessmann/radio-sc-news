@@ -3144,68 +3144,8 @@
         <a href="#" onclick="setCat('clima');scrollToFeed();return false">🌧️ Clima</a>
       </div>
     </div>
-    <!-- ── CARROSSEL ROTATIVO DE PARCEIROS ── (3 marcas da casa, 01/set/2026) -->
-    <div style="margin-bottom:20px;">
-      <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:var(--text2);text-transform:uppercase;margin-bottom:8px;padding:0 2px;">✦ Parceiros</div>
-      <div id="sc-carousel" style="position:relative;overflow:hidden;border-radius:16px;">
-        <div id="sc-track" style="display:flex;width:300%;transition:transform .5s cubic-bezier(.4,0,.2,1);">
-
-          <a href="https://www.dldespachante.com.br" target="_blank" style="width:33.3333%;flex-shrink:0;text-decoration:none;">
-            <div class="sc-slide-inner" style="border-radius:16px;overflow:hidden;position:relative;min-height:160px;background:#b8860b;">
-              <img src="/static/banner-despachante.jpg?v=1" class="sc-banner-img" style="object-position:left center;" onerror="this.style.display='none'">
-              <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-end;">
-                <div style="font-size:11px;color:rgba(255,255,255,.85);">🚗 IPVA · Licenciamento · Multas · SC</div>
-                <div style="background:linear-gradient(135deg,#b8860b,#d4a017);color:#fff;font-size:11px;font-weight:800;padding:5px 10px;border-radius:7px;white-space:nowrap;">Falar agora →</div>
-              </div>
-            </div>
-          </a>
-
-          <a href="https://www.dldespachante.com.br/defesas" target="_blank" style="width:33.3333%;flex-shrink:0;text-decoration:none;">
-            <div class="sc-slide-inner" style="border-radius:16px;overflow:hidden;position:relative;min-height:160px;background:#7f1d1d;">
-              <img src="/static/banner-defesas.jpg?v=1" class="sc-banner-img" onerror="this.style.display='none'">
-              <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-end;">
-                <div style="font-size:11px;color:rgba(255,255,255,.85);">⚖️ Multa? CNH? Análise gratuita</div>
-                <div style="background:linear-gradient(135deg,#b91c1c,#ef4444);color:#fff;font-size:11px;font-weight:800;padding:5px 10px;border-radius:7px;white-space:nowrap;">Recorrer →</div>
-              </div>
-            </div>
-          </a>
-
-          <a href="https://www.dldespachante.com.br/mobilidade" target="_blank" style="width:33.3333%;flex-shrink:0;text-decoration:none;">
-            <div class="sc-slide-inner" style="border-radius:16px;overflow:hidden;position:relative;min-height:160px;background:#14532d;">
-              <img src="/static/banner-dlmob.jpg?v=1" class="sc-banner-img" onerror="this.style.display='none'">
-              <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:10px 14px;display:flex;justify-content:space-between;align-items:flex-end;">
-                <div style="font-size:11px;color:rgba(255,255,255,.85);">🛵 Sem CNH · até 48x ViaCredi</div>
-                <div style="background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;font-size:11px;font-weight:800;padding:5px 10px;border-radius:7px;white-space:nowrap;">Test-ride →</div>
-              </div>
-            </div>
-          </a>
-
-        </div>
-        <!-- Dots -->
-        <div id="sc-dots" style="display:flex;justify-content:center;gap:6px;padding:8px 0 4px;">
-          <button onclick="scGoTo(0)" style="width:7px;height:7px;border-radius:50%;border:none;background:#fff;opacity:.9;cursor:pointer;padding:0;transform:scale(1.3);transition:all .2s;"></button>
-          <button onclick="scGoTo(1)" style="width:7px;height:7px;border-radius:50%;border:none;background:#fff;opacity:.3;cursor:pointer;padding:0;transition:all .2s;"></button>
-          <button onclick="scGoTo(2)" style="width:7px;height:7px;border-radius:50%;border:none;background:#fff;opacity:.3;cursor:pointer;padding:0;transition:all .2s;"></button>
-        </div>
-      </div>
-    </div>
-    <script>
-    (function(){
-      let cur = 0;
-      const total = 3;
-      const track = document.getElementById('sc-track');
-      const dots = document.querySelectorAll('#sc-dots button');
-      window.scGoTo = function(n) {
-        cur = n;
-        track.style.transform = 'translateX(-' + (cur * 33.3333) + '%)';
-        dots.forEach(function(d, i) {
-          d.style.opacity = i === cur ? '.9' : '.3';
-          d.style.transform = i === cur ? 'scale(1.3)' : 'scale(1)';
-        });
-      };
-      setInterval(function(){ window.scGoTo((cur + 1) % total); }, 5000);
-    })();
-    </script>
+    {#- 24/set/26: carrossel de parceiros (Despachante, Defesas, DL Mobilidade) removido —
+        a Rádio foi vendida e essas marcas não são dela. -#}
 
     <div class="footer-bottom">
       © 2026 Rádio SC News · Norte de Santa Catarina · Todos os direitos reservados
@@ -3977,10 +3917,6 @@ async function loadNews(page=1, reset=false) {
         if (allAds.length > 0 && adIndex > 0 && adIndex % adInsertEvery === 0) {
           feed.appendChild(buildAdCard(allAds[Math.floor(adIndex/adInsertEvery-1) % allAds.length]));
         }
-        // Injeta carrossel rotativo após a 3ª notícia (apenas 1x por carregamento inicial)
-        if (adIndex === 3 && page === 1) {
-          feed.appendChild(buildRotatingBanner());
-        }
         feed.appendChild(buildNewsCard(n));
         adIndex++;
       });
@@ -3997,59 +3933,8 @@ async function loadNews(page=1, reset=false) {
 
 function loadMore() { if (hasMore && !isLoading) loadNews(currentPage + 1); }
 
-function buildRotatingBanner() {
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'width:100%;margin-bottom:4px;';
-  const uid = 'rc-' + Math.random().toString(36).slice(2,7);
-  const mob = window.innerWidth <= 599;
-  wrap.innerHTML = `
-    <div style="font-size:10px;font-weight:700;letter-spacing:.08em;color:#666;text-transform:uppercase;margin-bottom:6px;">✦ Parceiros</div>
-    <div id="${uid}-car" style="position:relative;overflow:hidden;border-radius:16px;">
-      <div id="${uid}-trk" style="display:flex;width:300%;transition:transform .5s cubic-bezier(.4,0,.2,1);">
-        <a href="https://www.dldespachante.com.br" target="_blank" style="width:33.3333%;flex-shrink:0;text-decoration:none;">
-          <div style="border-radius:16px;overflow:hidden;position:relative;min-height:130px;">
-            <img src="${mob ? '/static/banner-despachante-mobile.jpg?v=2' : '/static/banner-despachante.jpg?v=3'}" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
-            <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:8px 12px;display:flex;justify-content:space-between;align-items:flex-end;">
-              <div style="font-size:10px;color:rgba(255,255,255,.85);">🚗 IPVA · Licenciamento · SC</div>
-              <div style="background:linear-gradient(135deg,#b8860b,#d4a017);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:6px;white-space:nowrap;">Falar agora →</div>
-            </div>
-          </div>
-        </a>
-        <a href="https://www.dldespachante.com.br/defesas" target="_blank" style="width:33.3333%;flex-shrink:0;text-decoration:none;">
-          <div style="border-radius:16px;overflow:hidden;position:relative;min-height:130px;background:#7f1d1d;">
-            <img src="/static/banner-defesas.jpg?v=1" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
-            <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:8px 12px;display:flex;justify-content:space-between;align-items:flex-end;">
-              <div style="font-size:10px;color:rgba(255,255,255,.85);">⚖️ Multa? CNH? Análise gratuita</div>
-              <div style="background:linear-gradient(135deg,#b91c1c,#ef4444);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:6px;white-space:nowrap;">Recorrer →</div>
-            </div>
-          </div>
-        </a>
-        <a href="https://www.dldespachante.com.br/mobilidade" target="_blank" style="width:33.3333%;flex-shrink:0;text-decoration:none;">
-          <div style="border-radius:16px;overflow:hidden;position:relative;min-height:130px;background:#14532d;">
-            <img src="/static/banner-dlmob.jpg?v=1" style="width:100%;height:130px;object-fit:cover;object-position:left center;display:block;" onerror="this.style.display='none'">
-            <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));padding:8px 12px;display:flex;justify-content:space-between;align-items:flex-end;">
-              <div style="font-size:10px;color:rgba(255,255,255,.85);">🛵 Sem CNH · até 48x ViaCredi</div>
-              <div style="background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;font-size:10px;font-weight:800;padding:4px 9px;border-radius:6px;white-space:nowrap;">Test-ride →</div>
-            </div>
-          </div>
-        </a>
-      </div>
-      <div id="${uid}-dots" style="display:flex;justify-content:center;gap:5px;padding:7px 0 3px;">
-        <button style="width:7px;height:7px;border-radius:50%;border:none;background:#fff;opacity:.9;cursor:pointer;padding:0;transform:scale(1.3);transition:all .2s;"></button>
-        <button style="width:7px;height:7px;border-radius:50%;border:none;background:#fff;opacity:.3;cursor:pointer;padding:0;transition:all .2s;"></button>
-        <button style="width:7px;height:7px;border-radius:50%;border:none;background:#fff;opacity:.3;cursor:pointer;padding:0;transition:all .2s;"></button>
-      </div>
-    </div>`;
-  setTimeout(function(){
-    let c = 0;
-    const trk = document.getElementById(uid+'-trk');
-    const dts = document.querySelectorAll('#'+uid+'-dots button');
-    dts.forEach(function(d,i){ d.onclick = function(){ go(i); }; });
-    function go(n){ c=n; trk.style.transform='translateX(-'+(c*33.3333)+'%)'; dts.forEach(function(d,i){ d.style.opacity=i===c?'.9':'.3'; d.style.transform=i===c?'scale(1.3)':'scale(1)'; }); }
-    setInterval(function(){ go((c+1)%3); }, 5000);
-  }, 100);
-  return wrap;
-}
+// 24/set/26: buildRotatingBanner() removida — injetava os banners das marcas do Diogo
+// (Despachante, Defesas, DL Mobilidade) no meio do feed. A Rádio foi vendida.
 
 // ── CARD BUILDERS ──
 function formatTime(iso) {
